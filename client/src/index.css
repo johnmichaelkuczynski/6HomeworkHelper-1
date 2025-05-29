@@ -2,6 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Print styles for PDF export */
+@media print {
+  @page {
+    margin: 0.75in;
+    size: letter;
+  }
+
+  /* Hide everything except the solution content */
+  body * {
+    visibility: hidden !important;
+  }
+  
+  /* Show only the math content */
+  .math-content, .math-content * {
+    visibility: visible !important;
+  }
+  
+  /* Position and style the solution content for printing */
+  .math-content {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    background: white !important;
+    color: black !important;
+    font-family: 'Times New Roman', serif !important;
+    font-size: 14pt !important;
+    line-height: 1.8 !important;
+    padding: 40px !important;
+    margin: 0 !important;
+  }
+  
+  /* Format paragraphs and line breaks properly */
+  .math-content div {
+    margin-bottom: 16px !important;
+    page-break-inside: avoid !important;
+  }
+  
+  /* Hide all buttons and UI elements */
+  button, nav, header, .print-hide {
+    display: none !important;
+  }
+}
+
 :root {
       --background: 0 0% 100%;
 --foreground: 20 14.3% 4.1%;
