@@ -29,7 +29,7 @@ export default function HomeworkAssistant() {
   const [selectedProvider, setSelectedProvider] = useState('anthropic');
   const [inputText, setInputText] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
-  const [userEmail, setUserEmail] = useState('');
+  const [userEmail, setUserEmail] = useState('jm@analyticphilosophy.ai');
   const [isEmailSending, setIsEmailSending] = useState(false);
   const { toast } = useToast();
   
