@@ -211,7 +211,6 @@ export default function HomeworkAssistant() {
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
-
                   <Button
                     variant="ghost"
                     size="sm"
