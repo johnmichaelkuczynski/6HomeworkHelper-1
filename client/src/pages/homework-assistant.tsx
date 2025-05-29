@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -412,7 +413,7 @@ ${fullResponse.slice(-1000)}...`;
     },
   });
 
-  const { data: allAssignments } = useQuery({
+  const { data: allAssignments } = useQuery<any[]>({
     queryKey: ['/api/assignments'],
     enabled: true
   });
@@ -632,7 +633,7 @@ ${fullResponse.slice(-1000)}...`;
                     value={selectedSavedAssignment} 
                     onValueChange={(value) => {
                       setSelectedSavedAssignment(value);
-                      const assignment = allAssignments.find((a: any) => a.id.toString() === value);
+                      const assignment = allAssignments?.find((a: any) => a.id.toString() === value);
                       if (assignment) {
                         setInputText(assignment.inputText || assignment.extractedText || '');
                         setCurrentAssignmentName(assignment.fileName || 'Loaded Assignment');
