@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,8 +36,23 @@ export default function HomeworkAssistant() {
   const [chunkProgress, setChunkProgress] = useState({ current: 0, total: 0 });
   const [accumulatedContent, setAccumulatedContent] = useState("");
   const [selectedSavedAssignment, setSelectedSavedAssignment] = useState("");
+  const [savedAssignments, setSavedAssignments] = useState<{[key: string]: string}>({});
+  const [assignmentName, setAssignmentName] = useState("");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   const { toast } = useToast();
+
+  // Load saved assignments from localStorage on component mount
+  useEffect(() => {
+    const saved = localStorage.getItem('savedAssignments');
+    if (saved) {
+      try {
+        setSavedAssignments(JSON.parse(saved));
+      } catch (e) {
+        console.error('Failed to parse saved assignments:', e);
+      }
+    }
+  }, []);
 
   // Word count function
   const calculateWordCount = (text: string) => {
@@ -598,6 +613,66 @@ ${fullResponse.slice(-1000)}...`;
     setSpecialInstructions("");
   };
 
+  // Save assignment to localStorage
+  const saveAssignment = () => {
+    if (!inputText.trim()) {
+      toast({
+        title: "Nothing to save",
+        description: "Please enter some text first",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowSaveDialog(true);
+  };
+
+  const confirmSave = () => {
+    if (!assignmentName.trim()) {
+      toast({
+        title: "Name required",
+        description: "Please enter a name for this assignment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updated = { ...savedAssignments, [assignmentName]: inputText };
+    setSavedAssignments(updated);
+    localStorage.setItem('savedAssignments', JSON.stringify(updated));
+    
+    toast({
+      title: "Assignment saved",
+      description: `Saved as "${assignmentName}"`,
+    });
+    
+    setShowSaveDialog(false);
+    setAssignmentName("");
+  };
+
+  // Load assignment from saved list
+  const loadAssignment = (name: string) => {
+    if (savedAssignments[name]) {
+      setInputText(savedAssignments[name]);
+      toast({
+        title: "Assignment loaded",
+        description: `Loaded "${name}"`,
+      });
+    }
+  };
+
+  // Delete saved assignment
+  const deleteAssignment = (name: string) => {
+    const updated = { ...savedAssignments };
+    delete updated[name];
+    setSavedAssignments(updated);
+    localStorage.setItem('savedAssignments', JSON.stringify(updated));
+    
+    toast({
+      title: "Assignment deleted",
+      description: `Deleted "${name}"`,
+    });
+  };
+
   const getProviderDisplayName = (provider: string) => {
     switch (provider) {
       case "anthropic": return "Claude (Anthropic)";
@@ -648,34 +723,41 @@ ${fullResponse.slice(-1000)}...`;
             <div className="p-6 space-y-6">
               <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
               
-              {/* Load Saved Assignment */}
-              {allAssignments && Array.isArray(allAssignments) && allAssignments.length > 0 && (
+              {/* Saved Assignments */}
+              {Object.keys(savedAssignments).length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
-                    Load Previous Assignment
+                    Load Saved Assignment
                   </label>
                   <Select 
                     value={selectedSavedAssignment} 
                     onValueChange={(value) => {
                       setSelectedSavedAssignment(value);
-                      const assignment = allAssignments?.find((a: any) => a.id.toString() === value);
-                      if (assignment) {
-                        setInputText(assignment.inputText || assignment.extractedText || '');
-                        setCurrentAssignmentName(assignment.fileName || 'Loaded Assignment');
-                        toast({
-                          title: "Assignment loaded",
-                          description: "Previous assignment has been loaded for reuse",
-                        });
+                      if (value) {
+                        loadAssignment(value);
                       }
                     }}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select a previous assignment to reuse..." />
+                      <SelectValue placeholder="Select a saved assignment..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {allAssignments.map((assignment: any) => (
-                        <SelectItem key={assignment.id} value={assignment.id.toString()}>
-                          {assignment.fileName || assignment.inputText?.substring(0, 60) + '...' || `Assignment ${assignment.id}`}
+                      {Object.keys(savedAssignments).map((name) => (
+                        <SelectItem key={name} value={name}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{name}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteAssignment(name);
+                              }}
+                              className="ml-2 h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -793,24 +875,36 @@ ${fullResponse.slice(-1000)}...`;
             </div>
 
             <div className="p-6 mt-auto">
-              <Button 
-                onClick={handleProcessText}
-                disabled={isProcessing}
-                className="w-full"
-                size="lg"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Solve This Problem
-                  </>
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={saveAssignment}
+                  disabled={!inputText.trim()}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Assignment
+                </Button>
+                <Button 
+                  onClick={handleProcessText}
+                  disabled={isProcessing}
+                  className="flex-1"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Solve This Problem
+                    </>
+                  )}
+                </Button>
+              </div>
               
               <div className="mt-3 text-center">
                 <p className="text-xs text-slate-500">
