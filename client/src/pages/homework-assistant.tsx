@@ -190,26 +190,10 @@ export default function HomeworkAssistant() {
   const handleLoadAssignment = async (id: number) => {
     try {
       const assignment = await getAssignment(id);
-      // Load the assignment into the current result to display it
       if (assignment) {
-        // Update the LLM processor with the loaded assignment
-        clearResult();
-        // Simulate the result structure
-        const loadedResult = {
-          id: assignment.id,
-          extractedText: assignment.extractedText || '',
-          llmResponse: assignment.llmResponse,
-          processingTime: assignment.processingTime || 0,
-          success: true
-        };
-        
-        toast({
-          title: "Assignment Loaded",
-          description: `Loaded assignment from ${new Date(assignment.createdAt).toLocaleDateString()}`,
-        });
-        
-        // Set active tab to show results
-        setActiveTab('upload');
+        // Use the LLM processor's setResult function if available, otherwise simulate loading
+        // For now, we'll reload the page with the assignment data by using window location
+        window.location.href = `${window.location.origin}${window.location.pathname}?assignment=${assignment.id}`;
       }
     } catch (error) {
       toast({
@@ -261,7 +245,7 @@ export default function HomeworkAssistant() {
               <h2 className="text-lg font-semibold text-slate-900 mb-4">Input Assignment</h2>
               
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="upload" className="flex items-center space-x-2">
                     <Upload className="w-4 h-4" />
                     <span>Upload File</span>
@@ -269,6 +253,10 @@ export default function HomeworkAssistant() {
                   <TabsTrigger value="text" className="flex items-center space-x-2">
                     <Keyboard className="w-4 h-4" />
                     <span>Type Text</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="saved" className="flex items-center space-x-2">
+                    <History className="w-4 h-4" />
+                    <span>Saved</span>
                   </TabsTrigger>
                 </TabsList>
 
@@ -287,6 +275,52 @@ export default function HomeworkAssistant() {
                     className="min-h-40 resize-none"
                     disabled={isProcessing}
                   />
+                </TabsContent>
+
+                <TabsContent value="saved" className="space-y-4">
+                  <div className="max-h-96 overflow-y-auto space-y-3">
+                    {savedAssignments && savedAssignments.length > 0 ? (
+                      savedAssignments.map((assignment: any) => (
+                        <div 
+                          key={assignment.id}
+                          className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors"
+                          onClick={() => handleLoadAssignment(assignment.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <Clock className="w-4 h-4 text-slate-500" />
+                                <span className="text-sm text-slate-600">
+                                  {new Date(assignment.createdAt).toLocaleDateString()} at {new Date(assignment.createdAt).toLocaleTimeString()}
+                                </span>
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                  {assignment.llmProvider}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-800 line-clamp-2">
+                                {assignment.extractedText 
+                                  ? assignment.extractedText.substring(0, 100) + (assignment.extractedText.length > 100 ? '...' : '')
+                                  : assignment.fileName || 'Assignment'
+                                }
+                              </p>
+                              <div className="flex items-center mt-2 text-xs text-slate-500">
+                                <span>Response time: {(assignment.processingTime / 1000).toFixed(1)}s</span>
+                                {assignment.fileName && (
+                                  <span className="ml-3">File: {assignment.fileName}</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-slate-500">
+                        <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>No saved assignments yet.</p>
+                        <p className="text-sm">Process an assignment to see it here.</p>
+                      </div>
+                    )}
+                  </div>
                 </TabsContent>
               </Tabs>
             </div>
