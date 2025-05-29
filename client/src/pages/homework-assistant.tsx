@@ -533,12 +533,12 @@ ${fullResponse.slice(-1000)}...`;
           ${currentResult.extractedText ? `
             <div class="problem">
               <h2>Problem:</h2>
-              <p>${currentResult.extractedText}</p>
+              <div style="white-space: pre-wrap; line-height: 1.6;">${currentResult.extractedText}</div>
             </div>
           ` : ''}
           <div class="solution">
             <h2>Solution:</h2>
-            <div>${currentResult.llmResponse}</div>
+            <div style="white-space: pre-wrap; line-height: 1.6;">${currentResult.llmResponse}</div>
           </div>
         </body>
       </html>
