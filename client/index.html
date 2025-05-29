@@ -41,7 +41,16 @@
       }
       
       /* Hide UI elements but keep solution content */
-      header, nav, button, .no-print {
+      header, nav, .no-print {
+        display: none !important;
+      }
+      
+      /* Hide most buttons but show print buttons */
+      button {
+        display: none !important;
+      }
+      
+      button[title*="Download"] {
         display: none !important;
       }
       
@@ -56,11 +65,15 @@
         visibility: visible !important;
       }
       
-      /* Make sure main containers are visible */
-      #root, .min-h-screen, .max-w-7xl, .grid, .lg\\:grid-cols-2 {
+      /* Show only the math content */
+      .math-content {
         display: block !important;
         visibility: visible !important;
         background: white !important;
+        color: black !important;
+        page-break-inside: avoid;
+        padding: 20px !important;
+        margin: 0 !important;
       }
       
       /* Show solution card content */
