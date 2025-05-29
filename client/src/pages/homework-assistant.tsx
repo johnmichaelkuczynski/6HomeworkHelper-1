@@ -315,29 +315,16 @@ export default function HomeworkAssistant() {
             <div className="p-6 space-y-6">
               <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
               
-              {/* Assignment Title */}
+              {/* Main Question Input */}
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Assignment Title
-                </label>
-                <Input
-                  value={currentAssignmentName}
-                  onChange={(e) => setCurrentAssignmentName(e.target.value)}
-                  placeholder="Enter assignment title..."
-                  className="w-full"
-                />
-              </div>
-
-              {/* Assignment Problem */}
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Assignment Problem/Question
+                  Enter Your Question or Problem
                 </label>
                 <Textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Type or paste your assignment question here..."
-                  className="min-h-[120px] resize-none w-full"
+                  placeholder="Type or paste your homework question here..."
+                  className="min-h-[200px] resize-none w-full text-base"
                   disabled={isProcessing}
                 />
               </div>
@@ -345,7 +332,7 @@ export default function HomeworkAssistant() {
               {/* File Upload */}
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Upload Document/Image (Optional)
+                  Or Upload Document/Image
                 </label>
                 <FileUpload 
                   onFileSelect={handleFileSelect}
@@ -353,18 +340,35 @@ export default function HomeworkAssistant() {
                 />
               </div>
 
-              {/* Special Instructions */}
-              <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">
+              {/* Special Instructions - Collapsed by default */}
+              <details className="group">
+                <summary className="text-sm font-medium text-slate-700 cursor-pointer hover:text-slate-900">
                   Special Instructions (Optional)
-                </label>
-                <Textarea
-                  value={specialInstructions}
-                  onChange={(e) => setSpecialInstructions(e.target.value)}
-                  placeholder="Add any special instructions for solving this assignment..."
-                  className="min-h-[80px] resize-none w-full"
-                />
-              </div>
+                </summary>
+                <div className="mt-2">
+                  <Textarea
+                    value={specialInstructions}
+                    onChange={(e) => setSpecialInstructions(e.target.value)}
+                    placeholder="Add any special instructions for solving this problem..."
+                    className="min-h-[80px] resize-none w-full"
+                  />
+                </div>
+              </details>
+
+              {/* Optional Title for Saving */}
+              <details className="group">
+                <summary className="text-sm font-medium text-slate-700 cursor-pointer hover:text-slate-900">
+                  Assignment Title (Optional - for saving)
+                </summary>
+                <div className="mt-2">
+                  <Input
+                    value={currentAssignmentName}
+                    onChange={(e) => setCurrentAssignmentName(e.target.value)}
+                    placeholder="Enter a title if you want to save this assignment..."
+                    className="w-full"
+                  />
+                </div>
+              </details>
             </div>
 
             <div className="p-6 mt-auto">
@@ -382,7 +386,7 @@ export default function HomeworkAssistant() {
                 ) : (
                   <>
                     <Send className="w-4 h-4 mr-2" />
-                    Process Assignment
+                    Solve This Problem
                   </>
                 )}
               </Button>
@@ -558,6 +562,22 @@ export default function HomeworkAssistant() {
                       Processed successfully
                     </span>
                     <span>Response time: {(currentResult.processingTime / 1000).toFixed(1)}s</span>
+                    <span>Words: {wordCount}</span>
+                    {isCheckingAI && <span>Checking AI...</span>}
+                    {aiDetectionResult && !isCheckingAI && (
+                      <span className={`font-medium ${
+                        aiDetectionResult.error 
+                          ? 'text-gray-500' 
+                          : aiDetectionResult.documents?.[0]?.average_generated_prob > 0.5 
+                            ? 'text-red-600' 
+                            : 'text-green-600'
+                      }`}>
+                        {aiDetectionResult.error 
+                          ? 'AI check failed' 
+                          : `${Math.round((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}% AI detected`
+                        }
+                      </span>
+                    )}
                   </div>
                   <span>Solved by {getProviderDisplayName(selectedProvider)}</span>
                 </div>

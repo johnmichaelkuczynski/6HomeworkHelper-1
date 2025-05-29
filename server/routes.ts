@@ -179,6 +179,29 @@ async function processWithPerplexity(text: string): Promise<string> {
   }
 }
 
+async function checkAIDetection(text: string): Promise<any> {
+  if (!process.env.GPTZERO_API_KEY) {
+    throw new Error('GPTZero API key not configured');
+  }
+
+  const response = await fetch('https://api.gptzero.me/v2/predict/text', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.GPTZERO_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      document: text
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`GPTZero API error: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), async (req, res) => {
@@ -421,6 +444,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           error: error instanceof Error ? error.message : "Failed to send email" 
         });
       }
+    }
+  });
+
+  // AI detection endpoint
+  app.post("/api/ai-detection", async (req, res) => {
+    try {
+      const { text } = req.body;
+      
+      if (!text || typeof text !== 'string') {
+        return res.status(400).json({ error: "Text is required" });
+      }
+
+      const result = await checkAIDetection(text);
+      res.json(result);
+    } catch (error: any) {
+      console.error('AI detection error:', error);
+      res.status(500).json({ error: error.message || 'AI detection failed' });
     }
   });
 
