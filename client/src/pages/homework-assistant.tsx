@@ -558,10 +558,21 @@ export default function HomeworkAssistant() {
                       <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
                       Solution
                     </h3>
-                    <MathRenderer 
-                      content={currentResult.llmResponse}
-                      className="space-y-4 math-content"
-                    />
+                    <div className="relative">
+                      <Button
+                        onClick={() => window.print()}
+                        variant="ghost"
+                        size="sm"
+                        className="absolute top-0 right-0 text-slate-600 hover:text-slate-900 z-10"
+                        title="Download this formatted solution as PDF"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </Button>
+                      <MathRenderer 
+                        content={currentResult.llmResponse}
+                        className="space-y-4 math-content pr-12"
+                      />
+                    </div>
                     
                     <div className="mt-6 pt-4 border-t border-slate-200">
                       <div className="flex items-center space-x-2">
@@ -584,15 +595,6 @@ export default function HomeworkAssistant() {
                           )}
                         </Button>
                       </div>
-                      <Button
-                        onClick={() => window.print()}
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-3"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download PDF (with Perfect Math Formatting)
-                      </Button>
                     </div>
                   </div>
                 </div>
