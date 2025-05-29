@@ -389,10 +389,12 @@ ${fullResponse.slice(-1000)}...`;
     },
   });
 
-  const { data: allAssignments } = useQuery<any[]>({
+  const assignmentsQuery = useQuery<any[]>({
     queryKey: ['/api/assignments'],
     enabled: true
   });
+  
+  const { data: allAssignments } = assignmentsQuery;
 
   const handleFileSelect = (file: File) => {
     uploadMutation.mutate({ file, provider: selectedProvider });
@@ -807,8 +809,7 @@ ${fullResponse.slice(-1000)}...`;
                               title: "Assignment saved",
                               description: "You can now reuse this assignment anytime",
                             });
-                            // Keep everything as is, just refresh the assignments list
-                            assignmentsQuery.refetch();
+                            // Assignment saved successfully - no need to refresh anything
                           } else {
                             throw new Error('Failed to save');
                           }
@@ -834,20 +835,10 @@ ${fullResponse.slice(-1000)}...`;
 
             <div className="p-6 mt-auto">
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  onClick={saveAssignment}
-                  disabled={false}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Assignment
-                </Button>
                 <Button 
                   onClick={handleProcessText}
                   disabled={isProcessing}
-                  className="flex-1"
+                  className="w-full"
                   size="lg"
                 >
                   {isProcessing ? (
