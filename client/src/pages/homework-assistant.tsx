@@ -223,15 +223,6 @@ export default function HomeworkAssistant() {
   };
 
   const handleSaveAssignment = async () => {
-    if (!hasActiveAssignment) {
-      toast({
-        title: "No Active Assignment",
-        description: "Please create a new assignment first.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     const textToSave = inputText.trim() || currentResult?.extractedText;
     
     if (!textToSave) {
@@ -243,6 +234,12 @@ export default function HomeworkAssistant() {
       return;
     }
 
+    // If no assignment is active, prompt for name
+    if (!hasActiveAssignment) {
+      setShowNewAssignmentDialog(true);
+      return;
+    }
+
     try {
       const response = await fetch('/api/assignments', {
         method: 'POST',
@@ -250,7 +247,7 @@ export default function HomeworkAssistant() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: currentAssignmentName,
+          name: currentAssignmentName || 'Untitled Assignment',
           extractedText: textToSave,
           llmProvider: selectedProvider,
           llmResponse: currentResult?.llmResponse || null,
@@ -306,32 +303,29 @@ export default function HomeworkAssistant() {
               <h1 className="text-xl font-semibold text-slate-900">Perfect Homework Assistant</h1>
             </div>
             <div className="flex items-center space-x-4">
-              {hasActiveAssignment ? (
-                <>
-                  <span className="text-sm font-medium text-slate-600">
-                    Working on: <span className="text-blue-600">{currentAssignmentName}</span>
-                  </span>
-                  <Button
-                    onClick={handleSaveAssignment}
-                    disabled={!inputText.trim() && !currentResult}
-                    variant="outline"
-                    size="sm"
-                    className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Assignment
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={handleCreateNewAssignment}
-                  variant="default"
-                  size="sm"
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  Generate New Assignment
-                </Button>
+              {hasActiveAssignment && (
+                <span className="text-sm font-medium text-slate-600">
+                  Working on: <span className="text-blue-600">{currentAssignmentName}</span>
+                </span>
               )}
+              <Button
+                onClick={handleCreateNewAssignment}
+                variant="default"
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                New Assignment
+              </Button>
+              <Button
+                onClick={handleSaveAssignment}
+                disabled={!inputText.trim() && !currentResult}
+                variant="outline"
+                size="sm"
+                className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save
+              </Button>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
@@ -443,7 +437,7 @@ export default function HomeworkAssistant() {
             <div className="p-6 mt-auto">
               <Button 
                 onClick={handleProcessText}
-                disabled={isProcessing || (activeTab === 'text' && !inputText.trim())}
+                disabled={isProcessing}
                 className="w-full"
                 size="lg"
               >
