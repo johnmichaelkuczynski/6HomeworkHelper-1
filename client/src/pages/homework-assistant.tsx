@@ -181,7 +181,79 @@ export default function HomeworkAssistant() {
     }
   };
 
+  const generateLatexFile = () => {
+    if (!currentResult?.llmResponse) {
+      toast({
+        title: "No content to export",
+        description: "Please generate a solution first",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    // Create LaTeX document with proper math notation
+    const latexContent = `\\documentclass[12pt]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath}
+\\usepackage{amsfonts}
+\\usepackage{amssymb}
+\\usepackage{geometry}
+\\usepackage{fancyhdr}
+\\usepackage{graphicx}
+
+\\geometry{letterpaper, margin=1in}
+\\pagestyle{fancy}
+\\fancyhf{}
+\\rhead{${new Date().toLocaleDateString()}}
+\\lhead{Assignment Solution}
+\\cfoot{\\thepage}
+
+\\title{${currentAssignmentName || 'Homework Assignment Solution'}}
+\\author{AI-Generated Solution}
+\\date{${new Date().toLocaleDateString()}}
+
+\\begin{document}
+
+\\maketitle
+
+${currentResult.extractedText ? `
+\\section{Problem Statement}
+\\begin{quote}
+${currentResult.extractedText.replace(/\$/g, '\\$').replace(/#/g, '\\#').replace(/%/g, '\\%').replace(/&/g, '\\&')}
+\\end{quote}
+
+` : ''}
+\\section{Solution}
+
+${currentResult.llmResponse}
+
+\\vspace{1cm}
+
+\\section{Details}
+\\begin{itemize}
+\\item Provider: ${getProviderDisplayName(currentResult.provider || 'unknown')}
+\\item Generated: ${new Date().toLocaleString()}
+${wordCount > 0 ? `\\item Word Count: ${wordCount.toLocaleString()} words` : ''}
+\\end{itemize}
+
+\\end{document}`;
+
+    // Create and download the LaTeX file
+    const blob = new Blob([latexContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentAssignmentName || 'assignment'}.tex`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "LaTeX file downloaded",
+      description: "Compile with pdflatex to generate PDF with proper math notation",
+    });
+  };
 
   // Chunked processing function
   const processInChunks = async (text: string, provider: string) => {
@@ -958,6 +1030,15 @@ ${fullResponse.slice(-1000)}...`;
                         Solution
                       </h3>
                       <div className="flex items-center space-x-2">
+                        <Button
+                          onClick={generateLatexFile}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Download as LaTeX/PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
                         <Button
                           onClick={handleCopyToClipboard}
                           variant="ghost"
