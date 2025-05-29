@@ -98,6 +98,89 @@ export default function HomeworkAssistant() {
     }
   }, [error, toast]);
 
+  const handlePrint = () => {
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Homework Solution</title>
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script>
+          window.MathJax = {
+            tex: {
+              inlineMath: [['$', '$'], ['\\(', '\\)']],
+              displayMath: [['$$', '$$'], ['\\[', '\\]']],
+              processEscapes: true
+            },
+            options: {
+              processHtmlClass: 'math-content'
+            }
+          };
+        </script>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            line-height: 1.6; 
+            color: #000;
+            background: white;
+          }
+          h1, h2, h3 { 
+            color: #000; 
+            margin-bottom: 10px; 
+            font-weight: bold;
+          }
+          .problem-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-left: 3px solid #3b82f6;
+            background: #f8fafc;
+          }
+          .solution-section {
+            margin-top: 20px;
+          }
+          .math-content {
+            font-size: 14px;
+            line-height: 1.6;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>Homework Solution</h1>
+        ${currentResult?.extractedText ? `
+          <div class="problem-section">
+            <h2>Problem:</h2>
+            <p>${currentResult.extractedText}</p>
+          </div>
+        ` : ''}
+        <div class="solution-section">
+          <h2>Solution:</h2>
+          <div class="math-content">${currentResult?.llmResponse || ''}</div>
+        </div>
+        <script>
+          window.onload = function() {
+            if (window.MathJax) {
+              MathJax.typesetPromise().then(() => {
+                setTimeout(() => window.print(), 500);
+              });
+            } else {
+              setTimeout(() => window.print(), 500);
+            }
+          };
+        </script>
+      </body>
+      </html>
+    `;
+    
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -207,7 +290,7 @@ export default function HomeworkAssistant() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.print()}
+                    onClick={handlePrint}
                     title="Print/Save as PDF"
                   >
                     <Printer className="w-4 h-4" />

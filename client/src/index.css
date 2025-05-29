@@ -59,58 +59,68 @@
 
 /* Print/PDF styles for perfect math notation */
 @media print {
-  /* Hide everything except the solution */
-  body * {
-    visibility: hidden;
+  /* Hide UI elements but keep structure */
+  header, nav, button, .print-hide {
+    display: none !important;
   }
   
-  /* Show only the solution content */
-  .print-content, .print-content * {
-    visibility: visible;
+  /* Hide everything except main content */
+  body > :not(#root) {
+    display: none !important;
   }
   
-  /* Position the solution at the top of the page */
+  /* Hide sidebar and navigation within app */
+  .bg-slate-50 > :not(.print-content):not([class*="print"]) {
+    display: none !important;
+  }
+  
+  /* Show and style the print content */
   .print-content {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    background: white !important;
   }
   
   /* Ensure math renders with high quality */
-  .math-content {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    font-size: 14px;
-    line-height: 1.6;
+  .math-content, .math-content * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+    color: #000 !important;
   }
   
-  /* Remove backgrounds and borders for clean print */
-  .print-content .bg-blue-50,
-  .print-content .bg-white,
-  .print-content .border {
+  /* Clean styling for print */
+  .print-content * {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
+    color: #000 !important;
   }
   
-  /* Clean typography for print */
+  /* Typography for print */
   .print-content h1, .print-content h2, .print-content h3 {
     color: #000 !important;
-    margin-bottom: 12px;
+    margin-bottom: 8px !important;
+    font-weight: bold !important;
   }
   
-  .print-content p, .print-content div {
+  /* Make sure content is visible */
+  body {
+    background: white !important;
     color: #000 !important;
   }
   
-  /* Ensure page breaks work well */
-  .print-content {
-    page-break-inside: avoid;
+  /* Force visibility of math content */
+  .print-content, .print-content * {
+    visibility: visible !important;
+    display: block !important;
   }
   
-  /* Hide UI elements in print */
-  button, .print-hide {
-    display: none !important;
+  .print-content span, .print-content p {
+    display: inline !important;
   }
 }
