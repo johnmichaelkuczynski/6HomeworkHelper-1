@@ -54,11 +54,19 @@ export class MemStorage implements IStorage {
   async createAssignment(insertAssignment: InsertAssignment): Promise<Assignment> {
     const id = this.currentId++;
     const assignment: Assignment = {
-      ...insertAssignment,
       id,
+      inputText: insertAssignment.inputText || null,
+      inputType: insertAssignment.inputType,
+      fileName: insertAssignment.fileName || null,
+      extractedText: insertAssignment.extractedText || null,
+      llmProvider: insertAssignment.llmProvider,
+      llmResponse: insertAssignment.llmResponse || null,
+      processingTime: insertAssignment.processingTime || null,
       createdAt: new Date(),
     };
     this.assignments.set(id, assignment);
+    this.saveToFile(); // Save immediately after creating
+    console.log(`Saved assignment ${id} to storage. Total assignments: ${this.assignments.size}`);
     return assignment;
   }
 

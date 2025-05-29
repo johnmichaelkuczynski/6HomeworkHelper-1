@@ -53,6 +53,8 @@ export default function HomeworkAssistant() {
 
   const handleFileSelect = (file: File) => {
     uploadFile({ file, provider: selectedProvider });
+    // Refresh saved assignments after processing
+    setTimeout(() => refetchAssignments(), 1000);
   };
 
   const handleProcessText = () => {
@@ -65,6 +67,8 @@ export default function HomeworkAssistant() {
       return;
     }
     processText({ text: inputText, provider: selectedProvider });
+    // Refresh saved assignments after processing
+    setTimeout(() => refetchAssignments(), 1000);
   };
 
   const handleCopyToClipboard = async () => {
