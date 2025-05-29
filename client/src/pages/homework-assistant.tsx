@@ -194,10 +194,12 @@ export default function HomeworkAssistant() {
   };
 
   const handleSaveAssignment = async () => {
-    if (!inputText.trim()) {
+    const textToSave = inputText.trim() || currentResult?.extractedText;
+    
+    if (!textToSave) {
       toast({
         title: "Nothing to Save",
-        description: "Please enter some text before saving.",
+        description: "Please enter some text or process an assignment before saving.",
         variant: "destructive",
       });
       return;
@@ -210,7 +212,7 @@ export default function HomeworkAssistant() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          extractedText: inputText,
+          extractedText: textToSave,
           llmProvider: selectedProvider,
           llmResponse: currentResult?.llmResponse || null,
         }),
@@ -384,37 +386,24 @@ export default function HomeworkAssistant() {
             </div>
 
             <div className="p-6 mt-auto">
-              <div className="space-y-3">
-                <Button 
-                  onClick={handleProcessText}
-                  disabled={isProcessing || (activeTab === 'text' && !inputText.trim())}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Process Assignment
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleSaveAssignment}
-                  disabled={!inputText.trim()}
-                  variant="outline"
-                  className="w-full"
-                  size="lg"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Assignment
-                </Button>
-              </div>
+              <Button 
+                onClick={handleProcessText}
+                disabled={isProcessing || (activeTab === 'text' && !inputText.trim())}
+                className="w-full"
+                size="lg"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4 mr-2" />
+                    Process Assignment
+                  </>
+                )}
+              </Button>
               
               <div className="mt-3 text-center">
                 <p className="text-xs text-slate-500">
