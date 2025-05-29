@@ -34,6 +34,7 @@ export default function HomeworkAssistant() {
   const [isChunkedProcessing, setIsChunkedProcessing] = useState(false);
   const [chunkProgress, setChunkProgress] = useState({ current: 0, total: 0 });
   const [accumulatedContent, setAccumulatedContent] = useState("");
+  const [selectedSavedAssignment, setSelectedSavedAssignment] = useState("");
 
   const { toast } = useToast();
 
@@ -168,7 +169,7 @@ export default function HomeworkAssistant() {
     }
 
     // Get the text content without HTML tags for proper PDF rendering
-    const textContent = mathElement.textContent || mathElement.innerText || '';
+    const textContent = mathElement.textContent || (mathElement as HTMLElement).innerText || '';
     
     printWindow.document.write(`
       <html>
@@ -369,7 +370,7 @@ ${fullResponse.slice(-1000)}...`;
     },
   });
 
-  const { data: savedAssignments } = useQuery({
+  const { data: allAssignments } = useQuery({
     queryKey: ['/api/assignments'],
     enabled: true
   });
