@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { processAssignmentSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse } from "@shared/schema";
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
-import pdfParse from "pdf-parse";
+// PDF parsing removed due to library compatibility issues
 
 // LLM imports
 // @ts-ignore
@@ -39,40 +39,7 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
   }
 }
 
-async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  try {
-    // Simple text extraction - look for text streams in PDF
-    const pdfText = buffer.toString('latin1');
-    
-    // Extract text between stream/endstream markers
-    const textMatches = pdfText.match(/stream\s*(.*?)\s*endstream/gs);
-    if (textMatches) {
-      let extractedText = '';
-      for (const match of textMatches) {
-        const streamContent = match.replace(/^stream\s*/, '').replace(/\s*endstream$/, '');
-        // Look for text commands in PDF (Tj, TJ operators)
-        const textCommands = streamContent.match(/\((.*?)\)\s*Tj/g);
-        if (textCommands) {
-          for (const cmd of textCommands) {
-            const text = cmd.match(/\((.*?)\)/);
-            if (text && text[1]) {
-              extractedText += text[1] + ' ';
-            }
-          }
-        }
-      }
-      
-      if (extractedText.trim()) {
-        return extractedText.trim();
-      }
-    }
-    
-    throw new Error('No text found in PDF');
-  } catch (error) {
-    console.error('PDF processing error:', error);
-    throw new Error('Failed to extract text from PDF');
-  }
-}
+// PDF processing removed - not supported in this environment
 
 async function extractTextFromWord(buffer: Buffer): Promise<string> {
   try {
@@ -186,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                  fileName.toLowerCase().endsWith('.doc')) {
         extractedText = await extractTextFromWord(req.file.buffer);
       } else if (fileType === 'application/pdf') {
-        extractedText = await extractTextFromPDF(req.file.buffer);
+        return res.status(400).json({ error: "PDF upload not supported. Please convert your PDF to an image (PNG/JPG) or Word document and upload that instead." });
       } else {
         return res.status(400).json({ error: "File type not supported yet. Please use images or Word documents." });
       }
