@@ -675,10 +675,11 @@ ${fullResponse.slice(-1000)}...`;
 
   // Save assignment to localStorage
   const saveAssignment = () => {
-    if (!inputText.trim()) {
+    const textToSave = inputText.trim() || currentResult?.extractedText?.trim();
+    if (!textToSave) {
       toast({
         title: "Nothing to save",
-        description: "Please enter some text first",
+        description: "Please enter some text or upload a document first",
         variant: "destructive",
       });
       return;
@@ -696,7 +697,8 @@ ${fullResponse.slice(-1000)}...`;
       return;
     }
 
-    const updated = { ...savedAssignments, [assignmentName]: inputText };
+    const textToSave = inputText.trim() || currentResult?.extractedText?.trim();
+    const updated = { ...savedAssignments, [assignmentName]: textToSave };
     setSavedAssignments(updated);
     localStorage.setItem('savedAssignments', JSON.stringify(updated));
     
