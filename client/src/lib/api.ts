@@ -1,0 +1,42 @@
+import { apiRequest } from "./queryClient";
+import type { ProcessAssignmentResponse } from "@shared/schema";
+
+export async function uploadFile(
+  file: File, 
+  llmProvider: string
+): Promise<ProcessAssignmentResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('llmProvider', llmProvider);
+
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Upload failed');
+  }
+
+  return response.json();
+}
+
+export async function processText(
+  inputText: string,
+  llmProvider: string
+): Promise<ProcessAssignmentResponse> {
+  const response = await apiRequest('POST', '/api/process-text', {
+    inputText,
+    llmProvider,
+    inputType: 'text',
+  });
+
+  return response.json();
+}
+
+export async function getAssignment(id: number) {
+  const response = await apiRequest('GET', `/api/assignments/${id}`);
+  return response.json();
+}

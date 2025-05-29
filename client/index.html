@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>Perfect Homework Assistant</title>
+    <meta name="description" content="AI-powered homework assistance with perfect math notation rendering and direct LLM integration for solving assignments with OCR support.">
+    
+    <!-- Preconnect to external services -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://polyfill.io">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- MathJax Configuration -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        processHtmlClass: 'math-content'
+      }
+    };
+    </script>
+    
+    <!-- MathJax Library -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <!-- Print Styles for Math Preservation -->
+    <style media="print">
+      @page {
+        margin: 1in;
+        size: letter;
+      }
+      
+      .no-print {
+        display: none !important;
+      }
+      
+      .math-content {
+        font-size: 12pt;
+        line-height: 1.5;
+        color: black !important;
+      }
+      
+      .math-content .MathJax {
+        font-size: 100% !important;
+      }
+      
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      
+      .bg-slate-50, .bg-blue-50 {
+        background: #f8f9fa !important;
+        border: 1px solid #dee2e6 !important;
+      }
+      
+      /* Hide non-essential elements during print */
+      header, .no-print, button {
+        display: none !important;
+      }
+      
+      /* Ensure math content is visible */
+      .math-content * {
+        color: black !important;
+        background: transparent !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
+</html>
