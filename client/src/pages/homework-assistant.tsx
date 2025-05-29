@@ -580,6 +580,44 @@ ${fullResponse.slice(-1000)}...`;
             <div className="p-6 space-y-6">
               <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
               
+              {/* Load Saved Assignment */}
+              {allAssignments && allAssignments.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-slate-700 mb-2 block">
+                    Load Previous Assignment
+                  </label>
+                  <Select 
+                    value={selectedSavedAssignment} 
+                    onValueChange={(value) => {
+                      setSelectedSavedAssignment(value);
+                      const assignment = allAssignments.find(a => a.id.toString() === value);
+                      if (assignment) {
+                        setInputText(assignment.inputText || assignment.extractedText || '');
+                        setCurrentAssignmentName(assignment.inputText ? assignment.inputText.substring(0, 50) + '...' : 'Loaded Assignment');
+                        toast({
+                          title: "Assignment loaded",
+                          description: "Previous assignment has been loaded for reuse",
+                        });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a previous assignment to reuse..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allAssignments.map((assignment: any) => (
+                        <SelectItem key={assignment.id} value={assignment.id.toString()}>
+                          {assignment.inputText 
+                            ? assignment.inputText.substring(0, 60) + (assignment.inputText.length > 60 ? '...' : '')
+                            : `Assignment ${assignment.id}`
+                          }
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               {/* Main Question Input */}
               <div>
                 <label className="text-sm font-medium text-slate-700 mb-2 block">
@@ -706,7 +744,7 @@ ${fullResponse.slice(-1000)}...`;
             </div>
 
             <div className="p-6 overflow-y-auto max-h-96">
-              {isProcessing && (
+              {isProcessing && !accumulatedContent && (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center space-y-4">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
@@ -733,6 +771,42 @@ ${fullResponse.slice(-1000)}...`;
                         Processing with {getProviderDisplayName(selectedProvider)}...
                       </p>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Show accumulated content during chunked processing */}
+              {isChunkedProcessing && accumulatedContent && (
+                <div className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                    <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                      <Lightbulb className="w-4 h-4 mr-2" />
+                      Problem:
+                    </h3>
+                    <p className="text-sm text-blue-800 font-mono bg-white p-3 rounded border">
+                      Large assignment being processed in chunks...
+                    </p>
+                  </div>
+                  
+                  <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                        <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
+                        Solution <span className="text-sm text-slate-500 ml-2">(In Progress - Chunk {chunkProgress.current} of {chunkProgress.total})</span>
+                      </h3>
+                      <div className="w-32 bg-slate-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${(chunkProgress.current / chunkProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <MathRenderer 
+                        content={accumulatedContent}
+                        className="space-y-4 math-content pr-12"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
