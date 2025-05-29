@@ -10,19 +10,29 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
 
   useEffect(() => {
     if (containerRef.current && window.MathJax && content && typeof content === 'string') {
-      // Process content to better handle markdown and math
+      // Process content to preserve line breaks and formatting
       let processedContent = content
-        // Convert markdown headers to HTML
-        .replace(/^## (.*$)/gim, '<h2 class="text-lg font-semibold text-slate-900 mt-6 mb-3">$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold text-slate-900 mt-6 mb-4">$1</h1>')
-        // Convert markdown bold to HTML
-        .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-slate-900">$1</strong>')
-        // Convert line breaks to proper spacing
-        .replace(/\n\n/g, '</p><p class="mb-4">')
-        .replace(/\n/g, '<br/>');
+        // Split by double line breaks to create paragraphs
+        .split('\n\n')
+        .map(paragraph => {
+          if (paragraph.trim().length === 0) return '';
+          
+          // Process single paragraph
+          let para = paragraph
+            // Convert single line breaks to <br> within paragraphs
+            .replace(/\n/g, '<br/>')
+            // Handle any remaining markdown bold
+            .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+          
+          return `<div class="mb-4 leading-relaxed">${para}</div>`;
+        })
+        .filter(p => p.length > 0)
+        .join('');
       
-      // Wrap in paragraphs
-      processedContent = `<p class="mb-4">${processedContent}</p>`;
+      // If no content, return empty
+      if (!processedContent.trim()) {
+        processedContent = '<div class="text-slate-500 italic">No content to display</div>';
+      }
       
       // Set the processed content
       containerRef.current.innerHTML = processedContent;

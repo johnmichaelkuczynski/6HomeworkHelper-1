@@ -501,10 +501,20 @@ ${fullResponse.slice(-1000)}...`;
     // Format the content properly for PDF with line breaks and structure
     const formatForPrint = (text: string) => {
       return text
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.length > 0)
-        .map(line => `<p style="margin: 8px 0; line-height: 1.6;">${line}</p>`)
+        .split('\n\n')
+        .map(paragraph => {
+          if (paragraph.trim().length === 0) return '';
+          
+          // Convert single line breaks within paragraphs to <br>
+          const formattedParagraph = paragraph
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .join('<br/>');
+          
+          return `<p style="margin: 12px 0; line-height: 1.8; text-align: left;">${formattedParagraph}</p>`;
+        })
+        .filter(p => p.length > 0)
         .join('');
     };
 
