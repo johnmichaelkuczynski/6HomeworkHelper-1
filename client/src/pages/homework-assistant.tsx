@@ -147,12 +147,29 @@ export default function HomeworkAssistant() {
 
   const downloadFormattedPDF = () => {
     const mathElement = document.querySelector('.math-content');
-    if (!mathElement) return;
+    if (!mathElement) {
+      toast({
+        title: "No content to download",
+        description: "Please generate a solution first",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Create a new window with only the math content
     const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
+    if (!printWindow) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups for PDF download",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    // Get the text content without HTML tags for proper PDF rendering
+    const textContent = mathElement.textContent || mathElement.innerText || '';
+    
     printWindow.document.write(`
       <html>
         <head>
@@ -160,40 +177,39 @@ export default function HomeworkAssistant() {
           <style>
             body { 
               font-family: 'Times New Roman', serif; 
-              font-size: 14pt; 
+              font-size: 12pt; 
               line-height: 1.6; 
               margin: 40px; 
               color: black; 
+              background: white;
             }
-            .math-content { 
-              background: white; 
-              color: black; 
+            .content { 
+              white-space: pre-wrap;
+              word-wrap: break-word;
             }
-            .math-content * { 
-              color: black !important; 
-              background: white !important; 
+            .header {
+              border-bottom: 2px solid #333;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            h1 {
+              margin: 0;
+              color: #333;
             }
           </style>
-          <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-          <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-          <script>
-            window.MathJax = {
-              tex: {
-                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
-                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
-                processEscapes: true
-              }
-            };
-          </script>
         </head>
         <body>
-          <div class="math-content">${mathElement.innerHTML}</div>
+          <div class="header">
+            <h1>Homework Solution</h1>
+            <p>Generated on ${new Date().toLocaleDateString()}</p>
+          </div>
+          <div class="content">${textContent}</div>
           <script>
             window.onload = function() {
               setTimeout(() => {
                 window.print();
                 window.close();
-              }, 2000);
+              }, 1000);
             };
           </script>
         </body>
