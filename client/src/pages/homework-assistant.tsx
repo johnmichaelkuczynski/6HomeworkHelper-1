@@ -255,8 +255,9 @@ ${fullResponse.slice(-1000)}...`;
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            text: chunkPrompt, 
-            provider: provider 
+            inputText: chunkPrompt, 
+            inputType: 'text',
+            llmProvider: provider 
           }),
         });
 
@@ -327,7 +328,11 @@ ${fullResponse.slice(-1000)}...`;
       return fetch('/api/process-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inputText: text, llmProvider: provider }),
+        body: JSON.stringify({ 
+          inputText: text, 
+          inputType: 'text',
+          llmProvider: provider 
+        }),
       }).then(res => res.json());
     },
     onSuccess: (data) => {
@@ -566,7 +571,13 @@ ${fullResponse.slice(-1000)}...`;
                 <Textarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Type or paste your homework question here..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                      e.preventDefault();
+                      handleProcessText();
+                    }
+                  }}
+                  placeholder="Type or paste your homework question here... (Ctrl+Enter to solve)"
                   className="min-h-[200px] resize-none w-full text-base"
                   disabled={isProcessing}
                 />
