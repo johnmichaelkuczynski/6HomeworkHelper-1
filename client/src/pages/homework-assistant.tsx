@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Send, Printer, Copy, Trash2, CheckCircle, Mail, History, Lightbulb, Download } from "lucide-react";
+import { Loader2, Send, Copy, Trash2, CheckCircle, Mail, History, Lightbulb, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { emailSolution } from "@/lib/api";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -119,7 +119,7 @@ export default function HomeworkAssistant() {
       });
       
       const result = await response.json();
-      setCurrentResult(prev => ({ ...prev, llmResponse: result.rewrittenSolution }));
+      setCurrentResult((prev: any) => ({ ...prev, llmResponse: result.rewrittenSolution }));
       calculateWordCount(result.rewrittenSolution);
       setCritiqueText("");
       toast({
@@ -136,6 +136,64 @@ export default function HomeworkAssistant() {
     } finally {
       setIsRewriting(false);
     }
+  };
+
+  const downloadFormattedPDF = () => {
+    const mathElement = document.querySelector('.math-content');
+    if (!mathElement) return;
+
+    // Create a new window with only the math content
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Homework Solution</title>
+          <style>
+            body { 
+              font-family: 'Times New Roman', serif; 
+              font-size: 14pt; 
+              line-height: 1.6; 
+              margin: 40px; 
+              color: black; 
+            }
+            .math-content { 
+              background: white; 
+              color: black; 
+            }
+            .math-content * { 
+              color: black !important; 
+              background: white !important; 
+            }
+          </style>
+          <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+          <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+          <script>
+            window.MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+                processEscapes: true
+              }
+            };
+          </script>
+        </head>
+        <body>
+          <div class="math-content">${mathElement.innerHTML}</div>
+          <script>
+            window.onload = function() {
+              setTimeout(() => {
+                window.print();
+                window.close();
+              }, 2000);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
   };
 
   const uploadMutation = useMutation({
