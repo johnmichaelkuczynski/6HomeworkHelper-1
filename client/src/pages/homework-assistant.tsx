@@ -18,7 +18,8 @@ import {
   Settings,
   Lightbulb,
   CheckCircle,
-  Loader2
+  Loader2,
+  Printer
 } from 'lucide-react';
 
 export default function HomeworkAssistant() {
@@ -206,6 +207,14 @@ export default function HomeworkAssistant() {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => window.print()}
+                    title="Print/Save as PDF"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={handleCopyToClipboard}
                     title="Copy to clipboard"
                   >
@@ -253,12 +262,12 @@ export default function HomeworkAssistant() {
 
               {/* Results Content */}
               {currentResult && !isProcessing && (
-                <div className="space-y-6">
+                <div className="space-y-6 print-content">
                   {currentResult.extractedText && (
                     <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
                       <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
                         <Lightbulb className="w-4 h-4 mr-2" />
-                        Extracted Text:
+                        Problem:
                       </h3>
                       <p className="text-sm text-blue-800 font-mono bg-white p-3 rounded border">{currentResult.extractedText}</p>
                     </div>
@@ -271,7 +280,7 @@ export default function HomeworkAssistant() {
                     </h3>
                     <MathRenderer 
                       content={currentResult.llmResponse}
-                      className="space-y-4"
+                      className="space-y-4 math-content"
                     />
                   </div>
                 </div>

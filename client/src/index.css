@@ -56,3 +56,61 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Print/PDF styles for perfect math notation */
+@media print {
+  /* Hide everything except the solution */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Show only the solution content */
+  .print-content, .print-content * {
+    visibility: visible;
+  }
+  
+  /* Position the solution at the top of the page */
+  .print-content {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  
+  /* Ensure math renders with high quality */
+  .math-content {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  
+  /* Remove backgrounds and borders for clean print */
+  .print-content .bg-blue-50,
+  .print-content .bg-white,
+  .print-content .border {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Clean typography for print */
+  .print-content h1, .print-content h2, .print-content h3 {
+    color: #000 !important;
+    margin-bottom: 12px;
+  }
+  
+  .print-content p, .print-content div {
+    color: #000 !important;
+  }
+  
+  /* Ensure page breaks work well */
+  .print-content {
+    page-break-inside: avoid;
+  }
+  
+  /* Hide UI elements in print */
+  button, .print-hide {
+    display: none !important;
+  }
+}
