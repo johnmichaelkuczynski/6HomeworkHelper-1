@@ -41,7 +41,7 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
+    const pdfjsLib = await import('pdfjs-dist');
     
     const loadingTask = pdfjsLib.getDocument({ data: buffer });
     const pdf = await loadingTask.promise;
