@@ -555,7 +555,7 @@ export default function HomeworkAssistant() {
                     onClick={handlePrint}
                     title="Print/Save as PDF"
                   >
-                    <Printer className="w-4 h-4" />
+                    <Download className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -628,7 +628,7 @@ export default function HomeworkAssistant() {
                         className="absolute top-0 right-0 text-slate-600 hover:text-slate-900 z-10"
                         title="Download this formatted solution as PDF"
                       >
-                        <Printer className="w-4 h-4" />
+                        <Download className="w-4 h-4" />
                       </Button>
                       <MathRenderer 
                         content={currentResult.llmResponse}
@@ -740,7 +740,7 @@ export default function HomeworkAssistant() {
                     onClick={handlePrint}
                     title="Print/Save as PDF"
                   >
-                    <Printer className="w-4 h-4" />
+                    <Download className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -813,7 +813,7 @@ export default function HomeworkAssistant() {
                         className="absolute top-0 right-0 text-slate-600 hover:text-slate-900 z-10"
                         title="Download this formatted solution as PDF"
                       >
-                        <Printer className="w-4 h-4" />
+                        <Download className="w-4 h-4" />
                       </Button>
                       <MathRenderer 
                         content={currentResult.llmResponse}
