@@ -147,6 +147,24 @@ export default function HomeworkAssistant() {
           .math-content {
             font-size: 14px;
             line-height: 1.6;
+            page-break-inside: avoid;
+            width: 100%;
+            max-width: none;
+          }
+          @media print {
+            body { 
+              font-size: 12px; 
+              max-width: none;
+              margin: 15px;
+            }
+            .problem-section, .solution-section {
+              page-break-inside: avoid;
+              max-width: 100%;
+            }
+            .math-content {
+              overflow: visible;
+              word-break: break-word;
+            }
           }
         </style>
       </head>
@@ -160,16 +178,16 @@ export default function HomeworkAssistant() {
         ` : ''}
         <div class="solution-section">
           <h2>Solution:</h2>
-          <div class="math-content">${currentResult?.llmResponse || ''}</div>
+          <div class="math-content" style="white-space: pre-wrap; word-wrap: break-word; max-width: 100%; overflow-wrap: break-word;">${currentResult?.llmResponse || ''}</div>
         </div>
         <script>
           window.onload = function() {
             if (window.MathJax) {
               MathJax.typesetPromise().then(() => {
-                setTimeout(() => window.print(), 500);
+                setTimeout(() => window.print(), 1500);
               });
             } else {
-              setTimeout(() => window.print(), 500);
+              setTimeout(() => window.print(), 1000);
             }
           };
         </script>
