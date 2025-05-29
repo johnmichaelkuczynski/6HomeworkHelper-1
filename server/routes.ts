@@ -235,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Don't auto-save assignment
 
       const response: ProcessAssignmentResponse = {
-        id: assignment.id,
+        id: Date.now(), // Generate a temporary ID for the response
         extractedText,
         llmResponse,
         processingTime,
