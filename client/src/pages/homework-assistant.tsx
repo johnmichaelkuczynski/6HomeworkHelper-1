@@ -61,7 +61,7 @@ export default function HomeworkAssistant() {
     mutationFn: ({ file, provider }: { file: File; provider: string }) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('provider', provider);
+      formData.append('llmProvider', provider);
       return fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -90,7 +90,7 @@ export default function HomeworkAssistant() {
       return fetch('/api/process-text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, provider }),
+        body: JSON.stringify({ inputText: text, llmProvider: provider }),
       }).then(res => res.json());
     },
     onSuccess: (data) => {
