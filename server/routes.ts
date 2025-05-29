@@ -40,13 +40,18 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 }
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  throw new Error('PDF support temporarily disabled. Please use Word documents or images.');
+}
+
+async function extractTextFromWord(buffer: Buffer): Promise<string> {
   try {
-    const pdfParse = await import('pdf-parse');
-    const data = await pdfParse.default(buffer);
-    return data.text;
+    // Use mammoth for .docx files
+    const mammoth = await import('mammoth');
+    const result = await mammoth.extractRawText({ buffer });
+    return result.value;
   } catch (error) {
-    console.error('PDF parsing error:', error);
-    throw new Error('Failed to extract text from PDF');
+    console.error('Word document parsing error:', error);
+    throw new Error('Failed to extract text from Word document');
   }
 }
 
@@ -144,10 +149,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (fileType.startsWith('image/')) {
         extractedText = await performOCR(req.file.buffer, fileName);
+      } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+                 fileType === 'application/msword' ||
+                 fileName.toLowerCase().endsWith('.docx') ||
+                 fileName.toLowerCase().endsWith('.doc')) {
+        extractedText = await extractTextFromWord(req.file.buffer);
       } else if (fileType === 'application/pdf') {
         extractedText = await extractTextFromPDF(req.file.buffer);
       } else {
-        return res.status(400).json({ error: "File type not supported yet. Please use images or PDFs." });
+        return res.status(400).json({ error: "File type not supported yet. Please use images or Word documents." });
       }
 
       if (!extractedText.trim()) {
