@@ -6,6 +6,10 @@ import { processAssignmentSchema, emailSolutionSchema, type ProcessAssignmentReq
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
 import pdf2json from "pdf2json";
+import { execSync } from 'child_process';
+import { randomBytes } from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 // LLM imports
 // @ts-ignore
@@ -107,6 +111,27 @@ async function extractTextFromWord(buffer: Buffer): Promise<string> {
   }
 }
 
+// Helper function to clean HTML and formatting from text
+function cleanResponse(text: string): string {
+  return text
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Remove markdown formatting
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Bold
+    .replace(/\*(.*?)\*/g, '$1') // Italic
+    .replace(/#{1,6}\s*/g, '') // Headers
+    .replace(/`{1,3}(.*?)`{1,3}/g, '$1') // Code blocks
+    // Clean up multiple line breaks
+    .replace(/\n{3,}/g, '\n\n')
+    // Decode HTML entities
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
 async function processWithAnthropic(text: string): Promise<string> {
   try {
     // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
@@ -114,12 +139,13 @@ async function processWithAnthropic(text: string): Promise<string> {
       max_tokens: 4000,
       messages: [{ 
         role: 'user', 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in plain text only - do not use any markdown formatting, headers (###), bold (**text**), italics (*text*), bullet points, or special characters for formatting. Use only regular text with line breaks for organization. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
+        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in plain text only - do not use any HTML, markdown formatting, headers (###), bold (**text**), italics (*text*), bullet points, or special characters for formatting. Use only regular text with line breaks for organization. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
       }],
       model: 'claude-3-7-sonnet-20250219',
     });
 
-    return message.content[0]?.type === 'text' ? message.content[0].text : 'No response generated';
+    const response = message.content[0]?.type === 'text' ? message.content[0].text : 'No response generated';
+    return cleanResponse(response);
   } catch (error) {
     console.error('Anthropic API error:', error);
     throw new Error('Failed to process with Anthropic');
@@ -133,12 +159,13 @@ async function processWithOpenAI(text: string): Promise<string> {
       model: "gpt-4o",
       messages: [{ 
         role: "user", 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in plain text only - do not use any markdown formatting, headers (###), bold (**text**), italics (*text*), bullet points, or special characters for formatting. Use only regular text with line breaks for organization. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
+        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in plain text only - do not use any HTML, markdown formatting, headers (###), bold (**text**), italics (*text*), bullet points, or special characters for formatting. Use only regular text with line breaks for organization. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
       }],
       max_tokens: 4000,
     });
 
-    return response.choices[0]?.message?.content || 'No response generated';
+    const responseText = response.choices[0]?.message?.content || 'No response generated';
+    return cleanResponse(responseText);
   } catch (error) {
     console.error('OpenAI API error:', error);
     throw new Error('Failed to process with OpenAI');
@@ -172,7 +199,8 @@ async function processWithPerplexity(text: string): Promise<string> {
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || 'No response generated';
+    const responseText = data.choices[0]?.message?.content || 'No response generated';
+    return cleanResponse(responseText);
   } catch (error) {
     console.error('Perplexity API error:', error);
     throw new Error('Failed to process with Perplexity');
