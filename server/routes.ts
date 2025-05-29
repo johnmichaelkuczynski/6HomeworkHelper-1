@@ -41,30 +41,30 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const pdfjsLib = await import('pdfjs-dist');
+    const pdf2pic = await import('pdf2pic');
+    const fs = await import('fs');
+    const path = await import('path');
     
-    const loadingTask = pdfjsLib.getDocument({ data: buffer });
-    const pdf = await loadingTask.promise;
+    // Convert PDF to images
+    const convert = pdf2pic.fromBuffer(buffer, {
+      density: 300,
+      saveFilename: "page",
+      savePath: "/tmp",
+      format: "png",
+      width: 2048,
+      height: 2048
+    });
     
-    let fullText = '';
-    
-    // Extract text from all pages
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str)
-        .join(' ');
-      fullText += pageText + '\n';
+    // Convert first page and extract text via OCR
+    const result = await convert(1);
+    if (result.buffer) {
+      const text = await performOCR(result.buffer, 'pdf_page.png');
+      return text;
     }
     
-    if (!fullText.trim()) {
-      throw new Error('No text content found in PDF');
-    }
-    
-    return fullText;
+    throw new Error('Could not convert PDF to image');
   } catch (error) {
-    console.error('PDF parsing error:', error);
+    console.error('PDF processing error:', error);
     throw new Error('Failed to extract text from PDF');
   }
 }
