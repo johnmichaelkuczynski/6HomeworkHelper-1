@@ -40,83 +40,98 @@
         size: letter;
       }
       
-      /* Hide all UI elements except solution */
-      body.printing header,
-      body.printing nav,
-      body.printing button,
-      body.printing .no-print,
-      body.printing .bg-slate-50,
-      body.printing .border,
-      body.printing .shadow-sm,
+      /* Hide UI elements but keep solution content */
       header, nav, button, .no-print {
         display: none !important;
       }
       
-      /* Show only the math content */
+      /* Ensure body and content are visible */
       body {
         background: white !important;
         color: black !important;
         font-family: 'Times New Roman', serif !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        display: block !important;
+        visibility: visible !important;
       }
       
-      /* Perfect math rendering */
+      /* Make sure main containers are visible */
+      #root, .min-h-screen, .max-w-7xl, .grid, .lg\\:grid-cols-2 {
+        display: block !important;
+        visibility: visible !important;
+        background: white !important;
+      }
+      
+      /* Show solution card content */
       .math-content {
+        display: block !important;
+        visibility: visible !important;
         font-size: 14pt !important;
         line-height: 1.6 !important;
         color: black !important;
         font-family: 'Computer Modern', 'Times New Roman', serif !important;
-        page-break-inside: avoid;
-      }
-      
-      .math-content * {
-        color: black !important;
         background: white !important;
+        page-break-inside: avoid;
+        padding: 0 !important;
+        margin: 0 !important;
       }
       
+      /* Math elements */
+      .math-content *,
       .math-content .MathJax,
       .math-content mjx-container {
-        font-size: 110% !important;
         color: black !important;
         background: white !important;
+        font-size: inherit !important;
+        display: inline !important;
+        visibility: visible !important;
       }
       
       .math-content .MathJax_Display {
+        display: block !important;
         margin: 1em 0 !important;
         text-align: center !important;
       }
       
-      /* Headings */
+      /* Text formatting */
       .math-content h1, .math-content h2, .math-content h3 {
+        display: block !important;
         color: black !important;
         page-break-after: avoid;
         font-weight: bold !important;
+        margin: 0.5em 0 !important;
       }
       
       .math-content h1 { font-size: 18pt !important; }
       .math-content h2 { font-size: 16pt !important; }
       .math-content h3 { font-size: 14pt !important; }
       
-      /* Paragraphs */
       .math-content p {
+        display: block !important;
         color: black !important;
         margin-bottom: 0.75em !important;
         page-break-inside: avoid;
       }
       
-      /* Strong text */
       .math-content strong {
         font-weight: bold !important;
         color: black !important;
       }
       
-      /* Ensure everything is black on white */
-      * {
-        color: black !important;
-        background: white !important;
-        border-color: black !important;
-        box-shadow: none !important;
+      .math-content br {
+        display: block !important;
+        margin: 0.5em 0 !important;
+        content: "";
+      }
+      
+      /* Hide everything else during print */
+      .bg-slate-50:not(.math-content),
+      .border:not(.math-content *),
+      .shadow-sm,
+      .p-6:not(.math-content),
+      .space-y-6:not(.math-content) {
+        display: none !important;
       }
     </style>
   </head>
