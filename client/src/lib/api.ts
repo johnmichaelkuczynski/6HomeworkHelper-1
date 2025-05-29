@@ -40,3 +40,25 @@ export async function getAssignment(id: number) {
   const response = await apiRequest('GET', `/api/assignments/${id}`);
   return response.json();
 }
+
+export async function emailSolution(data: {
+  email: string;
+  extractedText: string;
+  llmResponse: string;
+  provider: string;
+}) {
+  const response = await fetch('/api/email-solution', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to send email');
+  }
+  
+  return response.json();
+}

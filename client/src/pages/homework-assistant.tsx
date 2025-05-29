@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileUpload } from '@/components/ui/file-upload';
 import { MathRenderer } from '@/components/ui/math-renderer';
 import { useLLMProcessor } from '@/hooks/use-llm';
 import { useToast } from '@/hooks/use-toast';
+import { emailSolution } from '@/lib/api';
 import { 
   GraduationCap, 
   Upload, 
@@ -18,6 +20,7 @@ import {
   Settings,
   Lightbulb,
   CheckCircle,
+  Mail,
   Loader2,
   Printer
 } from 'lucide-react';
@@ -26,6 +29,8 @@ export default function HomeworkAssistant() {
   const [selectedProvider, setSelectedProvider] = useState('anthropic');
   const [inputText, setInputText] = useState('');
   const [activeTab, setActiveTab] = useState('upload');
+  const [userEmail, setUserEmail] = useState('');
+  const [isEmailSending, setIsEmailSending] = useState(false);
   const { toast } = useToast();
   
   const {
@@ -133,6 +138,44 @@ export default function HomeworkAssistant() {
     printWindow.document.write('<script>window.onload = function() { if (window.MathJax) { MathJax.typesetPromise().then(() => { setTimeout(() => window.print(), 1500); }); } else { setTimeout(() => window.print(), 1000); } };</script>');
     printWindow.document.write('</body></html>');
     printWindow.document.close();
+  };
+
+  const handleEmailSolution = async () => {
+    if (!currentResult) return;
+    
+    if (!userEmail || !userEmail.includes('@')) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEmailSending(true);
+    try {
+      await emailSolution({
+        email: userEmail,
+        extractedText: currentResult.extractedText || '',
+        llmResponse: currentResult.llmResponse,
+        provider: selectedProvider,
+      });
+      
+      toast({
+        title: "Email Sent!",
+        description: `Solution sent to ${userEmail} successfully.`,
+      });
+      
+      setUserEmail(''); // Clear email field after success
+    } catch (error) {
+      toast({
+        title: "Email Failed",
+        description: error instanceof Error ? error.message : "Failed to send email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEmailSending(false);
+    }
   };
 
   return (
