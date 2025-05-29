@@ -924,7 +924,7 @@ ${fullResponse.slice(-1000)}...`;
                       }}
                       variant="outline"
                       size="sm"
-                      disabled={!inputText.trim()}
+                      disabled={false}
                     >
                       <Save className="w-4 h-4 mr-1" />
                       Save
@@ -939,7 +939,7 @@ ${fullResponse.slice(-1000)}...`;
                 <Button
                   type="button"
                   onClick={saveAssignment}
-                  disabled={!inputText.trim()}
+                  disabled={false}
                   variant="outline"
                   className="flex-1"
                 >
