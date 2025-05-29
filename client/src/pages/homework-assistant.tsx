@@ -115,8 +115,8 @@ export default function HomeworkAssistant() {
     printWindow.document.write('<html><head>');
     printWindow.document.write('<title>Homework Solution</title>');
     printWindow.document.write('<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>');
-    printWindow.document.write('<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>');
-    printWindow.document.write('<script>window.MathJax = {tex: {inlineMath: [["$", "$"], ["\\\\(", "\\\\)"]], displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]], processEscapes: true}, options: {processHtmlClass: "math-content"}};</script>');
+    printWindow.document.write('<script>window.MathJax = {tex: {inlineMath: [["$", "$"], ["\\\\(", "\\\\)"]], displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]], processEscapes: true, packages: ["base", "ams", "newcommand", "html"]}, options: {processHtmlClass: "math-content"}, startup: {ready: function () {MathJax.startup.defaultReady(); MathJax.startup.promise.then(function () {console.log("MathJax initial typesetting complete");});}}}</script>');
+    printWindow.document.write('<script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>');
     printWindow.document.write('<style>body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #000; background: white; } h1, h2, h3 { color: #000; margin-bottom: 10px; font-weight: bold; } .problem-section { margin-bottom: 20px; padding: 15px; border-left: 3px solid #3b82f6; background: #f8fafc; } .solution-section { margin-top: 20px; } .math-content { font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; } @media print { body { font-size: 12px; margin: 15px; } .math-content { overflow: visible; word-break: break-word; } }</style>');
     printWindow.document.write('</head><body>');
     printWindow.document.write('<h1>Homework Solution</h1>');
@@ -135,7 +135,7 @@ export default function HomeworkAssistant() {
     printWindow.document.write('</div>');
     printWindow.document.write('</div>');
     
-    printWindow.document.write('<script>window.onload = function() { if (window.MathJax) { MathJax.typesetPromise().then(() => { setTimeout(() => window.print(), 1500); }); } else { setTimeout(() => window.print(), 1000); } };</script>');
+    printWindow.document.write('<script>window.onload = function() { if (window.MathJax) { MathJax.startup.promise.then(() => { return MathJax.typesetPromise(); }).then(() => { setTimeout(() => window.print(), 3000); }); } else { setTimeout(() => window.print(), 2000); } };</script>');
     printWindow.document.write('</body></html>');
     printWindow.document.close();
   };
