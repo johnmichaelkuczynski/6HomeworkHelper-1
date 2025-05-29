@@ -14,7 +14,6 @@ import {
   Keyboard, 
   Send, 
   Copy, 
-  Printer, 
   Trash2, 
   Settings,
   Lightbulb,
@@ -71,26 +70,7 @@ export default function HomeworkAssistant() {
     }
   };
 
-  const handlePrint = () => {
-    // Add print-specific classes to hide UI elements
-    document.body.classList.add('printing');
-    
-    // Wait for MathJax to finish rendering before printing
-    if (window.MathJax) {
-      window.MathJax.typesetPromise().then(() => {
-        setTimeout(() => {
-          window.print();
-          document.body.classList.remove('printing');
-        }, 100);
-      }).catch(() => {
-        window.print();
-        document.body.classList.remove('printing');
-      });
-    } else {
-      window.print();
-      document.body.classList.remove('printing');
-    }
-  };
+
 
   const handleClearResults = () => {
     clearResult();
@@ -231,14 +211,7 @@ export default function HomeworkAssistant() {
                   >
                     <Copy className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handlePrint}
-                    title="Print / Save as PDF"
-                  >
-                    <Printer className="w-4 h-4" />
-                  </Button>
+
                   <Button
                     variant="ghost"
                     size="sm"
