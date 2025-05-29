@@ -1,9 +1,30 @@
 import { assignments, type Assignment, type InsertAssignment } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   createAssignment(assignment: InsertAssignment): Promise<Assignment>;
   getAssignment(id: number): Promise<Assignment | undefined>;
   getAllAssignments(): Promise<Assignment[]>;
+}
+
+export class DatabaseStorage implements IStorage {
+  async createAssignment(insertAssignment: InsertAssignment): Promise<Assignment> {
+    const [assignment] = await db
+      .insert(assignments)
+      .values(insertAssignment)
+      .returning();
+    return assignment;
+  }
+
+  async getAssignment(id: number): Promise<Assignment | undefined> {
+    const [assignment] = await db.select().from(assignments).where(eq(assignments.id, id));
+    return assignment || undefined;
+  }
+
+  async getAllAssignments(): Promise<Assignment[]> {
+    return await db.select().from(assignments).orderBy(assignments.createdAt);
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -82,4 +103,4 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
