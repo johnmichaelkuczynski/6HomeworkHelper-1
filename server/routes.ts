@@ -41,26 +41,31 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const pdfParse = await import('pdf-parse');
-    const data = await pdfParse.default(buffer);
+    const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.js');
     
-    if (!data.text || data.text.trim().length === 0) {
-      // If no text found, it might be a scanned PDF - use OCR
-      console.log('No text found in PDF, attempting OCR fallback');
-      return await performOCR(buffer, 'scanned.pdf');
+    const loadingTask = pdfjsLib.getDocument({ data: buffer });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = '';
+    
+    // Extract text from all pages
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
     }
     
-    return data.text;
+    if (!fullText.trim()) {
+      throw new Error('No text content found in PDF');
+    }
+    
+    return fullText;
   } catch (error) {
     console.error('PDF parsing error:', error);
-    // Fallback to OCR if PDF parsing fails
-    try {
-      console.log('PDF parsing failed, attempting OCR fallback');
-      return await performOCR(buffer, 'fallback.pdf');
-    } catch (ocrError) {
-      console.error('OCR fallback also failed:', ocrError);
-      throw new Error('Failed to extract text from PDF');
-    }
+    throw new Error('Failed to extract text from PDF');
   }
 }
 
