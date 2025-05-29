@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { processAssignmentSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse } from "@shared/schema";
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
-// PDF parsing removed due to library compatibility issues
+import pdf2json from "pdf2json";
 
 // LLM imports
 // @ts-ignore
@@ -39,7 +39,54 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
   }
 }
 
-// PDF processing removed - not supported in this environment
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  try {
+    // First try pdf2json
+    const result = await new Promise<string>((resolve, reject) => {
+      const pdfParser = new pdf2json();
+      
+      pdfParser.on("pdfParser_dataError", (errData: any) => {
+        reject(new Error('PDF parsing failed'));
+      });
+      
+      pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        try {
+          let text = '';
+          if (pdfData.Pages) {
+            for (const page of pdfData.Pages) {
+              if (page.Texts) {
+                for (const textItem of page.Texts) {
+                  if (textItem.R) {
+                    for (const textRun of textItem.R) {
+                      if (textRun.T) {
+                        text += decodeURIComponent(textRun.T) + ' ';
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          resolve(text.trim());
+        } catch (error) {
+          reject(new Error('Failed to process PDF data'));
+        }
+      });
+      
+      pdfParser.parseBuffer(buffer);
+    });
+    
+    if (result && result.trim()) {
+      return result;
+    }
+    
+    throw new Error('No text extracted');
+  } catch (error) {
+    // Fallback: instruct user to use alternative format
+    console.error('PDF processing error:', error);
+    throw new Error('PDF processing failed. Please save your PDF as a Word document (.docx) or take a screenshot and upload as an image (.png/.jpg) for better text extraction.');
+  }
+}
 
 async function extractTextFromWord(buffer: Buffer): Promise<string> {
   try {
@@ -153,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                  fileName.toLowerCase().endsWith('.doc')) {
         extractedText = await extractTextFromWord(req.file.buffer);
       } else if (fileType === 'application/pdf') {
-        return res.status(400).json({ error: "PDF upload not supported. Please convert your PDF to an image (PNG/JPG) or Word document and upload that instead." });
+        extractedText = await extractTextFromPDF(req.file.buffer);
       } else {
         return res.status(400).json({ error: "File type not supported yet. Please use images or Word documents." });
       }
