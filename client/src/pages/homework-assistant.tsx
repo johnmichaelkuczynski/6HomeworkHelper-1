@@ -399,46 +399,146 @@ export default function HomeworkAssistant() {
             </div>
           </Card>
 
-          {/* Saved Assignments Panel */}
+          {/* Solution Panel */}
           <Card className="flex flex-col">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-900">Saved Assignments</h2>
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">Solution</h2>
+              
+              {currentResult && (
+                <div className="flex items-center space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handlePrint}
+                    title="Print/Save as PDF"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyToClipboard}
+                    title="Copy to clipboard"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearResult}
+                    title="Clear results"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
+
             <div className="flex-1 p-6 overflow-y-auto">
-              <div className="space-y-3">
-                {savedAssignments && Array.isArray(savedAssignments) && savedAssignments.length > 0 ? (
-                  savedAssignments.map((assignment: any) => (
-                    <div 
-                      key={assignment.id}
-                      className="border border-slate-200 rounded-lg p-4 hover:bg-slate-50 cursor-pointer transition-colors"
-                      onClick={() => handleLoadAssignment(assignment.id)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <span className="text-sm text-slate-600">
-                              {new Date(assignment.createdAt).toLocaleDateString()}
-                            </span>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                              {assignment.llmProvider}
-                            </span>
-                          </div>
-                          <p className="text-sm text-slate-800 line-clamp-2">
-                            {assignment.name || assignment.extractedText?.substring(0, 100) || 'Assignment'}
-                          </p>
-                        </div>
+              {isProcessing && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center space-y-4">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
+                    <p className="text-sm text-slate-600">
+                      Processing with {getProviderDisplayName(selectedProvider)}...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {!currentResult && !isProcessing && (
+                <div className="flex items-center justify-center h-full text-center">
+                  <div className="space-y-4">
+                    <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
+                      <Lightbulb className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">Ready to solve</p>
+                      <p className="text-xs text-slate-500 mt-1">Enter your question and click "Solve This Problem"</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentResult && !isProcessing && (
+                <div className="space-y-6">
+                  {currentResult.extractedText && (
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                      <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                        <Lightbulb className="w-4 h-4 mr-2" />
+                        Problem:
+                      </h3>
+                      <p className="text-sm text-blue-800 font-mono bg-white p-3 rounded border">{currentResult.extractedText}</p>
+                    </div>
+                  )}
+                  
+                  <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
+                      <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
+                      Solution
+                    </h3>
+                    <MathRenderer 
+                      content={currentResult.llmResponse}
+                      className="space-y-4 math-content"
+                    />
+                    
+                    <div className="mt-6 pt-4 border-t border-slate-200">
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          value={userEmail}
+                          onChange={(e) => setUserEmail(e.target.value)}
+                          placeholder="Enter email address..."
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={handleEmailSolution}
+                          disabled={isEmailSending}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {isEmailSending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Mail className="w-4 h-4" />
+                          )}
+                        </Button>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8 text-slate-500">
-                    <History className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>No saved assignments yet.</p>
-                    <p className="text-sm">Process an assignment to see it here.</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
+
+            {currentResult && (
+              <div className="px-6 py-3 bg-slate-50 rounded-b-xl border-t border-slate-200">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <div className="flex items-center space-x-4">
+                    <span className="flex items-center">
+                      <CheckCircle className="w-3 h-3 text-emerald-500 mr-1" />
+                      Processed successfully
+                    </span>
+                    <span>Response time: {(currentResult.processingTime / 1000).toFixed(1)}s</span>
+                    <span>Words: {wordCount}</span>
+                    {isCheckingAI && <span>Checking AI...</span>}
+                    {aiDetectionResult && !isCheckingAI && (
+                      <span className={`font-medium ${
+                        aiDetectionResult.error 
+                          ? 'text-gray-500' 
+                          : aiDetectionResult.documents?.[0]?.average_generated_prob > 0.5 
+                            ? 'text-red-600' 
+                            : 'text-green-600'
+                      }`}>
+                        {aiDetectionResult.error 
+                          ? 'AI check failed' 
+                          : `${Math.round((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}% AI detected`
+                        }
+                      </span>
+                    )}
+                  </div>
+                  <span>Solved by {getProviderDisplayName(selectedProvider)}</span>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
 
@@ -583,6 +683,40 @@ export default function HomeworkAssistant() {
                 </div>
               </div>
             )}
+          </Card>
+        </div>
+
+        {/* AI Chat Section */}
+        <div className="mt-8">
+          <Card className="flex flex-col">
+            <div className="p-6 border-b border-slate-200">
+              <h2 className="text-lg font-semibold text-slate-900">Chat with AI</h2>
+              <p className="text-sm text-slate-600 mt-1">Ask questions about the solution or discuss the assignment</p>
+            </div>
+
+            <div className="flex-1 p-6 min-h-[400px] flex flex-col">
+              <div className="flex-1 mb-4 p-4 bg-gray-50 rounded-lg overflow-y-auto">
+                <div className="text-center py-8 text-slate-500">
+                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.955 8.955 0 01-4.126-.964L3 20l1.036-5.874A8.955 8.955 0 013 12a8 8 0 018-8c4.418 0 8 3.582 8 8z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm">Start a conversation with the AI</p>
+                  <p className="text-xs mt-1">Ask about the solution, request explanations, or discuss anything related to the assignment</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="Ask the AI about the solution or assignment..."
+                  className="flex-1"
+                />
+                <Button size="sm">
+                  <Send className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </Card>
         </div>
       </div>
