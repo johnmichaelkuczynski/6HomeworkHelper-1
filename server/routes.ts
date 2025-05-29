@@ -274,6 +274,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save assignment endpoint
+  app.post("/api/save-assignment", async (req, res) => {
+    try {
+      const { inputText, title, specialInstructions } = req.body;
+      
+      if (!inputText) {
+        return res.status(400).json({ error: "Input text is required" });
+      }
+
+      const assignment = await storage.createAssignment({
+        inputText,
+        inputType: 'text',
+        fileName: title || null,
+        extractedText: null,
+        llmProvider: 'saved',
+        llmResponse: '',
+        processingTime: 0,
+      });
+
+      res.json({ 
+        success: true, 
+        id: assignment.id,
+        message: "Assignment saved successfully"
+      });
+    } catch (error) {
+      console.error('Save assignment error:', error);
+      res.status(500).json({ error: "Failed to save assignment" });
+    }
+  });
+
   // Text processing endpoint
   app.post("/api/process-text", async (req, res) => {
     try {

@@ -581,7 +581,7 @@ ${fullResponse.slice(-1000)}...`;
               <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
               
               {/* Load Saved Assignment */}
-              {allAssignments && allAssignments.length > 0 && (
+              {allAssignments && Array.isArray(allAssignments) && allAssignments.length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Load Previous Assignment
@@ -590,10 +590,10 @@ ${fullResponse.slice(-1000)}...`;
                     value={selectedSavedAssignment} 
                     onValueChange={(value) => {
                       setSelectedSavedAssignment(value);
-                      const assignment = allAssignments.find(a => a.id.toString() === value);
+                      const assignment = allAssignments.find((a: any) => a.id.toString() === value);
                       if (assignment) {
                         setInputText(assignment.inputText || assignment.extractedText || '');
-                        setCurrentAssignmentName(assignment.inputText ? assignment.inputText.substring(0, 50) + '...' : 'Loaded Assignment');
+                        setCurrentAssignmentName(assignment.fileName || 'Loaded Assignment');
                         toast({
                           title: "Assignment loaded",
                           description: "Previous assignment has been loaded for reuse",
@@ -607,10 +607,7 @@ ${fullResponse.slice(-1000)}...`;
                     <SelectContent>
                       {allAssignments.map((assignment: any) => (
                         <SelectItem key={assignment.id} value={assignment.id.toString()}>
-                          {assignment.inputText 
-                            ? assignment.inputText.substring(0, 60) + (assignment.inputText.length > 60 ? '...' : '')
-                            : `Assignment ${assignment.id}`
-                          }
+                          {assignment.fileName || assignment.inputText?.substring(0, 60) + '...' || `Assignment ${assignment.id}`}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -664,20 +661,67 @@ ${fullResponse.slice(-1000)}...`;
                 </div>
               </details>
 
-              {/* Optional Title for Saving */}
-              <details className="group">
-                <summary className="text-sm font-medium text-slate-700 cursor-pointer hover:text-slate-900">
-                  Assignment Title (Optional - for saving)
-                </summary>
-                <div className="mt-2">
-                  <Input
-                    value={currentAssignmentName}
-                    onChange={(e) => setCurrentAssignmentName(e.target.value)}
-                    placeholder="Enter a title if you want to save this assignment..."
-                    className="w-full"
-                  />
+              {/* Save Assignment */}
+              {inputText.trim() && (
+                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                  <h3 className="text-sm font-medium text-slate-700 mb-2">Save This Assignment</h3>
+                  <div className="flex space-x-2">
+                    <Input
+                      value={currentAssignmentName}
+                      onChange={(e) => setCurrentAssignmentName(e.target.value)}
+                      placeholder="Enter assignment title..."
+                      className="flex-1"
+                    />
+                    <Button
+                      onClick={async () => {
+                        if (!inputText.trim()) {
+                          toast({
+                            title: "Nothing to save",
+                            description: "Please enter some content first",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        
+                        try {
+                          const response = await fetch('/api/save-assignment', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              inputText: inputText,
+                              title: currentAssignmentName || inputText.substring(0, 50) + '...',
+                              specialInstructions: specialInstructions
+                            }),
+                          });
+                          
+                          if (response.ok) {
+                            toast({
+                              title: "Assignment saved",
+                              description: "You can now reuse this assignment anytime",
+                            });
+                            // Refresh the assignments list
+                            window.location.reload();
+                          } else {
+                            throw new Error('Failed to save');
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Save failed",
+                            description: "Could not save assignment",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      disabled={!inputText.trim()}
+                    >
+                      <Save className="w-4 h-4 mr-1" />
+                      Save
+                    </Button>
+                  </div>
                 </div>
-              </details>
+              )}
             </div>
 
             <div className="p-6 mt-auto">
