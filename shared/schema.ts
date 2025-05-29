@@ -51,3 +51,14 @@ export const emailSolutionSchema = z.object({
 });
 
 export type EmailSolutionRequest = z.infer<typeof emailSolutionSchema>;
+
+export const assignmentListSchema = z.object({
+  id: z.number(),
+  extractedText: z.string().nullable(),
+  llmProvider: z.string(),
+  processingTime: z.number(),
+  createdAt: z.string(),
+  fileName: z.string().nullable(),
+});
+
+export type AssignmentListItem = z.infer<typeof assignmentListSchema>;

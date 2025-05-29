@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
-import { processAssignmentSchema, emailSolutionSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse, type EmailSolutionRequest } from "@shared/schema";
+import { processAssignmentSchema, emailSolutionSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse, type EmailSolutionRequest, type AssignmentListItem } from "@shared/schema";
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
 import pdf2json from "pdf2json";
@@ -316,6 +316,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         error: error instanceof Error ? error.message : "Failed to process text" 
       });
+    }
+  });
+
+  // Get all assignments
+  app.get("/api/assignments", async (req, res) => {
+    try {
+      const assignments = await storage.getAllAssignments();
+      const assignmentList: AssignmentListItem[] = assignments.map(assignment => ({
+        id: assignment.id,
+        extractedText: assignment.extractedText,
+        llmProvider: assignment.llmProvider,
+        processingTime: assignment.processingTime || 0,
+        createdAt: assignment.createdAt?.toISOString() || new Date().toISOString(),
+        fileName: assignment.fileName,
+      }));
+      
+      res.json(assignmentList);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch assignments" });
     }
   });
 

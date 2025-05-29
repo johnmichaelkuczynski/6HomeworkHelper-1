@@ -36,6 +36,11 @@ export async function processText(
   return response.json();
 }
 
+export async function getAllAssignments() {
+  const response = await apiRequest('GET', '/api/assignments');
+  return response.json();
+}
+
 export async function getAssignment(id: number) {
   const response = await apiRequest('GET', `/api/assignments/${id}`);
   return response.json();

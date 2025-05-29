@@ -9,7 +9,8 @@ import { FileUpload } from '@/components/ui/file-upload';
 import { MathRenderer } from '@/components/ui/math-renderer';
 import { useLLMProcessor } from '@/hooks/use-llm';
 import { useToast } from '@/hooks/use-toast';
-import { emailSolution } from '@/lib/api';
+import { emailSolution, getAllAssignments, getAssignment } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { 
   GraduationCap, 
   Upload, 
@@ -22,7 +23,9 @@ import {
   CheckCircle,
   Mail,
   Loader2,
-  Printer
+  Printer,
+  History,
+  Clock
 } from 'lucide-react';
 
 export default function HomeworkAssistant() {
@@ -32,6 +35,12 @@ export default function HomeworkAssistant() {
   const [userEmail, setUserEmail] = useState('jm@analyticphilosophy.ai');
   const [isEmailSending, setIsEmailSending] = useState(false);
   const { toast } = useToast();
+
+  // Query for saved assignments
+  const { data: savedAssignments, refetch: refetchAssignments } = useQuery({
+    queryKey: ['/api/assignments'],
+    queryFn: getAllAssignments,
+  });
   
   const {
     currentResult,
@@ -175,6 +184,39 @@ export default function HomeworkAssistant() {
       });
     } finally {
       setIsEmailSending(false);
+    }
+  };
+
+  const handleLoadAssignment = async (id: number) => {
+    try {
+      const assignment = await getAssignment(id);
+      // Load the assignment into the current result to display it
+      if (assignment) {
+        // Update the LLM processor with the loaded assignment
+        clearResult();
+        // Simulate the result structure
+        const loadedResult = {
+          id: assignment.id,
+          extractedText: assignment.extractedText || '',
+          llmResponse: assignment.llmResponse,
+          processingTime: assignment.processingTime || 0,
+          success: true
+        };
+        
+        toast({
+          title: "Assignment Loaded",
+          description: `Loaded assignment from ${new Date(assignment.createdAt).toLocaleDateString()}`,
+        });
+        
+        // Set active tab to show results
+        setActiveTab('upload');
+      }
+    } catch (error) {
+      toast({
+        title: "Loading Failed",
+        description: error instanceof Error ? error.message : "Failed to load assignment",
+        variant: "destructive",
+      });
     }
   };
 
