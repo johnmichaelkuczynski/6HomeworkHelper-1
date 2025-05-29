@@ -52,13 +52,18 @@ export default function HomeworkAssistant() {
   // Function to clean markdown formatting from text
   const cleanMarkdown = (text: string) => {
     return text
-      .replace(/###\s*/g, '') // Remove header markers
+      .replace(/#{1,6}\s*/g, '') // Remove all header markers (# ## ### etc)
       .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold formatting
       .replace(/\*(.*?)\*/g, '$1') // Remove italic formatting
       .replace(/`(.*?)`/g, '$1') // Remove code formatting
       .replace(/^\s*[-*+]\s+/gm, '') // Remove bullet points
       .replace(/^\s*\d+\.\s+/gm, '') // Remove numbered lists
       .replace(/^\s*>\s+/gm, '') // Remove blockquotes
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove links but keep text
+      .replace(/!\[.*?\]\(.*?\)/g, '') // Remove images
+      .replace(/---+/g, '') // Remove horizontal rules
+      .replace(/\*{3,}/g, '') // Remove emphasis markers
+      .replace(/_{3,}/g, '') // Remove underline emphasis
       .trim();
   };
 
@@ -494,38 +499,81 @@ ${fullResponse.slice(-1000)}...`;
 
   const handlePrint = () => {
     if (!currentResult) return;
+
+    // Create HTML content that preserves mathematical notation
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Assignment Solution</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            margin: 1in;
+            color: black;
+            background: white;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid black;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            font-size: 14pt;
+            margin-bottom: 10px;
+            color: black;
+        }
+        .content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        @media print {
+            @page { margin: 1in; }
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Assignment Solution</h1>
+        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+    </div>
     
-    // Simple, direct approach - copy solution content to clipboard and show instructions
-    const solutionText = `Assignment Solution
-Generated: ${new Date().toLocaleDateString()}
+    ${currentResult.extractedText ? `
+    <div class="section">
+        <h2>Problem:</h2>
+        <div class="content">${currentResult.extractedText}</div>
+    </div>
+    ` : ''}
+    
+    <div class="section">
+        <h2>Solution:</h2>
+        <div class="content">${currentResult.llmResponse}</div>
+    </div>
+</body>
+</html>`;
 
-Problem:
-${currentResult.extractedText || 'No problem text'}
+    // Create blob and download as HTML file
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `assignment_solution_${Date.now()}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
-Solution:
-${currentResult.llmResponse}`;
-
-    navigator.clipboard.writeText(solutionText).then(() => {
-      toast({
-        title: "Solution copied to clipboard",
-        description: "Paste into a document and save as PDF",
-      });
-    }).catch(() => {
-      // Fallback: create a simple text file download
-      const blob = new Blob([solutionText], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'assignment_solution.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      toast({
-        title: "Solution downloaded as text file",
-        description: "Copy content to a document and save as PDF",
-      });
+    toast({
+      title: "HTML file downloaded",
+      description: "Open the file and print to PDF to preserve formatting",
     });
   };
   
