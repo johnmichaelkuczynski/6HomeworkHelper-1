@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Send, Copy, Trash2, CheckCircle, Mail, History, Lightbulb, Edit3, Save, X } from "lucide-react";
+import { Loader2, Send, Copy, Trash2, CheckCircle, Mail, History, Lightbulb, Download, Edit3, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { emailSolution } from "@/lib/api";
 import { useQuery, useMutation } from "@tanstack/react-query";
