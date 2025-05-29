@@ -807,8 +807,8 @@ ${fullResponse.slice(-1000)}...`;
                               title: "Assignment saved",
                               description: "You can now reuse this assignment anytime",
                             });
-                            // Refresh the assignments list
-                            window.location.reload();
+                            // Keep everything as is, just refresh the assignments list
+                            assignmentsQuery.refetch();
                           } else {
                             throw new Error('Failed to save');
                           }
