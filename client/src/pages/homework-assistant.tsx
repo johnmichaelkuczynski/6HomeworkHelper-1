@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Send, Copy, Trash2, CheckCircle, Mail, History, Lightbulb, Download, Edit3, Save, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { emailSolution } from "@/lib/api";
@@ -37,8 +38,8 @@ export default function HomeworkAssistant() {
   const [accumulatedContent, setAccumulatedContent] = useState("");
   const [selectedSavedAssignment, setSelectedSavedAssignment] = useState("");
   const [savedAssignments, setSavedAssignments] = useState<{[key: string]: string}>({});
-  const [assignmentName, setAssignmentName] = useState("");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [assignmentName, setAssignmentName] = useState("");
 
   const { toast } = useToast();
 
@@ -1377,6 +1378,34 @@ ${fullResponse.slice(-1000)}...`;
           </Card>
         </div>
       </div>
+
+      {/* Save Assignment Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Assignment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Assignment Name</label>
+              <Input
+                value={assignmentName}
+                onChange={(e) => setAssignmentName(e.target.value)}
+                placeholder="Enter a name for this assignment..."
+                autoFocus
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmSave}>
+              Save Assignment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
