@@ -402,7 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await sgMail.send(msg);
       
       res.json({ success: true, message: 'Solution sent to your email successfully!' });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Email sending error:', error);
       if (error.code === 403) {
         res.status(403).json({ error: "Email sending failed. Please verify your SendGrid sender email address." });

@@ -362,6 +362,74 @@ export default function HomeworkAssistant() {
                       content={currentResult.llmResponse}
                       className="space-y-4 math-content"
                     />
+                    
+                    {/* Action Buttons */}
+                    <div className="mt-6 pt-4 border-t border-slate-200">
+                      <div className="flex flex-col space-y-3">
+                        {/* Email Section */}
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="email"
+                            placeholder="Enter your email address"
+                            value={userEmail}
+                            onChange={(e) => setUserEmail(e.target.value)}
+                            className="flex-1"
+                            disabled={isEmailSending}
+                          />
+                          <Button
+                            onClick={handleEmailSolution}
+                            disabled={isEmailSending || !userEmail.trim()}
+                            variant="outline"
+                            size="sm"
+                          >
+                            {isEmailSending ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Sending...
+                              </>
+                            ) : (
+                              <>
+                                <Mail className="w-4 h-4 mr-2" />
+                                Email Solution
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        
+                        {/* Other Action Buttons */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handlePrint}
+                              title="Download as PDF"
+                            >
+                              <Printer className="w-4 h-4 mr-2" />
+                              Download PDF
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleCopyToClipboard}
+                              title="Copy to clipboard"
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy
+                            </Button>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearResult}
+                            title="Clear results"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Clear
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
