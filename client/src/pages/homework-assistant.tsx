@@ -147,8 +147,10 @@ export default function HomeworkAssistant() {
   };
 
   const downloadFormattedPDF = () => {
-    const mathElement = document.querySelector('.math-content');
-    if (!mathElement) {
+    // Get the solution content from currentResult or accumulatedContent
+    const solutionText = currentResult?.llmResponse || accumulatedContent;
+    
+    if (!solutionText) {
       toast({
         title: "No content to download",
         description: "Please generate a solution first",
@@ -157,7 +159,7 @@ export default function HomeworkAssistant() {
       return;
     }
 
-    // Create a new window with only the math content
+    // Create a new window for PDF generation
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast({
@@ -168,8 +170,8 @@ export default function HomeworkAssistant() {
       return;
     }
 
-    // Get the text content without HTML tags for proper PDF rendering
-    const textContent = mathElement.textContent || (mathElement as HTMLElement).innerText || '';
+    // Get problem text for the header
+    const problemText = currentResult?.extractedText || inputText || 'Assignment';
     
     printWindow.document.write(`
       <html>
@@ -184,27 +186,48 @@ export default function HomeworkAssistant() {
               color: black; 
               background: white;
             }
-            .content { 
-              white-space: pre-wrap;
-              word-wrap: break-word;
-            }
             .header {
               border-bottom: 2px solid #333;
               padding-bottom: 20px;
               margin-bottom: 30px;
             }
+            .problem {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 5px;
+              margin-bottom: 20px;
+              border-left: 4px solid #007bff;
+            }
+            .solution {
+              white-space: pre-wrap;
+              word-wrap: break-word;
+              line-height: 1.8;
+            }
             h1 {
               margin: 0;
               color: #333;
+            }
+            h2 {
+              color: #555;
+              margin-top: 30px;
+              margin-bottom: 15px;
             }
           </style>
         </head>
         <body>
           <div class="header">
             <h1>Homework Solution</h1>
-            <p>Generated on ${new Date().toLocaleDateString()}</p>
+            <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
           </div>
-          <div class="content">${textContent}</div>
+          
+          <div class="problem">
+            <h2>Problem:</h2>
+            <p>${problemText.substring(0, 500)}${problemText.length > 500 ? '...' : ''}</p>
+          </div>
+          
+          <h2>Solution:</h2>
+          <div class="solution">${solutionText}</div>
+          
           <script>
             window.onload = function() {
               setTimeout(() => {
