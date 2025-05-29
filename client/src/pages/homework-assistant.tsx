@@ -265,6 +265,15 @@ export default function HomeworkAssistant() {
               <h1 className="text-xl font-semibold text-slate-900">Perfect Homework Assistant</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <Button
+                onClick={handleSaveAssignment}
+                disabled={!inputText.trim()}
+                variant="outline"
+                size="sm"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Assignment
+              </Button>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
