@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { processAssignmentSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse } from "@shared/schema";
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
-// import pdfParse from "pdf-parse";
+import pdfParse from "pdf-parse";
 
 // LLM imports
 // @ts-ignore
@@ -41,28 +41,33 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const pdf2pic = await import('pdf2pic');
-    const fs = await import('fs');
-    const path = await import('path');
+    // Simple text extraction - look for text streams in PDF
+    const pdfText = buffer.toString('latin1');
     
-    // Convert PDF to images
-    const convert = pdf2pic.fromBuffer(buffer, {
-      density: 300,
-      saveFilename: "page",
-      savePath: "/tmp",
-      format: "png",
-      width: 2048,
-      height: 2048
-    });
-    
-    // Convert first page and extract text via OCR
-    const result = await convert(1);
-    if (result.buffer) {
-      const text = await performOCR(result.buffer, 'pdf_page.png');
-      return text;
+    // Extract text between stream/endstream markers
+    const textMatches = pdfText.match(/stream\s*(.*?)\s*endstream/gs);
+    if (textMatches) {
+      let extractedText = '';
+      for (const match of textMatches) {
+        const streamContent = match.replace(/^stream\s*/, '').replace(/\s*endstream$/, '');
+        // Look for text commands in PDF (Tj, TJ operators)
+        const textCommands = streamContent.match(/\((.*?)\)\s*Tj/g);
+        if (textCommands) {
+          for (const cmd of textCommands) {
+            const text = cmd.match(/\((.*?)\)/);
+            if (text && text[1]) {
+              extractedText += text[1] + ' ';
+            }
+          }
+        }
+      }
+      
+      if (extractedText.trim()) {
+        return extractedText.trim();
+      }
     }
     
-    throw new Error('Could not convert PDF to image');
+    throw new Error('No text found in PDF');
   } catch (error) {
     console.error('PDF processing error:', error);
     throw new Error('Failed to extract text from PDF');
