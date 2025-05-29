@@ -267,9 +267,10 @@ export default function HomeworkAssistant() {
             <div className="flex items-center space-x-4">
               <Button
                 onClick={handleSaveAssignment}
-                disabled={!inputText.trim()}
+                disabled={!inputText.trim() && !currentResult}
                 variant="outline"
                 size="sm"
+                className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Assignment
