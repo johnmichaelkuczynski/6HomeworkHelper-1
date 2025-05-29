@@ -40,6 +40,7 @@ export default function HomeworkAssistant() {
   const { data: savedAssignments, refetch: refetchAssignments } = useQuery({
     queryKey: ['/api/assignments'],
     queryFn: getAllAssignments,
+    refetchInterval: 2000, // Refetch every 2 seconds
   });
   
   const {
