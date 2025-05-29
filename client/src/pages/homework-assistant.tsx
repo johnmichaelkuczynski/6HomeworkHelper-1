@@ -23,6 +23,7 @@ import {
   CheckCircle,
   Mail,
   Loader2,
+  Save,
   Printer,
   History,
   Clock
@@ -192,6 +193,48 @@ export default function HomeworkAssistant() {
     }
   };
 
+  const handleSaveAssignment = async () => {
+    if (!inputText.trim()) {
+      toast({
+        title: "Nothing to Save",
+        description: "Please enter some text before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/assignments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          extractedText: inputText,
+          llmProvider: selectedProvider,
+          llmResponse: currentResult?.llmResponse || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save assignment');
+      }
+
+      toast({
+        title: "Assignment Saved!",
+        description: "Your assignment has been saved successfully.",
+      });
+
+      refetchAssignments();
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: error instanceof Error ? error.message : "Failed to save assignment",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleLoadAssignment = async (id: number) => {
     try {
       const assignment = await getAssignment(id);
@@ -331,24 +374,37 @@ export default function HomeworkAssistant() {
             </div>
 
             <div className="p-6 mt-auto">
-              <Button 
-                onClick={handleProcessText}
-                disabled={isProcessing || (activeTab === 'text' && !inputText.trim())}
-                className="w-full"
-                size="lg"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4 mr-2" />
-                    Process Assignment
-                  </>
-                )}
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  onClick={handleProcessText}
+                  disabled={isProcessing || (activeTab === 'text' && !inputText.trim())}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      Process Assignment
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  onClick={handleSaveAssignment}
+                  disabled={!inputText.trim()}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save Assignment
+                </Button>
+              </div>
               
               <div className="mt-3 text-center">
                 <p className="text-xs text-slate-500">
