@@ -36,8 +36,9 @@ export default function HomeworkAssistant() {
   const [activeTab, setActiveTab] = useState('upload');
   const [userEmail, setUserEmail] = useState('jm@analyticphilosophy.ai');
   const [isEmailSending, setIsEmailSending] = useState(false);
-  const [assignmentName, setAssignmentName] = useState('');
-  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [currentAssignmentName, setCurrentAssignmentName] = useState('');
+  const [showNewAssignmentDialog, setShowNewAssignmentDialog] = useState(false);
+  const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
   const { toast } = useToast();
 
   // Query for saved assignments
@@ -196,7 +197,41 @@ export default function HomeworkAssistant() {
     }
   };
 
-  const handleSaveAssignment = () => {
+  const handleCreateNewAssignment = () => {
+    setShowNewAssignmentDialog(true);
+  };
+
+  const createNewAssignment = () => {
+    if (!currentAssignmentName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter an assignment name.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setHasActiveAssignment(true);
+    setShowNewAssignmentDialog(false);
+    setInputText('');
+    clearResult();
+    
+    toast({
+      title: "Assignment Created",
+      description: `Working on "${currentAssignmentName}"`,
+    });
+  };
+
+  const handleSaveAssignment = async () => {
+    if (!hasActiveAssignment) {
+      toast({
+        title: "No Active Assignment",
+        description: "Please create a new assignment first.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const textToSave = inputText.trim() || currentResult?.extractedText;
     
     if (!textToSave) {
@@ -207,13 +242,6 @@ export default function HomeworkAssistant() {
       });
       return;
     }
-    
-    setShowSaveDialog(true);
-  };
-
-  const performSaveAssignment = async () => {
-    const textToSave = inputText.trim() || currentResult?.extractedText;
-    const nameToUse = assignmentName.trim() || 'Untitled Assignment';
 
     try {
       const response = await fetch('/api/assignments', {
@@ -222,7 +250,7 @@ export default function HomeworkAssistant() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: nameToUse,
+          name: currentAssignmentName,
           extractedText: textToSave,
           llmProvider: selectedProvider,
           llmResponse: currentResult?.llmResponse || null,
@@ -235,11 +263,9 @@ export default function HomeworkAssistant() {
 
       toast({
         title: "Assignment Saved!",
-        description: `"${nameToUse}" has been saved successfully.`,
+        description: `"${currentAssignmentName}" has been saved successfully.`,
       });
 
-      setShowSaveDialog(false);
-      setAssignmentName('');
       refetchAssignments();
     } catch (error) {
       toast({
@@ -280,16 +306,32 @@ export default function HomeworkAssistant() {
               <h1 className="text-xl font-semibold text-slate-900">Perfect Homework Assistant</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Button
-                onClick={handleSaveAssignment}
-                disabled={!inputText.trim() && !currentResult}
-                variant="outline"
-                size="sm"
-                className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Assignment
-              </Button>
+              {hasActiveAssignment ? (
+                <>
+                  <span className="text-sm font-medium text-slate-600">
+                    Working on: <span className="text-blue-600">{currentAssignmentName}</span>
+                  </span>
+                  <Button
+                    onClick={handleSaveAssignment}
+                    disabled={!inputText.trim() && !currentResult}
+                    variant="outline"
+                    size="sm"
+                    className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Save Assignment
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={handleCreateNewAssignment}
+                  variant="default"
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Generate New Assignment
+                </Button>
+              )}
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger className="w-40">
                   <SelectValue />
@@ -603,29 +645,29 @@ export default function HomeworkAssistant() {
         </div>
       </div>
 
-      {/* Save Assignment Dialog */}
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+      {/* New Assignment Dialog */}
+      <Dialog open={showNewAssignmentDialog} onOpenChange={setShowNewAssignmentDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save Assignment</DialogTitle>
+            <DialogTitle>Create New Assignment</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Assignment Name</label>
               <Input
-                value={assignmentName}
-                onChange={(e) => setAssignmentName(e.target.value)}
+                value={currentAssignmentName}
+                onChange={(e) => setCurrentAssignmentName(e.target.value)}
                 placeholder="Enter assignment name..."
                 className="mt-1"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+            <Button variant="outline" onClick={() => setShowNewAssignmentDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={performSaveAssignment}>
-              Save Assignment
+            <Button onClick={createNewAssignment}>
+              Create Assignment
             </Button>
           </DialogFooter>
         </DialogContent>
