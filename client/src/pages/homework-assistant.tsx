@@ -72,7 +72,24 @@ export default function HomeworkAssistant() {
   };
 
   const handlePrint = () => {
-    window.print();
+    // Add print-specific classes to hide UI elements
+    document.body.classList.add('printing');
+    
+    // Wait for MathJax to finish rendering before printing
+    if (window.MathJax) {
+      window.MathJax.typesetPromise().then(() => {
+        setTimeout(() => {
+          window.print();
+          document.body.classList.remove('printing');
+        }, 100);
+      }).catch(() => {
+        window.print();
+        document.body.classList.remove('printing');
+      });
+    } else {
+      window.print();
+      document.body.classList.remove('printing');
+    }
   };
 
   const handleClearResults = () => {

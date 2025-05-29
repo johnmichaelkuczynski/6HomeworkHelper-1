@@ -33,72 +33,90 @@
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     
-    <!-- Print Styles for Math Preservation -->
+    <!-- Print Styles for Perfect Math Preservation -->
     <style media="print">
       @page {
         margin: 0.75in;
         size: letter;
       }
       
-      .no-print {
+      /* Hide all UI elements except solution */
+      body.printing header,
+      body.printing nav,
+      body.printing button,
+      body.printing .no-print,
+      body.printing .bg-slate-50,
+      body.printing .border,
+      body.printing .shadow-sm,
+      header, nav, button, .no-print {
         display: none !important;
       }
       
-      /* Perfect math rendering for print */
+      /* Show only the math content */
+      body {
+        background: white !important;
+        color: black !important;
+        font-family: 'Times New Roman', serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      
+      /* Perfect math rendering */
       .math-content {
         font-size: 14pt !important;
         line-height: 1.6 !important;
         color: black !important;
         font-family: 'Computer Modern', 'Times New Roman', serif !important;
+        page-break-inside: avoid;
       }
       
-      .math-content .MathJax {
+      .math-content * {
+        color: black !important;
+        background: white !important;
+      }
+      
+      .math-content .MathJax,
+      .math-content mjx-container {
         font-size: 110% !important;
         color: black !important;
+        background: white !important;
       }
       
       .math-content .MathJax_Display {
         margin: 1em 0 !important;
+        text-align: center !important;
       }
       
-      .math-content mjx-container {
-        color: black !important;
-      }
-      
-      /* Clean print layout */
-      body {
-        background: white !important;
-        color: black !important;
-        font-family: 'Times New Roman', serif !important;
-      }
-      
-      /* Hide UI elements */
-      header, nav, .no-print, button, .bg-slate-50, .border, .shadow-sm {
-        display: none !important;
-      }
-      
-      /* Show only solution content */
+      /* Headings */
       .math-content h1, .math-content h2, .math-content h3 {
         color: black !important;
         page-break-after: avoid;
+        font-weight: bold !important;
       }
       
+      .math-content h1 { font-size: 18pt !important; }
+      .math-content h2 { font-size: 16pt !important; }
+      .math-content h3 { font-size: 14pt !important; }
+      
+      /* Paragraphs */
       .math-content p {
         color: black !important;
-        margin-bottom: 0.5em !important;
+        margin-bottom: 0.75em !important;
         page-break-inside: avoid;
       }
       
-      /* Ensure all text is black */
+      /* Strong text */
+      .math-content strong {
+        font-weight: bold !important;
+        color: black !important;
+      }
+      
+      /* Ensure everything is black on white */
       * {
         color: black !important;
         background: white !important;
         border-color: black !important;
-      }
-      
-      /* Page breaks */
-      .math-content {
-        page-break-inside: avoid;
+        box-shadow: none !important;
       }
     </style>
   </head>
