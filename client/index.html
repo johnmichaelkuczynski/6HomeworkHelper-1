@@ -36,7 +36,7 @@
     <!-- Print Styles for Math Preservation -->
     <style media="print">
       @page {
-        margin: 1in;
+        margin: 0.75in;
         size: letter;
       }
       
@@ -44,35 +44,61 @@
         display: none !important;
       }
       
+      /* Perfect math rendering for print */
       .math-content {
-        font-size: 12pt;
-        line-height: 1.5;
+        font-size: 14pt !important;
+        line-height: 1.6 !important;
         color: black !important;
+        font-family: 'Computer Modern', 'Times New Roman', serif !important;
       }
       
       .math-content .MathJax {
-        font-size: 100% !important;
+        font-size: 110% !important;
+        color: black !important;
       }
       
+      .math-content .MathJax_Display {
+        margin: 1em 0 !important;
+      }
+      
+      .math-content mjx-container {
+        color: black !important;
+      }
+      
+      /* Clean print layout */
       body {
         background: white !important;
         color: black !important;
+        font-family: 'Times New Roman', serif !important;
       }
       
-      .bg-slate-50, .bg-blue-50 {
-        background: #f8f9fa !important;
-        border: 1px solid #dee2e6 !important;
-      }
-      
-      /* Hide non-essential elements during print */
-      header, .no-print, button {
+      /* Hide UI elements */
+      header, nav, .no-print, button, .bg-slate-50, .border, .shadow-sm {
         display: none !important;
       }
       
-      /* Ensure math content is visible */
-      .math-content * {
+      /* Show only solution content */
+      .math-content h1, .math-content h2, .math-content h3 {
         color: black !important;
-        background: transparent !important;
+        page-break-after: avoid;
+      }
+      
+      .math-content p {
+        color: black !important;
+        margin-bottom: 0.5em !important;
+        page-break-inside: avoid;
+      }
+      
+      /* Ensure all text is black */
+      * {
+        color: black !important;
+        background: white !important;
+        border-color: black !important;
+      }
+      
+      /* Page breaks */
+      .math-content {
+        page-break-inside: avoid;
       }
     </style>
   </head>
