@@ -464,6 +464,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chat endpoint
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message, provider, context } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Message is required" });
+      }
+
+      let chatPrompt = message;
+      if (context) {
+        chatPrompt = `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"\n\nQuestion: ${message}`;
+      }
+
+      let response = '';
+      switch (provider) {
+        case 'anthropic':
+          response = await processWithAnthropic(chatPrompt);
+          break;
+        case 'openai':
+          response = await processWithOpenAI(chatPrompt);
+          break;
+        case 'perplexity':
+          response = await processWithPerplexity(chatPrompt);
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid provider" });
+      }
+
+      res.json({ response });
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      res.status(500).json({ error: error.message || 'Chat failed' });
+    }
+  });
+
+  // Rewrite endpoint
+  app.post("/api/rewrite", async (req, res) => {
+    try {
+      const { originalSolution, critique, provider, problem } = req.body;
+      
+      if (!originalSolution || !critique || !provider) {
+        return res.status(400).json({ error: "Original solution, critique, and provider are required" });
+      }
+
+      const rewritePrompt = `I need you to rewrite this solution based on the critique provided.
+
+Original Problem: ${problem}
+
+Original Solution:
+${originalSolution}
+
+Critique/Feedback:
+${critique}
+
+Please provide an improved solution that addresses the feedback. Maintain proper mathematical notation and formatting.`;
+
+      let rewrittenSolution = '';
+      switch (provider) {
+        case 'anthropic':
+          rewrittenSolution = await processWithAnthropic(rewritePrompt);
+          break;
+        case 'openai':
+          rewrittenSolution = await processWithOpenAI(rewritePrompt);
+          break;
+        case 'perplexity':
+          rewrittenSolution = await processWithPerplexity(rewritePrompt);
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid provider" });
+      }
+
+      res.json({ rewrittenSolution });
+    } catch (error: any) {
+      console.error('Rewrite error:', error);
+      res.status(500).json({ error: error.message || 'Rewrite failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

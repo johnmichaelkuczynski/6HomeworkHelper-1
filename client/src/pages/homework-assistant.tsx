@@ -22,6 +22,11 @@ export default function HomeworkAssistant() {
   const [wordCount, setWordCount] = useState(0);
   const [aiDetectionResult, setAiDetectionResult] = useState<any>(null);
   const [isCheckingAI, setIsCheckingAI] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatting, setIsChatting] = useState(false);
+  const [critiqueText, setCritiqueText] = useState("");
+  const [isRewriting, setIsRewriting] = useState(false);
 
   const { toast } = useToast();
 
@@ -47,13 +52,89 @@ export default function HomeworkAssistant() {
         body: JSON.stringify({ text }),
       });
       
-      const result = await response.json();
-      setAiDetectionResult(result);
+      if (response.ok) {
+        const result = await response.json();
+        setAiDetectionResult(result);
+      } else {
+        setAiDetectionResult({ error: 'AI detection service unavailable' });
+      }
     } catch (error) {
       console.error('AI detection failed:', error);
       setAiDetectionResult({ error: 'AI detection unavailable' });
     } finally {
       setIsCheckingAI(false);
+    }
+  };
+
+  // Chat with AI function
+  const handleChatMessage = async () => {
+    if (!chatInput.trim()) return;
+    
+    const userMessage = { role: 'user', content: chatInput, timestamp: new Date() };
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput("");
+    setIsChatting(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: chatInput, 
+          provider: selectedProvider,
+          context: currentResult ? {
+            problem: currentResult.extractedText || inputText,
+            solution: currentResult.llmResponse
+          } : null
+        }),
+      });
+      
+      const result = await response.json();
+      const aiMessage = { role: 'assistant', content: result.response, timestamp: new Date() };
+      setChatMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Chat failed:', error);
+      const errorMessage = { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.', timestamp: new Date() };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsChatting(false);
+    }
+  };
+
+  // Critique and rewrite function
+  const handleCritiqueRewrite = async () => {
+    if (!critiqueText.trim() || !currentResult) return;
+    
+    setIsRewriting(true);
+    try {
+      const response = await fetch('/api/rewrite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          originalSolution: currentResult.llmResponse,
+          critique: critiqueText,
+          provider: selectedProvider,
+          problem: currentResult.extractedText || inputText
+        }),
+      });
+      
+      const result = await response.json();
+      setCurrentResult(prev => ({ ...prev, llmResponse: result.rewrittenSolution }));
+      calculateWordCount(result.rewrittenSolution);
+      setCritiqueText("");
+      toast({
+        title: "Solution rewritten",
+        description: "The solution has been updated based on your critique",
+      });
+    } catch (error) {
+      console.error('Rewrite failed:', error);
+      toast({
+        title: "Rewrite failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRewriting(false);
     }
   };
 
@@ -434,7 +515,7 @@ export default function HomeworkAssistant() {
               )}
             </div>
 
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="p-6 overflow-y-auto max-h-96">
               {isProcessing && (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center space-y-4">
@@ -447,7 +528,7 @@ export default function HomeworkAssistant() {
               )}
 
               {!currentResult && !isProcessing && (
-                <div className="flex items-center justify-center h-full text-center">
+                <div className="flex items-center justify-center h-64 text-center">
                   <div className="space-y-4">
                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto">
                       <Lightbulb className="w-8 h-8 text-slate-400" />
@@ -508,6 +589,36 @@ export default function HomeworkAssistant() {
                 </div>
               )}
             </div>
+
+            {/* Critique & Rewrite Section */}
+            {currentResult && (
+              <div className="p-6 border-t border-slate-200">
+                <h3 className="text-sm font-semibold text-slate-900 mb-3">Critique & Rewrite</h3>
+                <div className="space-y-3">
+                  <Textarea
+                    value={critiqueText}
+                    onChange={(e) => setCritiqueText(e.target.value)}
+                    placeholder="Describe what you'd like changed or improved in the solution..."
+                    className="min-h-[80px] resize-none"
+                  />
+                  <Button
+                    onClick={handleCritiqueRewrite}
+                    disabled={isRewriting || !critiqueText.trim()}
+                    size="sm"
+                    className="w-full"
+                  >
+                    {isRewriting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Rewriting...
+                      </>
+                    ) : (
+                      'Rewrite Solution'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {currentResult && (
               <div className="px-6 py-3 bg-slate-50 rounded-b-xl border-t border-slate-200">
@@ -691,28 +802,62 @@ export default function HomeworkAssistant() {
           <Card className="flex flex-col">
             <div className="p-6 border-b border-slate-200">
               <h2 className="text-lg font-semibold text-slate-900">Chat with AI</h2>
-              <p className="text-sm text-slate-600 mt-1">Ask questions about the solution or discuss the assignment</p>
+              <p className="text-sm text-slate-600 mt-1">Ask questions about the solution, discuss the assignment, or chat freely</p>
             </div>
 
             <div className="flex-1 p-6 min-h-[400px] flex flex-col">
-              <div className="flex-1 mb-4 p-4 bg-gray-50 rounded-lg overflow-y-auto">
-                <div className="text-center py-8 text-slate-500">
-                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.955 8.955 0 01-4.126-.964L3 20l1.036-5.874A8.955 8.955 0 013 12a8 8 0 018-8c4.418 0 8 3.582 8 8z" />
-                    </svg>
+              <div className="flex-1 mb-4 p-4 bg-gray-50 rounded-lg overflow-y-auto max-h-80">
+                {chatMessages.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500">
+                    <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.955 8.955 0 01-4.126-.964L3 20l1.036-5.874A8.955 8.955 0 013 12a8 8 0 018-8c4.418 0 8 3.582 8 8z" />
+                      </svg>
+                    </div>
+                    <p className="text-sm">Start a conversation with {getProviderDisplayName(selectedProvider)}</p>
+                    <p className="text-xs mt-1">Ask about the solution, request explanations, or chat about anything</p>
                   </div>
-                  <p className="text-sm">Start a conversation with the AI</p>
-                  <p className="text-xs mt-1">Ask about the solution, request explanations, or discuss anything related to the assignment</p>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    {chatMessages.map((message, index) => (
+                      <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[80%] p-3 rounded-lg ${
+                          message.role === 'user' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'bg-white border border-slate-200'
+                        }`}>
+                          <MathRenderer content={message.content} />
+                          <div className="text-xs opacity-70 mt-1">
+                            {message.timestamp.toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {isChatting && (
+                      <div className="flex justify-start">
+                        <div className="bg-white border border-slate-200 p-3 rounded-lg">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center space-x-2">
                 <Input
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
                   placeholder="Ask the AI about the solution or assignment..."
                   className="flex-1"
+                  onKeyPress={(e) => e.key === 'Enter' && handleChatMessage()}
+                  disabled={isChatting}
                 />
-                <Button size="sm">
+                <Button 
+                  size="sm" 
+                  onClick={handleChatMessage}
+                  disabled={isChatting || !chatInput.trim()}
+                >
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
