@@ -114,7 +114,7 @@ async function processWithAnthropic(text: string): Promise<string> {
       max_tokens: 4000,
       messages: [{ 
         role: 'user', 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
+        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in clean plain text format without markdown headers, asterisks, or special formatting. Use standard mathematical notation. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
       }],
       model: 'claude-3-7-sonnet-20250219',
     });
@@ -133,7 +133,7 @@ async function processWithOpenAI(text: string): Promise<string> {
       model: "gpt-4o",
       messages: [{ 
         role: "user", 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
+        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in clean plain text format without markdown headers, asterisks, or special formatting. Use standard mathematical notation. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
       }],
       max_tokens: 4000,
     });
