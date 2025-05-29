@@ -181,7 +181,7 @@ export default function HomeworkAssistant() {
     }
   };
 
-  const generateLatexFile = () => {
+  const generatePDF = async () => {
     if (!currentResult?.llmResponse) {
       toast({
         title: "No content to export",
@@ -191,68 +191,46 @@ export default function HomeworkAssistant() {
       return;
     }
 
-    // Create LaTeX document with proper math notation
-    const latexContent = `\\documentclass[12pt]{article}
-\\usepackage[utf8]{inputenc}
-\\usepackage{amsmath}
-\\usepackage{amsfonts}
-\\usepackage{amssymb}
-\\usepackage{geometry}
-\\usepackage{fancyhdr}
-\\usepackage{graphicx}
+    try {
+      const response = await fetch('/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: currentResult.llmResponse,
+          title: currentAssignmentName || 'Assignment Solution',
+          extractedText: currentResult.extractedText
+        }),
+      });
 
-\\geometry{letterpaper, margin=1in}
-\\pagestyle{fancy}
-\\fancyhf{}
-\\rhead{${new Date().toLocaleDateString()}}
-\\lhead{Assignment Solution}
-\\cfoot{\\thepage}
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
 
-\\title{${currentAssignmentName || 'Homework Assignment Solution'}}
-\\author{AI-Generated Solution}
-\\date{${new Date().toLocaleDateString()}}
+      // Create download link for the PDF
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${currentAssignmentName || 'assignment'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-\\begin{document}
-
-\\maketitle
-
-${currentResult.extractedText ? `
-\\section{Problem Statement}
-\\begin{quote}
-${currentResult.extractedText.replace(/\$/g, '\\$').replace(/#/g, '\\#').replace(/%/g, '\\%').replace(/&/g, '\\&')}
-\\end{quote}
-
-` : ''}
-\\section{Solution}
-
-${currentResult.llmResponse}
-
-\\vspace{1cm}
-
-\\section{Details}
-\\begin{itemize}
-\\item Provider: ${getProviderDisplayName(currentResult.provider || 'unknown')}
-\\item Generated: ${new Date().toLocaleString()}
-${wordCount > 0 ? `\\item Word Count: ${wordCount.toLocaleString()} words` : ''}
-\\end{itemize}
-
-\\end{document}`;
-
-    // Create and download the LaTeX file
-    const blob = new Blob([latexContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentAssignmentName || 'assignment'}.tex`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast({
-      title: "LaTeX file downloaded",
-      description: "Compile with pdflatex to generate PDF with proper math notation",
-    });
+      toast({
+        title: "PDF downloaded successfully",
+        description: "Professional PDF with proper mathematical notation",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "PDF generation failed",
+        description: "Please try again or use copy to clipboard",
+        variant: "destructive",
+      });
+    }
   };
 
   // Chunked processing function
@@ -1031,11 +1009,11 @@ ${fullResponse.slice(-1000)}...`;
                       </h3>
                       <div className="flex items-center space-x-2">
                         <Button
-                          onClick={generateLatexFile}
+                          onClick={generatePDF}
                           variant="ghost"
                           size="sm"
                           className="text-slate-600 hover:text-slate-900"
-                          title="Download as LaTeX/PDF"
+                          title="Download as PDF"
                         >
                           <Download className="w-4 h-4" />
                         </Button>

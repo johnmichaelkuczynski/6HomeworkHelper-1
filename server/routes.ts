@@ -230,6 +230,107 @@ async function checkAIDetection(text: string): Promise<any> {
   return await response.json();
 }
 
+// PDF Generation function using LaTeX/Tectonic
+async function generatePDF(content: string, title: string = 'Assignment Solution', extractedText?: string): Promise<Buffer> {
+  const tempId = randomBytes(16).toString('hex');
+  const tempDir = path.join('/tmp', `latex_${tempId}`);
+  const texFile = path.join(tempDir, 'document.tex');
+  const pdfFile = path.join(tempDir, 'document.pdf');
+
+  try {
+    // Create temp directory
+    fs.mkdirSync(tempDir, { recursive: true });
+
+    // Escape LaTeX special characters in content
+    const escapedContent = content
+      .replace(/\\/g, '\\textbackslash{}')
+      .replace(/\$/g, '\\$')
+      .replace(/#/g, '\\#')
+      .replace(/%/g, '\\%')
+      .replace(/&/g, '\\&')
+      .replace(/\{/g, '\\{')
+      .replace(/\}/g, '\\}')
+      .replace(/_/g, '\\_')
+      .replace(/\^/g, '\\textasciicircum{}')
+      .replace(/~/g, '\\textasciitilde{}');
+
+    const escapedExtractedText = extractedText ? extractedText
+      .replace(/\\/g, '\\textbackslash{}')
+      .replace(/\$/g, '\\$')
+      .replace(/#/g, '\\#')
+      .replace(/%/g, '\\%')
+      .replace(/&/g, '\\&')
+      .replace(/\{/g, '\\{')
+      .replace(/\}/g, '\\}')
+      .replace(/_/g, '\\_')
+      .replace(/\^/g, '\\textasciicircum{}')
+      .replace(/~/g, '\\textasciitilde{}') : '';
+
+    // Create LaTeX document
+    const latexContent = `\\documentclass[12pt]{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{amsmath}
+\\usepackage{amsfonts}
+\\usepackage{amssymb}
+\\usepackage{geometry}
+\\usepackage{fancyhdr}
+
+\\geometry{letterpaper, margin=1in}
+\\pagestyle{fancy}
+\\fancyhf{}
+\\rhead{${new Date().toLocaleDateString()}}
+\\lhead{Assignment Solution}
+\\cfoot{\\thepage}
+
+\\title{${title}}
+\\author{AI-Generated Solution}
+\\date{${new Date().toLocaleDateString()}}
+
+\\begin{document}
+
+\\maketitle
+
+${extractedText ? `
+\\section{Problem Statement}
+\\begin{quote}
+${escapedExtractedText}
+\\end{quote}
+
+` : ''}
+\\section{Solution}
+
+${escapedContent}
+
+\\end{document}`;
+
+    // Write LaTeX file
+    fs.writeFileSync(texFile, latexContent, 'utf8');
+
+    // Compile with tectonic
+    execSync(`cd ${tempDir} && tectonic document.tex`, {
+      stdio: 'pipe',
+      timeout: 30000
+    });
+
+    // Read the generated PDF
+    const pdfBuffer = fs.readFileSync(pdfFile);
+
+    return pdfBuffer;
+  } catch (error) {
+    console.error('PDF generation error:', error);
+    throw new Error('Failed to generate PDF');
+  } finally {
+    // Clean up temp files
+    try {
+      if (fs.existsSync(tempDir)) {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+      }
+    } catch (cleanupError) {
+      console.error('Cleanup error:', cleanupError);
+    }
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), async (req, res) => {
@@ -519,6 +620,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('AI detection error:', error);
       res.status(500).json({ error: error.message || 'AI detection failed' });
+    }
+  });
+
+  // PDF generation endpoint
+  app.post("/api/generate-pdf", async (req, res) => {
+    try {
+      const { content, title, extractedText } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      const pdfBuffer = await generatePDF(content, title, extractedText);
+      
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${title || 'assignment'}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error('PDF generation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate PDF' });
     }
   });
 
