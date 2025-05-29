@@ -1289,26 +1289,80 @@ ${fullResponse.slice(-1000)}...`;
 
       {/* Save Assignment Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Save Assignment</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
-              <label className="text-sm font-medium mb-2 block">Assignment Name</label>
+              <label className="text-sm font-medium mb-2 block">Assignment Title</label>
               <Input
                 value={assignmentName}
                 onChange={(e) => setAssignmentName(e.target.value)}
-                placeholder="Enter a name for this assignment..."
+                placeholder="Enter a descriptive title for this assignment..."
                 autoFocus
               />
             </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Question or Problem</label>
+              <Textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Type or paste your homework question here..."
+                className="min-h-[120px] resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Upload Document (Optional)</label>
+              <FileUpload
+                onFileSelect={(file) => {
+                  // Handle file upload in the dialog
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  
+                  fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData,
+                  })
+                  .then(response => response.json())
+                  .then(data => {
+                    if (data.extractedText) {
+                      setInputText(data.extractedText);
+                      toast({
+                        title: "File processed",
+                        description: "Text extracted and added to the assignment",
+                      });
+                    }
+                  })
+                  .catch(error => {
+                    toast({
+                      title: "Upload failed",
+                      description: "Could not process the file",
+                      variant: "destructive",
+                    });
+                  });
+                }}
+                accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium mb-2 block">Special Instructions (Optional)</label>
+              <Textarea
+                value={specialInstructions}
+                onChange={(e) => setSpecialInstructions(e.target.value)}
+                placeholder="Add any special instructions for solving this problem..."
+                className="min-h-[80px] resize-none"
+              />
+            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={confirmSave}>
+            <Button onClick={confirmSave} disabled={!assignmentName.trim()}>
               Save Assignment
             </Button>
           </DialogFooter>
