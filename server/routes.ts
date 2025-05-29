@@ -10,6 +10,7 @@ import { execSync } from 'child_process';
 import { randomBytes } from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import puppeteer from 'puppeteer';
 
 // LLM imports
 // @ts-ignore
@@ -228,6 +229,111 @@ async function checkAIDetection(text: string): Promise<any> {
   }
 
   return await response.json();
+}
+
+// HTML to PDF conversion using Puppeteer
+async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment Solution'): Promise<Buffer> {
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+    });
+    
+    const page = await browser.newPage();
+    
+    // Set content with proper HTML structure and math rendering
+    const fullHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            chtml: {
+                scale: 1,
+                minScale: 0.5,
+                matchFontHeight: false
+            }
+        };
+    </script>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #000;
+            margin: 40px;
+            background: white;
+        }
+        h1, h2, h3 {
+            color: #000;
+            margin-bottom: 16px;
+            font-weight: bold;
+        }
+        .solution-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        @page {
+            margin: 0.75in;
+            size: letter;
+        }
+        @media print {
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>
+    <div class="solution-content">${htmlContent}</div>
+    <script>
+        // Wait for MathJax to finish rendering
+        if (window.MathJax) {
+            window.MathJax.startup.promise.then(() => {
+                window.mathJaxReady = true;
+            });
+        } else {
+            window.mathJaxReady = true;
+        }
+    </script>
+</body>
+</html>`;
+
+    await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    
+    // Wait for MathJax to render
+    await page.waitForTimeout(3000); // Give MathJax time to render
+    
+    // Generate PDF with high quality settings
+    const pdfBuffer = await page.pdf({
+      format: 'letter',
+      margin: {
+        top: '0.75in',
+        bottom: '0.75in',
+        left: '0.75in',
+        right: '0.75in'
+      },
+      printBackground: true,
+      preferCSSPageSize: true
+    });
+
+    return Buffer.from(pdfBuffer);
+  } catch (error) {
+    console.error('HTML to PDF conversion error:', error);
+    throw new Error('Failed to convert HTML to PDF');
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
 }
 
 // PDF Generation function using LaTeX/Tectonic
@@ -623,7 +729,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // PDF generation endpoint
+  // HTML to PDF conversion endpoint
+  app.post("/api/html-to-pdf", async (req, res) => {
+    try {
+      const { htmlContent, title } = req.body;
+      
+      if (!htmlContent || typeof htmlContent !== 'string') {
+        return res.status(400).json({ error: "HTML content is required" });
+      }
+
+      const pdfBuffer = await convertHtmlToPdf(htmlContent, title);
+      
+      // Set headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${title || 'assignment'}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error('HTML to PDF conversion error:', error);
+      res.status(500).json({ error: error.message || 'Failed to convert HTML to PDF' });
+    }
+  });
+
+  // PDF generation endpoint (LaTeX fallback)
   app.post("/api/generate-pdf", async (req, res) => {
     try {
       const { content, title, extractedText } = req.body;

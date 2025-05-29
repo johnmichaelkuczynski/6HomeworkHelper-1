@@ -193,15 +193,30 @@ export default function HomeworkAssistant() {
     }
 
     try {
-      const response = await fetch('/api/generate-pdf', {
+      // Get the rendered HTML content from the MathRenderer component
+      const solutionElement = document.querySelector('.math-content');
+      let htmlContent = '';
+      
+      if (solutionElement) {
+        htmlContent = solutionElement.innerHTML;
+      } else {
+        // Fallback to plain text if math rendering not available
+        htmlContent = currentResult.llmResponse.replace(/\n/g, '<br>');
+      }
+
+      // Add problem statement if available
+      if (currentResult.extractedText) {
+        htmlContent = `<h2>Problem Statement</h2><p>${currentResult.extractedText.replace(/\n/g, '<br>')}</p><h2>Solution</h2>${htmlContent}`;
+      }
+
+      const response = await fetch('/api/html-to-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          content: currentResult.llmResponse,
-          title: currentAssignmentName || 'Assignment Solution',
-          extractedText: currentResult.extractedText
+          htmlContent: htmlContent,
+          title: currentAssignmentName || 'Assignment Solution'
         }),
       });
 
@@ -222,7 +237,7 @@ export default function HomeworkAssistant() {
 
       toast({
         title: "PDF downloaded successfully",
-        description: "Professional PDF with proper mathematical notation",
+        description: "High-fidelity PDF with preserved formatting and math notation",
       });
     } catch (error) {
       console.error('PDF generation error:', error);
