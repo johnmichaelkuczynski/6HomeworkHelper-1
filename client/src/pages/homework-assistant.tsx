@@ -333,7 +333,7 @@ export default function HomeworkAssistant() {
               )}
             </div>
 
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 p-6 overflow-y-auto max-h-none">
               {/* Loading State */}
               {isProcessing && (
                 <div className="flex items-center justify-center h-full">
