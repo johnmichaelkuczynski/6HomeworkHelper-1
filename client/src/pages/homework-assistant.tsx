@@ -31,6 +31,9 @@ export default function HomeworkAssistant() {
   const [isEditingBottomSolution, setIsEditingBottomSolution] = useState(false);
   const [editedTopSolution, setEditedTopSolution] = useState("");
   const [editedBottomSolution, setEditedBottomSolution] = useState("");
+  const [isChunkedProcessing, setIsChunkedProcessing] = useState(false);
+  const [chunkProgress, setChunkProgress] = useState({ current: 0, total: 0 });
+  const [accumulatedContent, setAccumulatedContent] = useState("");
 
   const { toast } = useToast();
 
@@ -200,6 +203,97 @@ export default function HomeworkAssistant() {
     printWindow.document.close();
   };
 
+  // Chunked processing function
+  const processInChunks = async (text: string, provider: string) => {
+    const words = text.trim().split(/\s+/);
+    
+    // Check if we need chunking (more than 1000 words)
+    if (words.length <= 1000) {
+      // Process normally for small requests
+      return;
+    }
+
+    setIsChunkedProcessing(true);
+    setAccumulatedContent("");
+    
+    // Calculate chunks
+    const chunkSize = 800; // Slightly smaller to leave room for context
+    const totalChunks = Math.ceil(words.length / chunkSize);
+    setChunkProgress({ current: 0, total: totalChunks });
+
+    let fullResponse = "";
+
+    for (let i = 0; i < totalChunks; i++) {
+      const startIdx = i * chunkSize;
+      const endIdx = Math.min(startIdx + chunkSize, words.length);
+      const chunkWords = words.slice(startIdx, endIdx);
+      
+      setChunkProgress({ current: i + 1, total: totalChunks });
+
+      // Create chunk-specific prompt
+      let chunkPrompt;
+      if (i === 0) {
+        chunkPrompt = `Please write the first part (approximately ${chunkWords.length} words) of: ${text}
+
+This is part 1 of ${totalChunks}. Focus on a strong introduction and the beginning of the main content.`;
+      } else if (i === totalChunks - 1) {
+        chunkPrompt = `Please write the final part (approximately ${chunkWords.length} words) of: ${text}
+
+This is part ${i + 1} of ${totalChunks}. Focus on conclusions and final thoughts. Here's what has been written so far for context:
+
+${fullResponse.slice(-1000)}...`;
+      } else {
+        chunkPrompt = `Please write part ${i + 1} of ${totalChunks} (approximately ${chunkWords.length} words) of: ${text}
+
+Continue from where the previous part left off. Here's what has been written so far for context:
+
+${fullResponse.slice(-1000)}...`;
+      }
+
+      try {
+        const response = await fetch('/api/process-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text: chunkPrompt, 
+            provider: provider 
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+          fullResponse += result.llmResponse + "\n\n";
+          setAccumulatedContent(fullResponse);
+          
+          // Update the current result with accumulated content
+          setCurrentResult((prev: any) => ({
+            ...prev,
+            llmResponse: fullResponse,
+            extractedText: text
+          }));
+          
+          calculateWordCount(fullResponse);
+        } else {
+          throw new Error(result.error || 'Chunk processing failed');
+        }
+      } catch (error) {
+        console.error(`Chunk ${i + 1} failed:`, error);
+        toast({
+          title: `Chunk ${i + 1} failed`,
+          description: "Continuing with remaining chunks...",
+          variant: "destructive",
+        });
+      }
+    }
+
+    setIsChunkedProcessing(false);
+    toast({
+      title: "Large assignment completed",
+      description: `Processed ${totalChunks} chunks successfully`,
+    });
+  };
+
   const uploadMutation = useMutation({
     mutationFn: ({ file, provider }: { file: File; provider: string }) => {
       const formData = new FormData();
@@ -263,7 +357,7 @@ export default function HomeworkAssistant() {
     uploadMutation.mutate({ file, provider: selectedProvider });
   };
 
-  const handleProcessText = () => {
+  const handleProcessText = async () => {
     if (!inputText.trim()) {
       toast({
         title: "No content to process",
@@ -277,10 +371,16 @@ export default function HomeworkAssistant() {
       ? `${inputText}\n\nSpecial Instructions: ${specialInstructions}`
       : inputText;
 
-    textMutation.mutate({ text: textToProcess, provider: selectedProvider });
+    // Check if we need chunked processing
+    const words = textToProcess.trim().split(/\s+/);
+    if (words.length > 1000) {
+      await processInChunks(textToProcess, selectedProvider);
+    } else {
+      textMutation.mutate({ text: textToProcess, provider: selectedProvider });
+    }
   };
 
-  const isProcessing = uploadMutation.isPending || textMutation.isPending;
+  const isProcessing = uploadMutation.isPending || textMutation.isPending || isChunkedProcessing;
 
   const handleEmailSolution = async () => {
     if (!userEmail.trim()) {
@@ -582,9 +682,29 @@ export default function HomeworkAssistant() {
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center space-y-4">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto text-blue-500" />
-                    <p className="text-sm text-slate-600">
-                      Processing with {getProviderDisplayName(selectedProvider)}...
-                    </p>
+                    {isChunkedProcessing ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-slate-600">
+                          Processing large assignment with {getProviderDisplayName(selectedProvider)}...
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          Chunk {chunkProgress.current} of {chunkProgress.total}
+                        </p>
+                        <div className="w-64 bg-slate-200 rounded-full h-2 mx-auto">
+                          <div 
+                            className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${(chunkProgress.current / chunkProgress.total) * 100}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-slate-400">
+                          Results will appear as each chunk completes
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-600">
+                        Processing with {getProviderDisplayName(selectedProvider)}...
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
