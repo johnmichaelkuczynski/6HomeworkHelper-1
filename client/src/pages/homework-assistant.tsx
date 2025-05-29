@@ -584,6 +584,15 @@ export default function HomeworkAssistant() {
                           )}
                         </Button>
                       </div>
+                      <Button
+                        onClick={() => window.print()}
+                        variant="outline"
+                        size="sm"
+                        className="w-full mt-3"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download PDF (with Perfect Math Formatting)
+                      </Button>
                     </div>
                   </div>
                 </div>
