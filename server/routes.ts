@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { processAssignmentSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse } from "@shared/schema";
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
+// PDF parsing will be added later
 
 // LLM imports
 // @ts-ignore
@@ -133,8 +134,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (fileType.startsWith('image/')) {
         extractedText = await performOCR(req.file.buffer, fileName);
       } else {
-        // For PDF/DOC files, you might want to add specific parsers
-        // For now, return an error for unsupported formats
         return res.status(400).json({ error: "File type not supported yet. Please use images for now." });
       }
 
