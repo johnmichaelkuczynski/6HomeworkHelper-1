@@ -40,12 +40,13 @@ export class MemStorage implements IStorage {
 
   private saveToFile() {
     try {
-      const fs = require('fs');
-      const data = {
-        currentId: this.currentId,
-        assignments: Object.fromEntries(this.assignments)
-      };
-      fs.writeFileSync(this.storageFile, JSON.stringify(data, null, 2));
+      import('fs').then(fs => {
+        const data = {
+          currentId: this.currentId,
+          assignments: Object.fromEntries(this.assignments)
+        };
+        fs.writeFileSync(this.storageFile, JSON.stringify(data, null, 2));
+      });
     } catch (error) {
       console.error('Failed to save assignments:', error);
     }
