@@ -41,25 +41,9 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    // Convert PDF to images and use OCR
-    const pdf2pic = await import('pdf2pic');
-    const convert = pdf2pic.fromBuffer(buffer, {
-      density: 100,
-      saveFilename: "untitled",
-      savePath: "/tmp",
-      format: "png",
-      width: 600,
-      height: 600
-    });
-    
-    const result = await convert(1); // Convert first page only for now
-    if (result.buffer) {
-      // Use OCR on the converted image
-      const ocrResult = await performOCR(result.buffer, 'pdf_page.png');
-      return ocrResult;
-    }
-    
-    throw new Error('Could not convert PDF to image');
+    const pdfParse = require('pdf-parse');
+    const data = await pdfParse(buffer);
+    return data.text;
   } catch (error) {
     console.error('PDF parsing error:', error);
     throw new Error('Failed to extract text from PDF');
