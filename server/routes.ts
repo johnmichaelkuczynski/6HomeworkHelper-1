@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { processAssignmentSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse } from "@shared/schema";
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
-// PDF parsing will be added later
+// import pdfParse from "pdf-parse";
 
 // LLM imports
 // @ts-ignore
@@ -36,6 +36,17 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
   } catch (error) {
     console.error('OCR error:', error);
     throw new Error('Failed to extract text from image');
+  }
+}
+
+async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  try {
+    const pdfParse = await import('pdf-parse');
+    const data = await pdfParse.default(buffer);
+    return data.text;
+  } catch (error) {
+    console.error('PDF parsing error:', error);
+    throw new Error('Failed to extract text from PDF');
   }
 }
 
@@ -133,8 +144,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (fileType.startsWith('image/')) {
         extractedText = await performOCR(req.file.buffer, fileName);
+      } else if (fileType === 'application/pdf') {
+        extractedText = await extractTextFromPDF(req.file.buffer);
       } else {
-        return res.status(400).json({ error: "File type not supported yet. Please use images for now." });
+        return res.status(400).json({ error: "File type not supported yet. Please use images or PDFs." });
       }
 
       if (!extractedText.trim()) {
