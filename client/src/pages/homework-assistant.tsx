@@ -18,6 +18,7 @@ export default function HomeworkAssistant() {
   const [currentAssignmentName, setCurrentAssignmentName] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("anthropic");
+  const [emailAddress, setEmailAddress] = useState("");
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [userEmail, setUserEmail] = useState("");
   const [isEmailSending, setIsEmailSending] = useState(false);
@@ -1016,6 +1017,73 @@ ${fullResponse.slice(-1000)}...`;
                           title="Copy to clipboard"
                         >
                           <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Email Solution Section */}
+                    <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Input
+                          value={emailAddress}
+                          onChange={(e) => setEmailAddress(e.target.value)}
+                          placeholder="Enter email address..."
+                          type="email"
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={async () => {
+                            if (!emailAddress.trim()) {
+                              toast({
+                                title: "Email required",
+                                description: "Please enter an email address",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            if (!currentResult?.llmResponse) {
+                              toast({
+                                title: "No solution to email",
+                                description: "Please generate a solution first",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            try {
+                              const response = await fetch('/api/email-solution', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  email: emailAddress,
+                                  solution: currentResult.llmResponse,
+                                  assignmentTitle: currentAssignmentName || 'Assignment Solution'
+                                }),
+                              });
+
+                              if (response.ok) {
+                                toast({
+                                  title: "Email sent successfully",
+                                  description: `Solution sent to ${emailAddress}`,
+                                });
+                              } else {
+                                const error = await response.json();
+                                throw new Error(error.error || 'Failed to send email');
+                              }
+                            } catch (error: any) {
+                              toast({
+                                title: "Email failed",
+                                description: error.message || "Could not send email",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Mail className="w-4 h-4 mr-1" />
+                          Send Email
                         </Button>
                       </div>
                     </div>
