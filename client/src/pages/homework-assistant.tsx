@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FileUpload } from '@/components/ui/file-upload';
 import { MathRenderer } from '@/components/ui/math-renderer';
 import { useLLMProcessor } from '@/hooks/use-llm';
@@ -35,6 +36,8 @@ export default function HomeworkAssistant() {
   const [activeTab, setActiveTab] = useState('upload');
   const [userEmail, setUserEmail] = useState('jm@analyticphilosophy.ai');
   const [isEmailSending, setIsEmailSending] = useState(false);
+  const [assignmentName, setAssignmentName] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const { toast } = useToast();
 
   // Query for saved assignments
@@ -193,7 +196,7 @@ export default function HomeworkAssistant() {
     }
   };
 
-  const handleSaveAssignment = async () => {
+  const handleSaveAssignment = () => {
     const textToSave = inputText.trim() || currentResult?.extractedText;
     
     if (!textToSave) {
@@ -204,6 +207,13 @@ export default function HomeworkAssistant() {
       });
       return;
     }
+    
+    setShowSaveDialog(true);
+  };
+
+  const performSaveAssignment = async () => {
+    const textToSave = inputText.trim() || currentResult?.extractedText;
+    const nameToUse = assignmentName.trim() || 'Untitled Assignment';
 
     try {
       const response = await fetch('/api/assignments', {
@@ -212,6 +222,7 @@ export default function HomeworkAssistant() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: nameToUse,
           extractedText: textToSave,
           llmProvider: selectedProvider,
           llmResponse: currentResult?.llmResponse || null,
@@ -224,9 +235,11 @@ export default function HomeworkAssistant() {
 
       toast({
         title: "Assignment Saved!",
-        description: "Your assignment has been saved successfully.",
+        description: `"${nameToUse}" has been saved successfully.`,
       });
 
+      setShowSaveDialog(false);
+      setAssignmentName('');
       refetchAssignments();
     } catch (error) {
       toast({
@@ -589,6 +602,34 @@ export default function HomeworkAssistant() {
           </Card>
         </div>
       </div>
+
+      {/* Save Assignment Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Assignment</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Assignment Name</label>
+              <Input
+                value={assignmentName}
+                onChange={(e) => setAssignmentName(e.target.value)}
+                placeholder="Enter assignment name..."
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={performSaveAssignment}>
+              Save Assignment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
