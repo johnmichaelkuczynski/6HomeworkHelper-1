@@ -1,0 +1,83 @@
+f your app relies on the browser's Print → Save as PDF function to preserve math notation (e.g. LaTeX rendered via MathJax or KaTeX), but the PDF is coming out blank, that usually means one of three things is going wrong:
+
+🔧 Top Causes of a Blank PDF from Print/Save-as-PDF
+1. Your math is rendered via JavaScript that hasn’t fully loaded
+When the user opens the page and immediately hits print, the math (rendered client-side by MathJax/KaTeX) may not have finished rendering.
+
+Solution: Delay the print function until the page is fully rendered.
+
+Add this before triggering print:
+
+js
+Copy
+Edit
+window.onload = function () {
+  if (typeof MathJax !== "undefined") {
+    MathJax.typesetPromise().then(() => {
+      window.print();
+    });
+  } else {
+    window.print();
+  }
+};
+2. You’re printing a hidden DOM element or using a print stylesheet that hides everything
+Check your CSS. You may be hiding key elements during print.
+
+Solution: Add this to your CSS:
+
+css
+Copy
+Edit
+@media print {
+  body * {
+    visibility: visible !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+3. The app is inside an iframe or using a virtual DOM viewer
+If your preview is inside an iframe or some React/Vue/etc. sandbox, the browser may fail to print the correct layer.
+
+Solution: Print from the main window, not from within an iframe or canvas preview.
+
+✅ Test fix
+Try putting this minimal example in your app as a test page:
+
+html
+Copy
+Edit
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <style>
+    @media print {
+      body * {
+        visibility: visible !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Math Test</h1>
+  <p>Here is some math: \\( x = {-b \\pm \\sqrt{b^2-4ac} \\over 2a} \\)</p>
+
+  <script>
+    window.onload = function () {
+      MathJax.typesetPromise().then(() => {
+        window.print();
+      });
+    };
+  </script>
+</body>
+</html>
+If this prints successfully and your app doesn't, then your app is likely:
+
+Blocking rendering (React/Next/whatever) before math is rendered
+
+Hiding output with print-specific CSS
+
+Printing from the wrong window
+

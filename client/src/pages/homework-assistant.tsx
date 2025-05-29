@@ -564,6 +564,14 @@ ${fullResponse.slice(-1000)}...`;
               font-size: 12px; 
               margin-top: 20px; 
             }
+            @media print {
+              body * {
+                visibility: visible !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
           </style>
         </head>
         <body>
@@ -588,9 +596,30 @@ ${fullResponse.slice(-1000)}...`;
             </div>
           </div>
           
+          <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+          <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
           <script>
+            window.MathJax = {
+              tex: {
+                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']]
+              }
+            };
+            
             window.onload = function() {
-              setTimeout(() => window.print(), 1000);
+              if (typeof MathJax !== "undefined") {
+                MathJax.typesetPromise().then(() => {
+                  setTimeout(() => {
+                    window.print();
+                    setTimeout(() => window.close(), 1000);
+                  }, 500);
+                });
+              } else {
+                setTimeout(() => {
+                  window.print();
+                  setTimeout(() => window.close(), 1000);
+                }, 1000);
+              }
             };
           </script>
         </body>
