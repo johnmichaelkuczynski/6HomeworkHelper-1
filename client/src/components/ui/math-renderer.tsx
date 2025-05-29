@@ -9,7 +9,7 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (containerRef.current && window.MathJax) {
+    if (containerRef.current && window.MathJax && content && typeof content === 'string') {
       // Process content to better handle markdown and math
       let processedContent = content
         // Convert markdown headers to HTML
