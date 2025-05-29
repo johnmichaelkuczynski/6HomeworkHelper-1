@@ -99,103 +99,39 @@ export default function HomeworkAssistant() {
   }, [error, toast]);
 
   const handlePrint = () => {
+    if (!currentResult) return;
+    
     // Create a new window for printing
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Homework Solution</title>
-        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-        <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-        <script>
-          window.MathJax = {
-            tex: {
-              inlineMath: [['$', '$'], ['\\(', '\\)']],
-              displayMath: [['$$', '$$'], ['\\[', '\\]']],
-              processEscapes: true
-            },
-            options: {
-              processHtmlClass: 'math-content'
-            }
-          };
-        </script>
-        <style>
-          body { 
-            font-family: Arial, sans-serif; 
-            margin: 20px; 
-            line-height: 1.6; 
-            color: #000;
-            background: white;
-          }
-          h1, h2, h3 { 
-            color: #000; 
-            margin-bottom: 10px; 
-            font-weight: bold;
-          }
-          .problem-section {
-            margin-bottom: 20px;
-            padding: 15px;
-            border-left: 3px solid #3b82f6;
-            background: #f8fafc;
-          }
-          .solution-section {
-            margin-top: 20px;
-          }
-          .math-content {
-            font-size: 14px;
-            line-height: 1.6;
-            page-break-inside: avoid;
-            width: 100%;
-            max-width: none;
-          }
-          @media print {
-            body { 
-              font-size: 12px; 
-              max-width: none;
-              margin: 15px;
-            }
-            .problem-section, .solution-section {
-              page-break-inside: avoid;
-              max-width: 100%;
-            }
-            .math-content {
-              overflow: visible;
-              word-break: break-word;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <h1>Homework Solution</h1>
-        ${currentResult?.extractedText ? `
-          <div class="problem-section">
-            <h2>Problem:</h2>
-            <p>${currentResult.extractedText}</p>
-          </div>
-        ` : ''}
-        <div class="solution-section">
-          <h2>Solution:</h2>
-          <div class="math-content" style="white-space: pre-wrap; word-wrap: break-word; max-width: 100%; overflow-wrap: break-word;">${currentResult?.llmResponse || ''}</div>
-        </div>
-        <script>
-          window.onload = function() {
-            if (window.MathJax) {
-              MathJax.typesetPromise().then(() => {
-                setTimeout(() => window.print(), 1500);
-              });
-            } else {
-              setTimeout(() => window.print(), 1000);
-            }
-          };
-        </script>
-      </body>
-      </html>
-    `;
+    // Create the HTML content
+    printWindow.document.write('<!DOCTYPE html>');
+    printWindow.document.write('<html><head>');
+    printWindow.document.write('<title>Homework Solution</title>');
+    printWindow.document.write('<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>');
+    printWindow.document.write('<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>');
+    printWindow.document.write('<script>window.MathJax = {tex: {inlineMath: [["$", "$"], ["\\\\(", "\\\\)"]], displayMath: [["$$", "$$"], ["\\\\[", "\\\\]"]], processEscapes: true}, options: {processHtmlClass: "math-content"}};</script>');
+    printWindow.document.write('<style>body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #000; background: white; } h1, h2, h3 { color: #000; margin-bottom: 10px; font-weight: bold; } .problem-section { margin-bottom: 20px; padding: 15px; border-left: 3px solid #3b82f6; background: #f8fafc; } .solution-section { margin-top: 20px; } .math-content { font-size: 14px; line-height: 1.6; white-space: pre-wrap; word-wrap: break-word; } @media print { body { font-size: 12px; margin: 15px; } .math-content { overflow: visible; word-break: break-word; } }</style>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write('<h1>Homework Solution</h1>');
     
-    printWindow.document.write(printContent);
+    if (currentResult.extractedText) {
+      printWindow.document.write('<div class="problem-section">');
+      printWindow.document.write('<h2>Problem:</h2>');
+      printWindow.document.write('<p>' + currentResult.extractedText + '</p>');
+      printWindow.document.write('</div>');
+    }
+    
+    printWindow.document.write('<div class="solution-section">');
+    printWindow.document.write('<h2>Solution:</h2>');
+    printWindow.document.write('<div class="math-content">');
+    printWindow.document.write(currentResult.llmResponse || '');
+    printWindow.document.write('</div>');
+    printWindow.document.write('</div>');
+    
+    printWindow.document.write('<script>window.onload = function() { if (window.MathJax) { MathJax.typesetPromise().then(() => { setTimeout(() => window.print(), 1500); }); } else { setTimeout(() => window.print(), 1000); } };</script>');
+    printWindow.document.write('</body></html>');
     printWindow.document.close();
   };
 
