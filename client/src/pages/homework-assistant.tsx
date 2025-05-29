@@ -211,35 +211,26 @@ export default function HomeworkAssistant() {
       return;
     }
     
-    setHasActiveAssignment(true);
-    setShowNewAssignmentDialog(false);
-    setInputText('');
-    clearResult();
-    
-    toast({
-      title: "Assignment Created",
-      description: `Working on "${currentAssignmentName}"`,
-    });
+    // Save the current work if there's any
+    const textToSave = inputText.trim() || currentResult?.extractedText;
+    if (textToSave) {
+      performSave();
+    } else {
+      setHasActiveAssignment(true);
+      setShowNewAssignmentDialog(false);
+      setInputText('');
+      clearResult();
+      
+      toast({
+        title: "Assignment Created",
+        description: `Working on "${currentAssignmentName}"`,
+      });
+    }
   };
 
-  const handleSaveAssignment = async () => {
+  const performSave = async () => {
     const textToSave = inputText.trim() || currentResult?.extractedText;
     
-    if (!textToSave) {
-      toast({
-        title: "Nothing to Save",
-        description: "Please enter some text or process an assignment before saving.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // If no assignment is active, prompt for name
-    if (!hasActiveAssignment) {
-      setShowNewAssignmentDialog(true);
-      return;
-    }
-
     try {
       const response = await fetch('/api/assignments', {
         method: 'POST',
@@ -263,6 +254,8 @@ export default function HomeworkAssistant() {
         description: `"${currentAssignmentName}" has been saved successfully.`,
       });
 
+      setHasActiveAssignment(true);
+      setShowNewAssignmentDialog(false);
       refetchAssignments();
     } catch (error) {
       toast({
@@ -271,6 +264,28 @@ export default function HomeworkAssistant() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSaveAssignment = async () => {
+    const textToSave = inputText.trim() || currentResult?.extractedText;
+    
+    if (!textToSave) {
+      toast({
+        title: "Nothing to Save",
+        description: "Please enter some text or process an assignment before saving.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If no assignment name, prompt for one
+    if (!currentAssignmentName.trim()) {
+      setShowNewAssignmentDialog(true);
+      return;
+    }
+
+    // Directly save using performSave
+    await performSave();
   };
 
   const handleLoadAssignment = async (id: number) => {
