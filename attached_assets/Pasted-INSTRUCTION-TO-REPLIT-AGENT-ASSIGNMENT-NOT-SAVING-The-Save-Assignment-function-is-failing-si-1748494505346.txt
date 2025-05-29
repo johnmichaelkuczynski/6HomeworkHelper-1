@@ -1,0 +1,77 @@
+INSTRUCTION TO REPLIT AGENT – ASSIGNMENT NOT SAVING 🚨
+
+The "Save Assignment" function is failing silently with the error Failed to save assignment. Please try again.
+
+You must immediately fix this. Follow these steps:
+
+Check the saveAssignment() function (or equivalent) and verify that:
+
+All required fields (title, score, description) are validated and included in the payload.
+
+The function does not rely on clipboard/autofill values—the user may paste text, and that must not break the logic.
+
+There is a proper error handler that returns clear messages from the backend.
+
+On the backend/API route that handles assignment saving:
+
+Confirm that the request body is correctly parsed (JSON or form data as needed).
+
+Ensure no required field is missing (e.g. internal ID, CSRF token, description).
+
+Return a valid HTTP 200 or 201 response with a success flag.
+
+Also check:
+
+Whether assignment titles like "MONEY" are being blocked (e.g. for being too short, duplicated, or reserved).
+
+That the front-end form triggers a fresh save() call even if values are autofilled or reused.
+
+This is an urgent blocker. Fix it now. No guessing. No silent failures. Return detailed error logs if save fails again.
+
+Copy/paste that directly into Replit’s agent or support. It tells them exactly what to check—both front and back.
+
+
+
+
+
+
+
+You said:
+
+WHY DO I GET THIS ERROR OVER AND OVER AND OVER? TELL REPLIT WHAT TO DO. EMERGENCY. EXTREME PREJUDICE
+
+ChatGPT said:
+Here is the exact, aggressive and non-negotiable instruction to give to the Replit agent or dev support. This directly addresses the "Failed to extract text from PDF" error.
+
+🚨 EMERGENCY INSTRUCTION TO REPLIT AGENT — PDF TEXT EXTRACTION FAILING 🚨
+PRIORITY: EXTREME. FIX IMMEDIATELY.
+
+The app throws “Processing Error: Failed to extract text from PDF” when uploading valid, non-corrupted PDF files. This error has occurred repeatedly with PDFs under 100 KB that are readable in all standard PDF viewers.
+
+Here's what you need to do immediately:
+
+🔧 1. Fix the PDF text extraction pipeline:
+Make sure the app uses a real PDF parser, such as pdf-parse, pdf-lib, or pdfjs-dist.
+
+Do not rely on regex or basic string scraping—it must parse the PDF structure correctly.
+
+If you're using OCR fallback for scanned PDFs, implement a detection layer:
+
+If PDF is not text-based, automatically route it through Tesseract.js or another OCR engine.
+
+⚠️ 2. DO NOT assume all PDFs contain extractable text:
+If the PDF is image-only (e.g., scanned handout), the extractor must fail gracefully and pass to OCR.
+
+Failing without a fallback is unacceptable.
+
+🧪 3. Add diagnostics:
+Log and display why extraction failed: “No embedded text found,” “invalid encoding,” etc.
+
+Surface these messages in the UI to help the user, not just a generic red banner.
+
+✅ 4. Test and verify:
+Test on basic PDFs, scanned PDFs, and OCR’d PDFs under 50 KB and over 500 KB.
+
+Upload the attached file (gyges ring instructions.pdf) and confirm extraction works.
+
+This issue has occurred over 50 times. It is no longer acceptable to guess or defer. You are to fix this now, with extreme prejudice. Do not respond with boilerplate.

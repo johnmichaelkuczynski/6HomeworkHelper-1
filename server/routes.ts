@@ -41,12 +41,26 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const pdfParse = require('pdf-parse');
-    const data = await pdfParse(buffer);
+    const pdfParse = await import('pdf-parse');
+    const data = await pdfParse.default(buffer);
+    
+    if (!data.text || data.text.trim().length === 0) {
+      // If no text found, it might be a scanned PDF - use OCR
+      console.log('No text found in PDF, attempting OCR fallback');
+      return await performOCR(buffer, 'scanned.pdf');
+    }
+    
     return data.text;
   } catch (error) {
     console.error('PDF parsing error:', error);
-    throw new Error('Failed to extract text from PDF');
+    // Fallback to OCR if PDF parsing fails
+    try {
+      console.log('PDF parsing failed, attempting OCR fallback');
+      return await performOCR(buffer, 'fallback.pdf');
+    } catch (ocrError) {
+      console.error('OCR fallback also failed:', ocrError);
+      throw new Error('Failed to extract text from PDF');
+    }
   }
 }
 
