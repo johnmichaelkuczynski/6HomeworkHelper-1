@@ -232,16 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const processingTime = Date.now() - startTime;
 
-      // Store assignment
-      const assignment = await storage.createAssignment({
-        inputText: null,
-        inputType: 'image',
-        fileName,
-        extractedText,
-        llmProvider,
-        llmResponse,
-        processingTime,
-      });
+      // Don't auto-save assignment
 
       const response: ProcessAssignmentResponse = {
         id: assignment.id,
