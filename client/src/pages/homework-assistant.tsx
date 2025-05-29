@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -89,13 +89,16 @@ export default function HomeworkAssistant() {
     }
   };
 
-  if (error) {
-    toast({
-      title: "Processing Error",
-      description: error instanceof Error ? error.message : "An error occurred",
-      variant: "destructive",
-    });
-  }
+  // Handle errors with useEffect to avoid render loop
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Processing Error",
+        description: error instanceof Error ? error.message : "An error occurred",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   return (
     <div className="min-h-screen bg-slate-50">
