@@ -1105,45 +1105,67 @@ ${fullResponse.slice(-1000)}...`;
                     </div>
                   )}
                   
-                  <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-                    <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center">
-                      <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
-                      Solution
-                    </h3>
-                    <div className="relative">
-                      <Button
-                        onClick={() => window.print()}
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-0 right-0 text-slate-600 hover:text-slate-900 z-10"
-                        title="Download this formatted solution as PDF"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
+                  <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm min-h-[500px]">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                        <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
+                        Solution
+                      </h3>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          onClick={downloadFormattedPDF}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Download as PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={handleCopyToClipboard}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Copy to clipboard"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="relative mb-6 max-h-[400px] overflow-y-auto">
                       <MathRenderer 
                         content={currentResult.llmResponse}
-                        className="space-y-4 math-content pr-12"
+                        className="space-y-4 math-content"
                       />
                     </div>
                     
-                    <div className="mt-6 pt-4 border-t border-slate-200">
+                    <div className="pt-4 border-t border-slate-200">
+                      <h4 className="text-sm font-medium text-slate-700 mb-3">Email this solution to yourself</h4>
                       <div className="flex items-center space-x-2">
                         <Input
                           value={userEmail}
                           onChange={(e) => setUserEmail(e.target.value)}
-                          placeholder="Enter email address..."
+                          placeholder="Enter your email address..."
                           className="flex-1"
+                          type="email"
                         />
                         <Button
                           onClick={handleEmailSolution}
-                          disabled={isEmailSending}
+                          disabled={isEmailSending || !userEmail.trim()}
                           variant="outline"
                           size="sm"
                         >
                           {isEmailSending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                              Sending...
+                            </>
                           ) : (
-                            <Mail className="w-4 h-4" />
+                            <>
+                              <Mail className="w-4 h-4 mr-1" />
+                              Send Email
+                            </>
                           )}
                         </Button>
                       </div>
