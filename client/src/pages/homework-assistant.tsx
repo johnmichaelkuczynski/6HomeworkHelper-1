@@ -222,6 +222,32 @@ export default function HomeworkAssistant() {
     }
   };
 
+  // Handle email solution
+  const handleEmailSolution = async (email: string, content: string, title: string) => {
+    try {
+      const response = await fetch('/api/email-solution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, content, title }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Email sent",
+          description: `Solution sent to ${email}`,
+        });
+      } else {
+        throw new Error('Failed to send email');
+      }
+    } catch (error) {
+      toast({
+        title: "Email failed",
+        description: "Failed to send email. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Critique and rewrite function
   const handleCritiqueRewrite = async () => {
     if (!critiqueText.trim() || !currentResult) return;
@@ -517,49 +543,6 @@ ${fullResponse.slice(-1000)}...`;
   };
 
   const isProcessing = uploadMutation.isPending || textMutation.isPending || isChunkedProcessing;
-
-  const handleEmailSolution = async () => {
-    if (!userEmail.trim()) {
-      toast({
-        title: "Email required",
-        description: "Please enter an email address",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!currentResult) {
-      toast({
-        title: "No solution to send",
-        description: "Please process an assignment first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsEmailSending(true);
-    try {
-      await emailSolution({
-        email: userEmail,
-        extractedText: currentResult.extractedText || inputText,
-        llmResponse: currentResult.llmResponse,
-        provider: selectedProvider
-      });
-
-      toast({
-        title: "Email sent successfully",
-        description: `Solution sent to ${userEmail}`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Failed to send email",
-        description: error.message || "Please check your email address and try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsEmailSending(false);
-    }
-  };
 
 
 
@@ -1098,6 +1081,20 @@ ${fullResponse.slice(-1000)}...`;
                         Solution
                       </h3>
                       <div className="flex items-center space-x-2">
+                        <Button
+                          onClick={() => {
+                            const email = prompt("Enter your email address:");
+                            if (email && currentResult?.llmResponse) {
+                              handleEmailSolution(email, currentResult.llmResponse, "Homework Solution");
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Email solution"
+                        >
+                          <Mail className="w-4 h-4" />
+                        </Button>
                         <Button
                           onClick={generatePDF}
                           variant="ghost"
