@@ -57,8 +57,8 @@ export default function HomeworkAssistant() {
     if (allAssignments && allAssignments.length > 0) {
       const saved: {[key: string]: string} = {};
       allAssignments.forEach(assignment => {
-        // Look for assignments that were saved (have inputText but no llmResponse)
-        if (assignment.fileName && assignment.inputText && !assignment.llmResponse) {
+        // Show assignments that have a fileName and inputText (including processed ones)
+        if (assignment.fileName && assignment.inputText) {
           saved[assignment.fileName] = assignment.inputText;
         }
       });
