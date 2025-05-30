@@ -39,8 +39,10 @@ export default function HomeworkAssistant() {
   const [savedAssignments, setSavedAssignments] = useState<{[key: string]: string}>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [assignmentName, setAssignmentName] = useState("");
-  const [emailAddress, setEmailAddress] = useState("jm@analyticphilosophy.ai");
+  const [toEmail, setToEmail] = useState("jm@analyticphilosophy.ai");
+  const [fromEmail, setFromEmail] = useState("");
   const [isEmailSending, setIsEmailSending] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
 
   const { toast } = useToast();
 
@@ -1218,7 +1220,7 @@ ${fullResponse.slice(-1000)}...`;
                       </h3>
                       <div className="flex items-center space-x-2">
                         <Button
-                          onClick={async () => {
+                          onClick={() => {
                             if (!currentResult?.llmResponse) {
                               toast({
                                 title: "No solution to email",
@@ -1227,37 +1229,7 @@ ${fullResponse.slice(-1000)}...`;
                               });
                               return;
                             }
-
-                            setIsEmailSending(true);
-                            try {
-                              const response = await fetch('/api/email-solution', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                  email: emailAddress,
-                                  content: currentResult.llmResponse,
-                                  title: currentAssignmentName || 'Assignment Solution'
-                                }),
-                              });
-
-                              if (response.ok) {
-                                toast({
-                                  title: "Email sent successfully",
-                                  description: `Solution sent to ${emailAddress}`,
-                                });
-                              } else {
-                                const error = await response.json();
-                                throw new Error(error.error || 'Failed to send email');
-                              }
-                            } catch (error: any) {
-                              toast({
-                                title: "Email failed",
-                                description: error.message || "Could not send email",
-                                variant: "destructive",
-                              });
-                            } finally {
-                              setIsEmailSending(false);
-                            }
+                            setShowEmailDialog(true);
                           }}
                           variant="ghost"
                           size="sm"
@@ -1571,6 +1543,104 @@ ${fullResponse.slice(-1000)}...`;
             </Button>
             <Button onClick={confirmSave} disabled={!assignmentName.trim()}>
               Save Assignment
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Email Solution</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="fromEmail" className="text-sm font-medium">
+                From Email (Your SendGrid verified sender):
+              </label>
+              <Input
+                id="fromEmail"
+                value={fromEmail}
+                onChange={(e) => setFromEmail(e.target.value)}
+                placeholder="your-verified@email.com"
+                type="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="toEmail" className="text-sm font-medium">
+                To Email:
+              </label>
+              <Input
+                id="toEmail"
+                value={toEmail}
+                onChange={(e) => setToEmail(e.target.value)}
+                placeholder="recipient@email.com"
+                type="email"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={async () => {
+                if (!fromEmail.trim() || !toEmail.trim()) {
+                  toast({
+                    title: "Missing email addresses",
+                    description: "Please enter both from and to email addresses",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                setIsEmailSending(true);
+                try {
+                  const response = await fetch('/api/email-solution', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      fromEmail: fromEmail.trim(),
+                      toEmail: toEmail.trim(),
+                      content: currentResult.llmResponse,
+                      title: currentAssignmentName || 'Assignment Solution'
+                    }),
+                  });
+
+                  if (response.ok) {
+                    toast({
+                      title: "Email sent successfully",
+                      description: `Solution sent to ${toEmail}`,
+                    });
+                    setShowEmailDialog(false);
+                  } else {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to send email');
+                  }
+                } catch (error: any) {
+                  toast({
+                    title: "Email failed",
+                    description: error.message || "Could not send email",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setIsEmailSending(false);
+                }
+              }}
+              disabled={isEmailSending}
+            >
+              {isEmailSending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Send Email
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

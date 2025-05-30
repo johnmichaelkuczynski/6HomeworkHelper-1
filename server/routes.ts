@@ -687,17 +687,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email solution endpoint
   app.post("/api/email-solution", async (req, res) => {
     try {
-      const { email, content, title } = req.body;
+      const { toEmail, fromEmail, content, title } = req.body;
 
-      if (!email || !content) {
-        return res.status(400).json({ error: "Email and content are required" });
+      if (!toEmail || !fromEmail || !content) {
+        return res.status(400).json({ error: "To email, from email, and content are required" });
       }
 
-      if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_VERIFIED_SENDER) {
-        return res.status(500).json({ error: "SendGrid not configured. Please provide SENDGRID_API_KEY and SENDGRID_VERIFIED_SENDER." });
+      if (!process.env.SENDGRID_API_KEY) {
+        return res.status(500).json({ error: "SendGrid not configured. Please provide SENDGRID_API_KEY." });
       }
 
-      const sgMail = require('@sendgrid/mail');
+      const { default: sgMail } = await import('@sendgrid/mail');
       sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
       const htmlContent = `
@@ -739,8 +739,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       `;
 
       const msg = {
-        to: email,
-        from: process.env.SENDGRID_VERIFIED_SENDER,
+        to: toEmail,
+        from: fromEmail,
         subject: title || 'Your Homework Solution',
         html: htmlContent,
       };
