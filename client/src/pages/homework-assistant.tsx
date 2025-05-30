@@ -39,6 +39,7 @@ export default function HomeworkAssistant() {
   const [savedAssignments, setSavedAssignments] = useState<{[key: string]: string}>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [assignmentName, setAssignmentName] = useState("");
+  const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
 
   const { toast } = useToast();
 
@@ -779,6 +780,53 @@ ${fullResponse.slice(-1000)}...`;
     }
   };
 
+  const uploadToGoogleDrive = async () => {
+    if (!currentResult?.llmResponse) {
+      toast({
+        title: "No content to upload",
+        description: "Please generate a solution first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingToDrive(true);
+    try {
+      const content = `Assignment: ${currentAssignmentName || 'Homework Solution'}\n\n${
+        currentResult.extractedText ? `Problem: ${currentResult.extractedText}\n\n` : ''
+      }Solution:\n${currentResult.llmResponse}`;
+
+      const response = await fetch('/api/upload-to-drive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: `${currentAssignmentName || 'Assignment'}.txt`,
+          content: content,
+          mimeType: 'text/plain'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Uploaded to Google Drive",
+          description: `File saved as "${result.fileName}"`,
+        });
+      } else {
+        throw new Error(result.error || 'Failed to upload to Google Drive');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Google Drive upload failed",
+        description: error.message || "Please check your Google Drive credentials",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploadingToDrive(false);
+    }
+  };
+
   const handleLoadAssignment = (id: number) => {
     // Load saved assignment logic would go here
     toast({
@@ -1140,7 +1188,20 @@ ${fullResponse.slice(-1000)}...`;
                         Solution
                       </h3>
                       <div className="flex items-center space-x-2">
-
+                        <Button
+                          onClick={uploadToGoogleDrive}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Save to Google Drive"
+                          disabled={isUploadingToDrive}
+                        >
+                          {isUploadingToDrive ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Cloud className="w-4 h-4" />
+                          )}
+                        </Button>
                         <Button
                           onClick={generatePDF}
                           variant="ghost"

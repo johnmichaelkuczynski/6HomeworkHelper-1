@@ -446,6 +446,54 @@ ${escapedContent}
   }
 }
 
+async function uploadToGoogleDrive(fileName: string, content: string, mimeType: string = 'text/plain') {
+  try {
+    if (!process.env.GOOGLE_DRIVE_ACCESS_TOKEN) {
+      throw new Error('Google Drive access token not configured. Please set up Google Drive API credentials.');
+    }
+
+    // First, create the file metadata
+    const metadataResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.GOOGLE_DRIVE_ACCESS_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name: fileName,
+        parents: process.env.GOOGLE_DRIVE_FOLDER_ID ? [process.env.GOOGLE_DRIVE_FOLDER_ID] : undefined
+      })
+    });
+
+    if (!metadataResponse.ok) {
+      const error = await metadataResponse.json();
+      throw new Error(`Google Drive API error: ${error.error?.message || metadataResponse.statusText}`);
+    }
+
+    const fileMetadata = await metadataResponse.json();
+
+    // Then upload the content
+    const uploadResponse = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileMetadata.id}?uploadType=media`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${process.env.GOOGLE_DRIVE_ACCESS_TOKEN}`,
+        'Content-Type': mimeType,
+      },
+      body: content
+    });
+
+    if (!uploadResponse.ok) {
+      const error = await uploadResponse.json();
+      throw new Error(`Google Drive upload error: ${error.error?.message || uploadResponse.statusText}`);
+    }
+
+    return fileMetadata;
+  } catch (error) {
+    console.error('Google Drive upload error:', error);
+    throw error;
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), async (req, res) => {
@@ -808,6 +856,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('PDF generation error:', error);
       res.status(500).json({ error: error.message || 'Failed to generate PDF' });
+    }
+  });
+
+  // Google Drive upload endpoint
+  app.post("/api/upload-to-drive", async (req, res) => {
+    try {
+      const { fileName, content, mimeType } = req.body;
+      
+      if (!fileName || !content) {
+        return res.status(400).json({ error: "File name and content are required" });
+      }
+
+      const result = await uploadToGoogleDrive(fileName, content, mimeType);
+      res.json({ 
+        success: true, 
+        fileName: fileName,
+        fileId: result.id,
+        message: "File uploaded to Google Drive successfully" 
+      });
+    } catch (error: any) {
+      console.error('Google Drive upload error:', error);
+      res.status(500).json({ error: error.message || "Failed to upload to Google Drive" });
     }
   });
 
