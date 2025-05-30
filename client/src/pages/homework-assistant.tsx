@@ -830,18 +830,35 @@ ${fullResponse.slice(-1000)}...`;
             <div className="p-6 space-y-6">
               <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
               
-              {/* Saved Assignments */}
-              {Object.keys(savedAssignments).length > 0 && (
+              {/* Load Saved Assignments */}
+              {assignmentsQuery.data && assignmentsQuery.data.length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Load Saved Assignment
                   </label>
                   <Select 
                     value={selectedSavedAssignment} 
-                    onValueChange={(value) => {
+                    onValueChange={async (value) => {
                       setSelectedSavedAssignment(value);
                       if (value) {
-                        loadAssignment(value);
+                        try {
+                          const response = await fetch(`/api/assignments/${value}`);
+                          if (response.ok) {
+                            const assignment = await response.json();
+                            setInputText(assignment.extractedText || '');
+                            setCurrentAssignmentName(assignment.fileName || '');
+                            toast({
+                              title: "Assignment loaded",
+                              description: `Loaded "${assignment.fileName}"`,
+                            });
+                          }
+                        } catch (error) {
+                          toast({
+                            title: "Failed to load assignment",
+                            description: "Please try again",
+                            variant: "destructive",
+                          });
+                        }
                       }
                     }}
                   >
@@ -849,21 +866,10 @@ ${fullResponse.slice(-1000)}...`;
                       <SelectValue placeholder="Select a saved assignment..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.keys(savedAssignments).map((name) => (
-                        <SelectItem key={name} value={name}>
+                      {assignmentsQuery.data.map((assignment) => (
+                        <SelectItem key={assignment.id} value={assignment.id.toString()}>
                           <div className="flex items-center justify-between w-full">
-                            <span>{name}</span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteAssignment(name);
-                              }}
-                              className="ml-2 h-6 w-6 p-0 text-red-500 hover:text-red-700"
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
+                            <span>{assignment.fileName || `Assignment ${assignment.id}`}</span>
                           </div>
                         </SelectItem>
                       ))}
