@@ -17,27 +17,10 @@ import puppeteer from 'puppeteer';
 import Anthropic from "@anthropic-ai/sdk";
 // @ts-ignore
 import OpenAI from "openai";
-// @ts-ignore
-import nodemailer from "nodemailer";
-
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
-
-// Initialize Gmail transporter
-const createGmailTransporter = () => {
-  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
-    return nodemailer.createTransporter({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD
-      }
-    });
-  }
-  return null;
-};
 
 // Initialize LLM clients
 const anthropic = new Anthropic({
