@@ -9,38 +9,21 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (containerRef.current && window.MathJax && content && typeof content === 'string') {
-      // Process content to preserve line breaks and formatting
+    if (containerRef.current && content && typeof content === 'string') {
+      // Raw passthrough - display exactly what the LLM provided
       let processedContent = content
-        // Split by double line breaks to create paragraphs
-        .split('\n\n')
-        .map(paragraph => {
-          if (paragraph.trim().length === 0) return '';
-          
-          // Process single paragraph
-          let para = paragraph
-            // Convert single line breaks to <br> within paragraphs
-            .replace(/\n/g, '<br/>')
-            // Handle any remaining markdown bold
-            .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
-          
-          return `<div class="mb-4 leading-relaxed">${para}</div>`;
-        })
-        .filter(p => p.length > 0)
-        .join('');
+        .replace(/\n/g, '<br/>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
       
-      // If no content, return empty
-      if (!processedContent.trim()) {
-        processedContent = '<div class="text-slate-500 italic">No content to display</div>';
-      }
-      
-      // Set the processed content
+      // Set the raw content
       containerRef.current.innerHTML = processedContent;
       
-      // Typeset the math
-      window.MathJax.typesetPromise([containerRef.current]).catch((err: any) => {
-        console.error('MathJax typeset error:', err);
-      });
+      // Render math if MathJax is available
+      if (window.MathJax) {
+        window.MathJax.typesetPromise([containerRef.current]).catch((err: any) => {
+          console.error('MathJax typeset error:', err);
+        });
+      }
     }
   }, [content]);
 
