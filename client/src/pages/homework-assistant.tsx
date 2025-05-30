@@ -1235,8 +1235,8 @@ ${fullResponse.slice(-1000)}...`;
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                   email: emailAddress,
-                                  solution: currentResult.llmResponse,
-                                  assignmentTitle: currentAssignmentName || 'Assignment Solution'
+                                  content: currentResult.llmResponse,
+                                  title: currentAssignmentName || 'Assignment Solution'
                                 }),
                               });
 
