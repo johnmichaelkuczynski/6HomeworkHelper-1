@@ -1096,9 +1096,15 @@ ${fullResponse.slice(-1000)}...`;
                       <div className="flex items-center space-x-2">
                         <Button
                           onClick={() => {
+                            console.log('Email button clicked');
+                            console.log('Current result:', currentResult);
                             const email = prompt("Enter your email address:");
+                            console.log('Email entered:', email);
                             if (email && currentResult?.llmResponse) {
+                              console.log('Calling handleEmailSolution with:', email, currentResult.llmResponse?.substring(0, 50));
                               handleEmailSolution(email, currentResult.llmResponse, "Homework Solution");
+                            } else {
+                              console.log('Missing email or content:', { email, hasContent: !!currentResult?.llmResponse });
                             }
                           }}
                           variant="ghost"
