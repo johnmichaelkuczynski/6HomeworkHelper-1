@@ -8,7 +8,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Send, Copy, Trash2, CheckCircle, Mail, History, Lightbulb, Download, Edit3, Save, X } from "lucide-react";
+import { Loader2, Send, Copy, Trash2, CheckCircle, Mail, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { emailSolution } from "@/lib/api";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -28,6 +28,7 @@ export default function HomeworkAssistant() {
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatting, setIsChatting] = useState(false);
+  const [chatFileUpload, setChatFileUpload] = useState<File | null>(null);
   const [critiqueText, setCritiqueText] = useState("");
   const [isRewriting, setIsRewriting] = useState(false);
   const [isEditingTopSolution, setIsEditingTopSolution] = useState(false);
@@ -112,29 +113,56 @@ export default function HomeworkAssistant() {
 
   // Chat with AI function
   const handleChatMessage = async () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() && !chatFileUpload) return;
     
-    const userMessage = { role: 'user', content: chatInput, timestamp: new Date() };
+    const userMessage = { role: 'user', content: chatInput || (chatFileUpload ? `Uploaded file: ${chatFileUpload.name}` : ''), timestamp: new Date() };
     setChatMessages(prev => [...prev, userMessage]);
+    
+    const currentChatInput = chatInput;
+    const currentFile = chatFileUpload;
     setChatInput("");
+    setChatFileUpload(null);
     setIsChatting(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          message: chatInput, 
-          provider: selectedProvider,
-          context: currentResult ? {
-            problem: currentResult.extractedText || inputText,
-            solution: currentResult.llmResponse
-          } : null
-        }),
-      });
+      let response, result;
       
-      const result = await response.json();
-      const aiMessage = { role: 'assistant', content: result.response, timestamp: new Date() };
+      if (currentFile) {
+        // Handle file upload in chat
+        const formData = new FormData();
+        formData.append('file', currentFile);
+        formData.append('provider', selectedProvider);
+        if (currentChatInput) formData.append('message', currentChatInput);
+        
+        response = await fetch('/api/chat-upload', {
+          method: 'POST',
+          body: formData,
+        });
+        result = await response.json();
+      } else {
+        // Handle text-only chat
+        response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: currentChatInput, 
+            provider: selectedProvider,
+            context: currentResult ? {
+              problem: currentResult.extractedText || inputText,
+              solution: currentResult.llmResponse
+            } : null
+          }),
+        });
+        result = await response.json();
+      }
+      
+      const aiMessage = { 
+        role: 'assistant', 
+        content: result.response, 
+        timestamp: new Date(),
+        extractedText: result.extractedText,
+        fileName: result.fileName
+      };
       setChatMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Chat failed:', error);
@@ -143,6 +171,16 @@ export default function HomeworkAssistant() {
     } finally {
       setIsChatting(false);
     }
+  };
+
+  // Handle file upload for chat
+  const handleChatFileUpload = (file: File) => {
+    setChatFileUpload(file);
+  };
+
+  // Send chat response to input box
+  const sendToInputBox = (content: string) => {
+    setInputText(content);
   };
 
   // Critique and rewrite function
@@ -1240,8 +1278,35 @@ ${fullResponse.slice(-1000)}...`;
                             : 'bg-white border border-slate-200'
                         }`}>
                           <MathRenderer content={message.content} />
+                          {message.role === 'assistant' && (
+                            <div className="flex gap-2 mt-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => sendToInputBox(message.content)}
+                                className="text-xs"
+                              >
+                                <ArrowDown className="w-3 h-3 mr-1" />
+                                Send to Input
+                              </Button>
+                              {message.extractedText && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => sendToInputBox(message.extractedText)}
+                                  className="text-xs"
+                                >
+                                  <FileText className="w-3 h-3 mr-1" />
+                                  Send File Text
+                                </Button>
+                              )}
+                            </div>
+                          )}
                           <div className="text-xs opacity-70 mt-1">
                             {message.timestamp.toLocaleTimeString()}
+                            {message.fileName && (
+                              <span className="ml-2">📎 {message.fileName}</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1257,22 +1322,43 @@ ${fullResponse.slice(-1000)}...`;
                 )}
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Input
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Ask the AI about the solution or assignment..."
-                  className="flex-1"
-                  onKeyPress={(e) => e.key === 'Enter' && handleChatMessage()}
-                  disabled={isChatting}
-                />
-                <Button 
-                  size="sm" 
-                  onClick={handleChatMessage}
-                  disabled={isChatting || !chatInput.trim()}
-                >
-                  <Send className="w-4 h-4" />
-                </Button>
+              <div className="space-y-2">
+                {chatFileUpload && (
+                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm text-blue-800">{chatFileUpload.name}</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setChatFileUpload(null)}
+                      className="ml-auto h-6 w-6 p-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <Input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask the AI anything or upload a file..."
+                    className="flex-1"
+                    onKeyPress={(e) => e.key === 'Enter' && handleChatMessage()}
+                    disabled={isChatting}
+                  />
+                  <FileUpload
+                    onFileSelect={handleChatFileUpload}
+                    isProcessing={isChatting}
+                    accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={handleChatMessage}
+                    disabled={isChatting || (!chatInput.trim() && !chatFileUpload)}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
