@@ -45,9 +45,11 @@ export type ProcessAssignmentResponse = z.infer<typeof processAssignmentResponse
 
 export const emailSolutionSchema = z.object({
   email: z.string().email(),
-  extractedText: z.string(),
-  llmResponse: z.string(),
-  provider: z.string(),
+  extractedText: z.string().optional(),
+  llmResponse: z.string().optional(),
+  provider: z.string().optional(),
+  title: z.string().optional(),
+  content: z.string().optional(),
 });
 
 export type EmailSolutionRequest = z.infer<typeof emailSolutionSchema>;

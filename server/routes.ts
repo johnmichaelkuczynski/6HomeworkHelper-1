@@ -636,11 +636,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email solution endpoint
   app.post("/api/email-solution", async (req, res) => {
     try {
-      const { email, extractedText, llmResponse, provider } = emailSolutionSchema.parse(req.body);
+      const { email, extractedText, llmResponse, provider, title, content } = emailSolutionSchema.parse(req.body);
 
       if (!process.env.SENDGRID_API_KEY) {
         return res.status(500).json({ error: "Email service not configured. SendGrid API key is missing." });
       }
+
+      // Use content if provided, otherwise fall back to llmResponse
+      const emailContent = content || llmResponse || "No solution content available";
+      const emailTitle = title || "Homework Solution";
 
       const htmlContent = `
         <!DOCTYPE html>
@@ -668,8 +672,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </style>
         </head>
         <body>
-          <h1>Your Homework Solution</h1>
-          <p>Generated using ${provider} AI</p>
+          <h1>${emailTitle}</h1>
+          ${provider ? `<p>Generated using ${provider} AI</p>` : ''}
           
           ${extractedText ? `
             <div class="problem-section">
