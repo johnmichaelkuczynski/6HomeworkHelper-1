@@ -1,6 +1,6 @@
 import { assignments, type Assignment, type InsertAssignment } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 
 export interface IStorage {
   createAssignment(assignment: InsertAssignment): Promise<Assignment>;
@@ -110,6 +110,20 @@ export class MemStorage implements IStorage {
     return Array.from(this.assignments.values()).sort((a, b) => 
       (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0)
     );
+  }
+
+  async deleteAssignment(id: number): Promise<void> {
+    this.assignments.delete(id);
+    this.saveToFile();
+  }
+
+  async cleanupEmptyAssignments(): Promise<void> {
+    for (const [id, assignment] of this.assignments.entries()) {
+      if (!assignment.fileName) {
+        this.assignments.delete(id);
+      }
+    }
+    this.saveToFile();
   }
 }
 
