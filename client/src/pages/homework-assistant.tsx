@@ -53,14 +53,21 @@ export default function HomeworkAssistant() {
 
   // Load saved assignments from database on component mount
   useEffect(() => {
+    console.log('All assignments received:', allAssignments);
     if (allAssignments && allAssignments.length > 0) {
       const saved: {[key: string]: string} = {};
       allAssignments.forEach(assignment => {
-        // Show assignments that have a file_name and input_text (database uses snake_case)
-        if (assignment.file_name && assignment.input_text) {
-          saved[assignment.file_name] = assignment.input_text;
+        console.log('Processing assignment:', assignment);
+        // Try both fileName and file_name, and inputText and input_text
+        const fileName = assignment.fileName || assignment.file_name;
+        const inputText = assignment.inputText || assignment.input_text;
+        
+        if (fileName && inputText) {
+          saved[fileName] = inputText;
+          console.log(`Added saved assignment: ${fileName}`);
         }
       });
+      console.log('Final saved assignments:', saved);
       setSavedAssignments(saved);
     }
   }, [allAssignments]);
