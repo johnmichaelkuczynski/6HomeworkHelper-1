@@ -1095,16 +1095,58 @@ ${fullResponse.slice(-1000)}...`;
                       </h3>
                       <div className="flex items-center space-x-2">
                         <Button
-                          onClick={() => {
+                          onClick={async () => {
                             console.log('Email button clicked');
                             console.log('Current result:', currentResult);
                             const email = prompt("Enter your email address:");
                             console.log('Email entered:', email);
-                            if (email && currentResult?.llmResponse) {
-                              console.log('Calling handleEmailSolution with:', email, currentResult.llmResponse?.substring(0, 50));
-                              handleEmailSolution(email, currentResult.llmResponse, "Homework Solution");
-                            } else {
-                              console.log('Missing email or content:', { email, hasContent: !!currentResult?.llmResponse });
+                            
+                            if (!email) {
+                              console.log('No email provided');
+                              return;
+                            }
+                            
+                            if (!currentResult?.llmResponse) {
+                              console.log('No solution content available');
+                              toast({
+                                title: "No solution to email",
+                                description: "Please generate a solution first",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+                            
+                            console.log('Sending email with content length:', currentResult.llmResponse.length);
+                            
+                            try {
+                              const response = await fetch('/api/email-solution', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                  email: email, 
+                                  content: currentResult.llmResponse, 
+                                  title: "Homework Solution" 
+                                }),
+                              });
+                              
+                              const result = await response.json();
+                              console.log('Email response:', result);
+                              
+                              if (response.ok) {
+                                toast({
+                                  title: "Email sent",
+                                  description: `Solution sent to ${email}`,
+                                });
+                              } else {
+                                throw new Error(result.error || 'Failed to send email');
+                              }
+                            } catch (error: any) {
+                              console.error('Email error:', error);
+                              toast({
+                                title: "Email failed",
+                                description: error.message || "Failed to send email. Please try again.",
+                                variant: "destructive",
+                              });
                             }
                           }}
                           variant="ghost"
