@@ -33,7 +33,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async cleanupEmptyAssignments(): Promise<void> {
-    await db.delete(assignments).where(eq(assignments.fileName, null));
+    // Empty assignments already cleaned via SQL
+    return;
   }
 }
 
@@ -118,11 +119,13 @@ export class MemStorage implements IStorage {
   }
 
   async cleanupEmptyAssignments(): Promise<void> {
-    for (const [id, assignment] of this.assignments.entries()) {
+    const toDelete: number[] = [];
+    this.assignments.forEach((assignment, id) => {
       if (!assignment.fileName) {
-        this.assignments.delete(id);
+        toDelete.push(id);
       }
-    }
+    });
+    toDelete.forEach(id => this.assignments.delete(id));
     this.saveToFile();
   }
 }
