@@ -1193,36 +1193,7 @@ ${fullResponse.slice(-1000)}...`;
                       />
                     </div>
                     
-                    <div className="pt-4 border-t border-slate-200">
-                      <h4 className="text-sm font-medium text-slate-700 mb-3">Email this solution to yourself</h4>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          value={userEmail}
-                          onChange={(e) => setUserEmail(e.target.value)}
-                          placeholder="Enter your email address..."
-                          className="flex-1"
-                          type="email"
-                        />
-                        <Button
-                          onClick={handleEmailSolution}
-                          disabled={isEmailSending || !userEmail.trim()}
-                          variant="outline"
-                          size="sm"
-                        >
-                          {isEmailSending ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                              Sending...
-                            </>
-                          ) : (
-                            <>
-                              <Mail className="w-4 h-4 mr-1" />
-                              Send Email
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
+
                   </div>
                 </div>
               )}
