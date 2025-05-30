@@ -710,10 +710,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email and content are required" });
       }
 
-      const transporter = createGmailTransporter();
-      if (!transporter) {
-        return res.status(500).json({ error: "Gmail service not configured. Please provide GMAIL_USER and GMAIL_APP_PASSWORD." });
+      if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_VERIFIED_SENDER) {
+        return res.status(500).json({ error: "SendGrid not configured. Please provide SENDGRID_API_KEY and SENDGRID_VERIFIED_SENDER." });
       }
+
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
       const htmlContent = `
         <!DOCTYPE html>
@@ -753,14 +755,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </html>
       `;
 
-      const mailOptions = {
-        from: process.env.GMAIL_USER,
+      const msg = {
         to: email,
+        from: process.env.SENDGRID_VERIFIED_SENDER,
         subject: title || 'Your Homework Solution',
         html: htmlContent,
       };
 
-      await transporter.sendMail(mailOptions);
+      await sgMail.send(msg);
       
       res.json({ success: true, message: 'Solution sent successfully!' });
     } catch (error: any) {
