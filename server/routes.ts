@@ -18,17 +18,26 @@ import Anthropic from "@anthropic-ai/sdk";
 // @ts-ignore
 import OpenAI from "openai";
 // @ts-ignore
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-// Initialize SendGrid
-if (process.env.SENDGRID_API_KEY) {
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-}
+// Initialize Gmail transporter
+const createGmailTransporter = () => {
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+    return nodemailer.createTransporter({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD
+      }
+    });
+  }
+  return null;
+};
 
 // Initialize LLM clients
 const anthropic = new Anthropic({
@@ -678,8 +687,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Email and content are required" });
       }
 
-      if (!process.env.SENDGRID_API_KEY || !process.env.SENDGRID_VERIFIED_SENDER) {
-        return res.status(500).json({ error: "Email service not configured" });
+      const transporter = createGmailTransporter();
+      if (!transporter) {
+        return res.status(500).json({ error: "Gmail service not configured. Please provide GMAIL_USER and GMAIL_APP_PASSWORD." });
       }
 
       const htmlContent = `
@@ -720,14 +730,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         </html>
       `;
 
-      const msg = {
+      const mailOptions = {
+        from: process.env.GMAIL_USER,
         to: email,
-        from: process.env.SENDGRID_VERIFIED_SENDER,
         subject: title || 'Your Homework Solution',
         html: htmlContent,
       };
 
-      await sgMail.send(msg);
+      await transporter.sendMail(mailOptions);
       
       res.json({ success: true, message: 'Solution sent successfully!' });
     } catch (error: any) {
