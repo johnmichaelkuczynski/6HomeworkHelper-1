@@ -692,8 +692,8 @@ ${fullResponse.slice(-1000)}...`;
     setSpecialInstructions("");
   };
 
-  // Save assignment to localStorage
-  const saveAssignment = () => {
+  // Save assignment to database
+  const saveAssignment = async () => {
     const textToSave = inputText.trim() || currentResult?.extractedText?.trim();
     if (!textToSave) {
       toast({
@@ -706,7 +706,7 @@ ${fullResponse.slice(-1000)}...`;
     setShowSaveDialog(true);
   };
 
-  const confirmSave = () => {
+  const confirmSave = async () => {
     if (!assignmentName.trim()) {
       toast({
         title: "Name required",
@@ -716,18 +716,37 @@ ${fullResponse.slice(-1000)}...`;
       return;
     }
 
-    const textToSave = inputText.trim() || currentResult?.extractedText?.trim();
-    const updated = { ...savedAssignments, [assignmentName]: textToSave };
-    setSavedAssignments(updated);
-    localStorage.setItem('savedAssignments', JSON.stringify(updated));
-    
-    toast({
-      title: "Assignment saved",
-      description: `Saved as "${assignmentName}"`,
-    });
-    
-    setShowSaveDialog(false);
-    setAssignmentName("");
+    try {
+      const textToSave = inputText.trim() || currentResult?.extractedText?.trim();
+      
+      const response = await fetch('/api/save-assignment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: assignmentName,
+          inputText: textToSave,
+          extractedText: textToSave
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save assignment');
+      }
+
+      toast({
+        title: "Assignment saved",
+        description: `Saved as "${assignmentName}"`,
+      });
+      
+      setShowSaveDialog(false);
+      setAssignmentName("");
+    } catch (error) {
+      toast({
+        title: "Save failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   // Load assignment from saved list

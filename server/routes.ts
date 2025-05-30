@@ -319,7 +319,7 @@ async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
     
     // Wait for MathJax to render
-    await page.waitForTimeout(3000); // Give MathJax time to render
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Give MathJax time to render
     
     // Generate PDF with high quality settings
     const pdfBuffer = await page.pdf({
