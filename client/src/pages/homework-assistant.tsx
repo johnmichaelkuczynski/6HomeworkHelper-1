@@ -56,9 +56,9 @@ export default function HomeworkAssistant() {
     if (allAssignments && allAssignments.length > 0) {
       const saved: {[key: string]: string} = {};
       allAssignments.forEach(assignment => {
-        // Show assignments that have a fileName and inputText (including processed ones)
-        if (assignment.fileName && assignment.inputText) {
-          saved[assignment.fileName] = assignment.inputText;
+        // Show assignments that have a file_name and input_text (database uses snake_case)
+        if (assignment.file_name && assignment.input_text) {
+          saved[assignment.file_name] = assignment.input_text;
         }
       });
       setSavedAssignments(saved);
