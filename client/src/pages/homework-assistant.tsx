@@ -471,6 +471,10 @@ ${fullResponse.slice(-1000)}...`;
     },
     onSuccess: (data) => {
       setCurrentResult(data);
+      // Keep the extracted text in the input box so user can save it
+      if (data.extractedText) {
+        setInputText(data.extractedText);
+      }
       calculateWordCount(data.llmResponse);
       checkAIDetection(data.llmResponse);
       toast({
@@ -528,8 +532,34 @@ ${fullResponse.slice(-1000)}...`;
   
   const { data: allAssignments } = assignmentsQuery;
 
-  const handleFileSelect = (file: File) => {
-    uploadMutation.mutate({ file, provider: selectedProvider });
+  const handleFileSelect = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/extract-text', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to extract text from file');
+      }
+      
+      const data = await response.json();
+      setInputText(data.extractedText);
+      
+      toast({
+        title: "File processed",
+        description: "Text extracted and ready for processing",
+      });
+    } catch (error: any) {
+      toast({
+        title: "File extraction failed",
+        description: error.message || "Could not extract text from file",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleProcessText = async () => {

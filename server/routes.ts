@@ -633,6 +633,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Extract text from file endpoint (no LLM processing)
+  app.post("/api/extract-text", upload.single('file'), async (req, res) => {
+    try {
+      const file = req.file;
+      
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      let extractedText = "";
+      const fileName = file.originalname.toLowerCase();
+      
+      if (fileName.endsWith('.pdf')) {
+        extractedText = await extractTextFromPDF(file.buffer);
+      } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+        extractedText = await extractTextFromWord(file.buffer);
+      } else if (fileName.match(/\.(png|jpg|jpeg)$/)) {
+        extractedText = await performOCR(file.buffer, fileName);
+      } else {
+        return res.status(400).json({ error: "Unsupported file type. Please upload PDF, Word document, or image file." });
+      }
+
+      if (!extractedText || extractedText.trim().length === 0) {
+        return res.status(400).json({ error: "No text could be extracted from the file" });
+      }
+
+      res.json({ 
+        extractedText: extractedText.trim(),
+        fileName: file.originalname 
+      });
+    } catch (error: any) {
+      console.error('Text extraction error:', error);
+      res.status(500).json({ error: error.message || 'Failed to extract text from file' });
+    }
+  });
+
   // Email solution endpoint
   app.post("/api/email-solution", async (req, res) => {
     try {
