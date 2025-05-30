@@ -8,7 +8,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText } from "lucide-react";
+import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -39,7 +39,8 @@ export default function HomeworkAssistant() {
   const [savedAssignments, setSavedAssignments] = useState<{[key: string]: string}>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [assignmentName, setAssignmentName] = useState("");
-  const [isUploadingToDrive, setIsUploadingToDrive] = useState(false);
+  const [emailAddress, setEmailAddress] = useState("jm@analyticphilosophy.ai");
+  const [isEmailSending, setIsEmailSending] = useState(false);
 
   const { toast } = useToast();
 
@@ -780,52 +781,7 @@ ${fullResponse.slice(-1000)}...`;
     }
   };
 
-  const uploadToGoogleDrive = async () => {
-    if (!currentResult?.llmResponse) {
-      toast({
-        title: "No content to upload",
-        description: "Please generate a solution first",
-        variant: "destructive",
-      });
-      return;
-    }
 
-    setIsUploadingToDrive(true);
-    try {
-      const content = `Assignment: ${currentAssignmentName || 'Homework Solution'}\n\n${
-        currentResult.extractedText ? `Problem: ${currentResult.extractedText}\n\n` : ''
-      }Solution:\n${currentResult.llmResponse}`;
-
-      const response = await fetch('/api/upload-to-drive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: `${currentAssignmentName || 'Assignment'}.txt`,
-          content: content,
-          mimeType: 'text/plain'
-        }),
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast({
-          title: "Uploaded to Google Drive",
-          description: `File saved as "${result.fileName}"`,
-        });
-      } else {
-        throw new Error(result.error || 'Failed to upload to Google Drive');
-      }
-    } catch (error: any) {
-      toast({
-        title: "Google Drive upload failed",
-        description: error.message || "Please check your Google Drive credentials",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploadingToDrive(false);
-    }
-  };
 
   const handleLoadAssignment = (id: number) => {
     // Load saved assignment logic would go here
@@ -1189,17 +1145,57 @@ ${fullResponse.slice(-1000)}...`;
                       </h3>
                       <div className="flex items-center space-x-2">
                         <Button
-                          onClick={uploadToGoogleDrive}
+                          onClick={async () => {
+                            if (!currentResult?.llmResponse) {
+                              toast({
+                                title: "No solution to email",
+                                description: "Please generate a solution first",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            setIsEmailSending(true);
+                            try {
+                              const response = await fetch('/api/email-solution', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  email: emailAddress,
+                                  solution: currentResult.llmResponse,
+                                  assignmentTitle: currentAssignmentName || 'Assignment Solution'
+                                }),
+                              });
+
+                              if (response.ok) {
+                                toast({
+                                  title: "Email sent successfully",
+                                  description: `Solution sent to ${emailAddress}`,
+                                });
+                              } else {
+                                const error = await response.json();
+                                throw new Error(error.error || 'Failed to send email');
+                              }
+                            } catch (error: any) {
+                              toast({
+                                title: "Email failed",
+                                description: error.message || "Could not send email",
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setIsEmailSending(false);
+                            }
+                          }}
                           variant="ghost"
                           size="sm"
                           className="text-slate-600 hover:text-slate-900"
-                          title="Save to Google Drive"
-                          disabled={isUploadingToDrive}
+                          title="Email solution"
+                          disabled={isEmailSending}
                         >
-                          {isUploadingToDrive ? (
+                          {isEmailSending ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Cloud className="w-4 h-4" />
+                            <Mail className="w-4 h-4" />
                           )}
                         </Button>
                         <Button
