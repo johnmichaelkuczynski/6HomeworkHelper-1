@@ -45,17 +45,26 @@ export default function HomeworkAssistant() {
 
   const { toast } = useToast();
 
-  // Load saved assignments from localStorage on component mount
+  const assignmentsQuery = useQuery<any[]>({
+    queryKey: ['/api/assignments'],
+    enabled: true
+  });
+  
+  const { data: allAssignments } = assignmentsQuery;
+
+  // Load saved assignments from database on component mount
   useEffect(() => {
-    const saved = localStorage.getItem('savedAssignments');
-    if (saved) {
-      try {
-        setSavedAssignments(JSON.parse(saved));
-      } catch (e) {
-        console.error('Failed to parse saved assignments:', e);
-      }
+    if (allAssignments && allAssignments.length > 0) {
+      const saved: {[key: string]: string} = {};
+      allAssignments.forEach(assignment => {
+        // Look for assignments that were saved (have inputText but no llmResponse)
+        if (assignment.fileName && assignment.inputText && !assignment.llmResponse) {
+          saved[assignment.fileName] = assignment.inputText;
+        }
+      });
+      setSavedAssignments(saved);
     }
-  }, []);
+  }, [allAssignments]);
 
   // Word count function
   const calculateWordCount = (text: string) => {
@@ -524,13 +533,6 @@ ${fullResponse.slice(-1000)}...`;
       });
     },
   });
-
-  const assignmentsQuery = useQuery<any[]>({
-    queryKey: ['/api/assignments'],
-    enabled: true
-  });
-  
-  const { data: allAssignments } = assignmentsQuery;
 
   const handleFileSelect = async (file: File) => {
     try {
