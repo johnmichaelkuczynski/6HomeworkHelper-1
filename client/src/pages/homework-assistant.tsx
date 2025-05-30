@@ -860,72 +860,70 @@ ${fullResponse.slice(-1000)}...`;
                 </div>
               </details>
 
-              {/* Save Assignment */}
-              {inputText.trim() && (
-                <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-                  <h3 className="text-sm font-medium text-slate-700 mb-2">Save This Assignment</h3>
-                  <div className="flex space-x-2">
-                    <Input
-                      value={currentAssignmentName}
-                      onChange={(e) => setCurrentAssignmentName(e.target.value)}
-                      placeholder="Enter assignment title..."
-                      className="flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleSaveAssignment();
-                        }
-                      }}
-                    />
-                    <Button
-                      onClick={async () => {
-                        if (!inputText.trim()) {
-                          toast({
-                            title: "Nothing to save",
-                            description: "Please enter some content first",
-                            variant: "destructive",
-                          });
-                          return;
-                        }
+              {/* Save Assignment - Always Visible */}
+              <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                <h3 className="text-sm font-medium text-slate-700 mb-2">Save This Assignment</h3>
+                <div className="flex space-x-2">
+                  <Input
+                    value={currentAssignmentName}
+                    onChange={(e) => setCurrentAssignmentName(e.target.value)}
+                    placeholder="Enter assignment title..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveAssignment();
+                      }
+                    }}
+                  />
+                  <Button
+                    onClick={async () => {
+                      if (!inputText.trim()) {
+                        toast({
+                          title: "Nothing to save",
+                          description: "Please enter some content first",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
+                      try {
+                        const response = await fetch('/api/save-assignment', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            inputText: inputText,
+                            title: currentAssignmentName || inputText.substring(0, 50) + '...',
+                            specialInstructions: specialInstructions
+                          }),
+                        });
                         
-                        try {
-                          const response = await fetch('/api/save-assignment', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              inputText: inputText,
-                              title: currentAssignmentName || inputText.substring(0, 50) + '...',
-                              specialInstructions: specialInstructions
-                            }),
-                          });
-                          
-                          if (response.ok) {
-                            toast({
-                              title: "Assignment saved",
-                              description: "You can now reuse this assignment anytime",
-                            });
-                            // Assignment saved successfully - no need to refresh anything
-                          } else {
-                            throw new Error('Failed to save');
-                          }
-                        } catch (error) {
+                        if (response.ok) {
                           toast({
-                            title: "Save failed",
-                            description: "Could not save assignment",
-                            variant: "destructive",
+                            title: "Assignment saved",
+                            description: "You can now reuse this assignment anytime",
                           });
+                          setCurrentAssignmentName(""); // Clear the name field after saving
+                        } else {
+                          throw new Error('Failed to save');
                         }
-                      }}
-                      variant="outline"
-                      size="sm"
-                      disabled={false}
-                    >
-                      <Save className="w-4 h-4 mr-1" />
-                      Save
-                    </Button>
-                  </div>
+                      } catch (error) {
+                        toast({
+                          title: "Save failed",
+                          description: "Could not save assignment",
+                          variant: "destructive",
+                        });
+                      }
+                    }}
+                    variant="outline"
+                    size="sm"
+                    disabled={!inputText.trim()}
+                  >
+                    <Save className="w-4 h-4 mr-1" />
+                    Save
+                  </Button>
                 </div>
-              )}
+              </div>
             </div>
 
             <div className="p-6 mt-auto">
