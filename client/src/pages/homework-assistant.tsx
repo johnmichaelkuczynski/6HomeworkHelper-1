@@ -183,6 +183,45 @@ export default function HomeworkAssistant() {
     setInputText(content);
   };
 
+  // Handle save assignment
+  const handleSaveAssignment = async () => {
+    if (!inputText.trim()) {
+      toast({
+        title: "Nothing to save",
+        description: "Please enter some content first",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      const response = await fetch('/api/save-assignment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inputText: inputText,
+          title: currentAssignmentName || inputText.substring(0, 50) + '...',
+        }),
+      });
+      
+      if (response.ok) {
+        toast({
+          title: "Assignment saved",
+          description: "Your assignment has been saved successfully",
+        });
+        setCurrentAssignmentName("");
+      } else {
+        throw new Error('Failed to save');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save assignment",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Critique and rewrite function
   const handleCritiqueRewrite = async () => {
     if (!critiqueText.trim() || !currentResult) return;
@@ -788,12 +827,12 @@ ${fullResponse.slice(-1000)}...`;
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
                       handleProcessText();
                     }
                   }}
-                  placeholder="Type or paste your homework question here... (Ctrl+Enter to solve)"
+                  placeholder="Type or paste your homework question here... (Enter to solve, Shift+Enter for new line)"
                   className="min-h-[200px] resize-none w-full text-base"
                   disabled={isProcessing}
                 />
@@ -835,6 +874,12 @@ ${fullResponse.slice(-1000)}...`;
                       onChange={(e) => setCurrentAssignmentName(e.target.value)}
                       placeholder="Enter assignment title..."
                       className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleSaveAssignment();
+                        }
+                      }}
                     />
                     <Button
                       onClick={async () => {
@@ -1343,7 +1388,12 @@ ${fullResponse.slice(-1000)}...`;
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask the AI anything or upload a file..."
                     className="flex-1"
-                    onKeyPress={(e) => e.key === 'Enter' && handleChatMessage()}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleChatMessage();
+                      }
+                    }}
                     disabled={isChatting}
                   />
                   <FileUpload
