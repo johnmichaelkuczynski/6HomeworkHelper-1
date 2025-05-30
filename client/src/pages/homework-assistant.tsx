@@ -18,7 +18,7 @@ export default function HomeworkAssistant() {
   const [currentAssignmentName, setCurrentAssignmentName] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
   const [selectedProvider, setSelectedProvider] = useState("anthropic");
-  const [emailAddress, setEmailAddress] = useState("");
+  const [emailAddress, setEmailAddress] = useState("jm@analyticphilosophy.ai");
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [userEmail, setUserEmail] = useState("");
   const [isEmailSending, setIsEmailSending] = useState(false);
@@ -1124,18 +1124,7 @@ ${fullResponse.slice(-1000)}...`;
                       <div className="flex items-center space-x-2">
                         <Button
                           onClick={async () => {
-                            console.log('Email button clicked');
-                            console.log('Current result:', currentResult);
-                            const email = prompt("Enter your email address:");
-                            console.log('Email entered:', email);
-                            
-                            if (!email) {
-                              console.log('No email provided');
-                              return;
-                            }
-                            
                             if (!currentResult?.llmResponse) {
-                              console.log('No solution content available');
                               toast({
                                 title: "No solution to email",
                                 description: "Please generate a solution first",
@@ -1144,32 +1133,28 @@ ${fullResponse.slice(-1000)}...`;
                               return;
                             }
                             
-                            console.log('Sending email with content length:', currentResult.llmResponse.length);
-                            
                             try {
                               const response = await fetch('/api/email-solution', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ 
-                                  email: email, 
+                                  email: "jm@analyticphilosophy.ai", 
                                   content: currentResult.llmResponse, 
                                   title: "Homework Solution" 
                                 }),
                               });
                               
                               const result = await response.json();
-                              console.log('Email response:', result);
                               
                               if (response.ok) {
                                 toast({
                                   title: "Email sent",
-                                  description: `Solution sent to ${email}`,
+                                  description: "Solution sent to jm@analyticphilosophy.ai",
                                 });
                               } else {
                                 throw new Error(result.error || 'Failed to send email');
                               }
                             } catch (error: any) {
-                              console.error('Email error:', error);
                               toast({
                                 title: "Email failed",
                                 description: error.message || "Failed to send email. Please try again.",
