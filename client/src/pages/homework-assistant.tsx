@@ -224,6 +224,17 @@ export default function HomeworkAssistant() {
 
   // Handle email solution
   const handleEmailSolution = async (email: string, content: string, title: string) => {
+    console.log('Email function called with:', { email, content: content?.substring(0, 50), title });
+    
+    if (!email || !content) {
+      toast({
+        title: "Missing information",
+        description: "Email address and content are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const response = await fetch('/api/email-solution', {
         method: 'POST',
@@ -231,18 +242,20 @@ export default function HomeworkAssistant() {
         body: JSON.stringify({ email, content, title }),
       });
       
+      const result = await response.json();
+      
       if (response.ok) {
         toast({
           title: "Email sent",
           description: `Solution sent to ${email}`,
         });
       } else {
-        throw new Error('Failed to send email');
+        throw new Error(result.error || 'Failed to send email');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Email failed",
-        description: "Failed to send email. Please try again.",
+        description: error.message || "Failed to send email. Please try again.",
         variant: "destructive",
       });
     }
