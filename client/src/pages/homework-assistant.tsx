@@ -1140,52 +1140,7 @@ ${fullResponse.slice(-1000)}...`;
                         Solution
                       </h3>
                       <div className="flex items-center space-x-2">
-                        <Button
-                          onClick={async () => {
-                            if (!currentResult?.llmResponse) {
-                              toast({
-                                title: "No solution to email",
-                                description: "Please generate a solution first",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            
-                            try {
-                              const response = await fetch('/api/email-solution', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                  email: "jm@analyticphilosophy.ai", 
-                                  content: currentResult.llmResponse, 
-                                  title: "Homework Solution" 
-                                }),
-                              });
-                              
-                              const result = await response.json();
-                              
-                              if (response.ok) {
-                                toast({
-                                  title: "Email sent",
-                                  description: "Solution sent to jm@analyticphilosophy.ai",
-                                });
-                              } else {
-                                throw new Error(result.error || 'Failed to send email');
-                              }
-                            } catch (error: any) {
-                              toast({
-                                title: "Email failed",
-                                description: error.message || "Failed to send email. Please try again.",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-600 hover:text-slate-900"
-                          title="Email solution"
-                        >
-                        </Button>
+
                         <Button
                           onClick={generatePDF}
                           variant="ghost"
