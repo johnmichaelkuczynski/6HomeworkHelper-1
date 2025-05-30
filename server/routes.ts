@@ -210,7 +210,7 @@ async function processWithPerplexity(text: string): Promise<string> {
 
 async function checkAIDetection(text: string): Promise<any> {
   if (!process.env.GPTZERO_API_KEY) {
-    throw new Error('GPTZero API key not configured');
+    return { probability: 0, message: 'AI detection not configured' };
   }
 
   const response = await fetch('https://api.gptzero.me/v2/predict/text', {
@@ -808,6 +808,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error('Chat error:', error);
       res.status(500).json({ error: error.message || 'Chat failed' });
+    }
+  });
+
+  // Chat file upload endpoint
+  app.post("/api/chat-upload", upload.single('file'), async (req, res) => {
+    try {
+      const file = req.file;
+      const { provider, message } = req.body;
+
+      if (!file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      let extractedText = "";
+      const fileName = file.originalname.toLowerCase();
+      
+      if (fileName.endsWith('.pdf')) {
+        extractedText = await extractTextFromPDF(file.buffer);
+      } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+        extractedText = await extractTextFromWord(file.buffer);
+      } else if (fileName.match(/\.(png|jpg|jpeg)$/)) {
+        extractedText = await performOCR(file.buffer, fileName);
+      } else {
+        return res.status(400).json({ error: "Unsupported file type. Please upload PDF, Word document, or image file." });
+      }
+
+      let chatPrompt = message ? `${message}\n\nFile content:\n${extractedText}` : `Please analyze this file content:\n\n${extractedText}`;
+
+      let response = '';
+      switch (provider) {
+        case 'anthropic':
+          response = await processWithAnthropic(chatPrompt);
+          break;
+        case 'openai':
+          response = await processWithOpenAI(chatPrompt);
+          break;
+        case 'perplexity':
+          response = await processWithPerplexity(chatPrompt);
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid provider" });
+      }
+
+      res.json({ response, extractedText, fileName: file.originalname });
+    } catch (error: any) {
+      console.error('Chat upload error:', error);
+      res.status(500).json({ error: error.message || 'Chat upload failed' });
     }
   });
 
