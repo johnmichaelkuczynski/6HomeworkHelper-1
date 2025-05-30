@@ -644,6 +644,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete assignment by ID
+  app.delete("/api/assignments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteAssignment(id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete assignment" });
+    }
+  });
+
+  // Clean up assignments without file names
+  app.post("/api/assignments/cleanup", async (req, res) => {
+    try {
+      await storage.cleanupEmptyAssignments();
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to cleanup assignments" });
+    }
+  });
+
   // Extract text from file endpoint (no LLM processing)
   app.post("/api/extract-text", upload.single('file'), async (req, res) => {
     try {

@@ -6,6 +6,8 @@ export interface IStorage {
   createAssignment(assignment: InsertAssignment): Promise<Assignment>;
   getAssignment(id: number): Promise<Assignment | undefined>;
   getAllAssignments(): Promise<Assignment[]>;
+  deleteAssignment(id: number): Promise<void>;
+  cleanupEmptyAssignments(): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -24,6 +26,14 @@ export class DatabaseStorage implements IStorage {
 
   async getAllAssignments(): Promise<Assignment[]> {
     return await db.select().from(assignments).orderBy(assignments.createdAt);
+  }
+
+  async deleteAssignment(id: number): Promise<void> {
+    await db.delete(assignments).where(eq(assignments.id, id));
+  }
+
+  async cleanupEmptyAssignments(): Promise<void> {
+    await db.delete(assignments).where(eq(assignments.fileName, null));
   }
 }
 

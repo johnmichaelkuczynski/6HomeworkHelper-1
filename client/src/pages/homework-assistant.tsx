@@ -831,50 +831,111 @@ ${fullResponse.slice(-1000)}...`;
               <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
               
               {/* Load Saved Assignments */}
-              {assignmentsQuery.data && assignmentsQuery.data.length > 0 && (
+              {assignmentsQuery.data && assignmentsQuery.data.filter(a => a.fileName).length > 0 && (
                 <div>
                   <label className="text-sm font-medium text-slate-700 mb-2 block">
                     Load Saved Assignment
                   </label>
-                  <Select 
-                    value={selectedSavedAssignment} 
-                    onValueChange={async (value) => {
-                      setSelectedSavedAssignment(value);
-                      if (value) {
-                        try {
-                          const response = await fetch(`/api/assignments/${value}`);
-                          if (response.ok) {
-                            const assignment = await response.json();
-                            setInputText(assignment.extractedText || '');
-                            setCurrentAssignmentName(assignment.fileName || '');
+                  <div className="flex space-x-2">
+                    <Select 
+                      value={selectedSavedAssignment} 
+                      onValueChange={async (value) => {
+                        setSelectedSavedAssignment(value);
+                        if (value) {
+                          try {
+                            const response = await fetch(`/api/assignments/${value}`);
+                            if (response.ok) {
+                              const assignment = await response.json();
+                              setInputText(assignment.inputText || assignment.extractedText || '');
+                              setCurrentAssignmentName(assignment.fileName || '');
+                              toast({
+                                title: "Assignment loaded",
+                                description: `Loaded "${assignment.fileName}"`,
+                              });
+                            }
+                          } catch (error) {
                             toast({
-                              title: "Assignment loaded",
-                              description: `Loaded "${assignment.fileName}"`,
+                              title: "Failed to load assignment",
+                              description: "Please try again",
+                              variant: "destructive",
                             });
                           }
-                        } catch (error) {
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select a saved assignment..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {assignmentsQuery.data
+                          .filter(assignment => assignment.fileName) // Only show assignments with names
+                          .map((assignment) => (
+                          <SelectItem key={assignment.id} value={assignment.id.toString()}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{assignment.fileName}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (selectedSavedAssignment) {
+                          try {
+                            const response = await fetch(`/api/assignments/${selectedSavedAssignment}`, {
+                              method: 'DELETE'
+                            });
+                            if (response.ok) {
+                              assignmentsQuery.refetch();
+                              setSelectedSavedAssignment("");
+                              toast({
+                                title: "Assignment deleted",
+                                description: "Assignment removed successfully",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Failed to delete",
+                              description: "Please try again",
+                              variant: "destructive",
+                            });
+                          }
+                        }
+                      }}
+                      disabled={!selectedSavedAssignment}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-2 text-xs"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/assignments/cleanup', {
+                          method: 'POST'
+                        });
+                        if (response.ok) {
+                          assignmentsQuery.refetch();
                           toast({
-                            title: "Failed to load assignment",
-                            description: "Please try again",
-                            variant: "destructive",
+                            title: "Cleanup completed",
+                            description: "Removed assignments without names",
                           });
                         }
+                      } catch (error) {
+                        toast({
+                          title: "Cleanup failed",
+                          description: "Please try again",
+                          variant: "destructive",
+                        });
                       }
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a saved assignment..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {assignmentsQuery.data.map((assignment) => (
-                        <SelectItem key={assignment.id} value={assignment.id.toString()}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{assignment.fileName || `Assignment ${assignment.id}`}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    Clean up empty assignments
+                  </Button>
                 </div>
               )}
 
