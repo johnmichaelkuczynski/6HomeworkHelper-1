@@ -722,9 +722,8 @@ ${fullResponse.slice(-1000)}...`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fileName: assignmentName,
-          inputText: textToSave,
-          extractedText: textToSave
+          title: assignmentName,
+          inputText: textToSave
         }),
       });
 
