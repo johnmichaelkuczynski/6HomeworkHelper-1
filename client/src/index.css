@@ -46,6 +46,68 @@
   }
 }
 
+/* Enhanced math rendering styles */
+.math-content {
+  font-family: 'Times New Roman', 'Computer Modern', serif;
+}
+
+.math-content .math-display {
+  display: block;
+  text-align: center;
+  margin: 1.5em 0;
+  padding: 0.5em 0;
+  overflow-x: auto;
+}
+
+.math-content .math-inline {
+  display: inline;
+  margin: 0 0.1em;
+}
+
+.math-content h1, .math-content h2, .math-content h3 {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.math-content p {
+  margin-bottom: 1em;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.math-content li {
+  margin-bottom: 0.5em;
+  list-style-type: disc;
+  list-style-position: inside;
+}
+
+.math-content code {
+  background-color: #f1f5f9;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875em;
+}
+
+.math-content strong {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.math-content em {
+  font-style: italic;
+}
+
+/* MathJax output styling */
+.MathJax {
+  outline: none;
+}
+
+.MathJax_Display {
+  text-align: center !important;
+  margin: 1em 0 !important;
+}
+
 :root {
       --background: 0 0% 100%;
 --foreground: 20 14.3% 4.1%;
