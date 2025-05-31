@@ -10,14 +10,14 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
 
   useEffect(() => {
     if (containerRef.current && content && typeof content === 'string') {
-      // Enhanced Markdown processing for better formatting
+      // Process Markdown but preserve all LaTeX expressions completely intact
       let processedContent = content
-        // Preserve LaTeX math expressions first
-        .replace(/\$\$([^$]+)\$\$/g, '<div class="math-display">$$$$1$$</div>')
-        .replace(/\$([^$]+)\$/g, '<span class="math-inline">$$1$</span>')
-        .replace(/\\begin\{([^}]+)\}([\s\S]*?)\\end\{[^}]+\}/g, '<div class="math-display">\\begin{$1}$2\\end{$1}</div>')
-        .replace(/\\\\([^\\]+)\\\\/g, '<span class="math-inline">\\\\$1\\\\</span>')
-        // Process Markdown formatting
+        // First, protect LaTeX expressions by temporarily replacing them
+        .replace(/\$\$[\s\S]*?\$\$/g, (match) => `MATHBLOCK_${btoa(match)}_MATHBLOCK`)
+        .replace(/\$[^$\n]+\$/g, (match) => `MATHINLINE_${btoa(match)}_MATHINLINE`)
+        .replace(/\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g, (match) => `MATHENV_${btoa(match)}_MATHENV`)
+        .replace(/\\[a-zA-Z]+(\{[^}]*\}|\[[^\]]*\])*(\{[^}]*\}|\[[^\]]*\])*/g, (match) => `MATHCMD_${btoa(match)}_MATHCMD`)
+        // Process basic Markdown
         .replace(/### (.*?)$/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
         .replace(/## (.*?)$/gm, '<h2 class="text-xl font-semibold mt-6 mb-3">$1</h2>')
         .replace(/# (.*?)$/gm, '<h1 class="text-2xl font-bold mt-6 mb-4">$1</h1>')
@@ -27,46 +27,43 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
         // Handle lists
         .replace(/^\d+\.\s+(.*)$/gm, '<li class="ml-4 mb-1">$1</li>')
         .replace(/^[-*]\s+(.*)$/gm, '<li class="ml-4 mb-1">$1</li>')
-        // Convert line breaks to proper HTML
+        // Handle line breaks
         .replace(/\n\n/g, '</p><p class="mb-4">')
-        .replace(/\n/g, '<br/>');
+        .replace(/\n/g, '<br/>')
+        // Restore LaTeX expressions exactly as they were
+        .replace(/MATHBLOCK_([^_]+)_MATHBLOCK/g, (_, encoded) => atob(encoded))
+        .replace(/MATHINLINE_([^_]+)_MATHINLINE/g, (_, encoded) => atob(encoded))
+        .replace(/MATHENV_([^_]+)_MATHENV/g, (_, encoded) => atob(encoded))
+        .replace(/MATHCMD_([^_]+)_MATHCMD/g, (_, encoded) => atob(encoded));
 
-      // Wrap in paragraph tags if not already structured
+      // Wrap in paragraph tags if needed
       if (!processedContent.includes('<h') && !processedContent.includes('<li') && !processedContent.includes('<div')) {
         processedContent = `<p class="mb-4">${processedContent}</p>`;
       }
       
-      // Set the processed content
+      // Set the content directly
       containerRef.current.innerHTML = processedContent;
       
-      // Enhanced MathJax rendering with multiple attempts
+      // Render math with MathJax
       let attempts = 0;
-      const maxAttempts = 10;
+      const maxAttempts = 15;
       
       const renderMath = () => {
         attempts++;
         if (window.MathJax && window.MathJax.typesetPromise && containerRef.current) {
-          // Configure MathJax for better rendering
-          if (window.MathJax.tex) {
-            window.MathJax.tex.inlineMath = [['$', '$'], ['\\(', '\\)']];
-            window.MathJax.tex.displayMath = [['$$', '$$'], ['\\[', '\\]']];
-            window.MathJax.tex.processEscapes = true;
-          }
-          
           window.MathJax.typesetPromise([containerRef.current]).catch((err: any) => {
-            console.error('MathJax typeset error:', err);
+            console.error('MathJax error:', err);
             if (attempts < maxAttempts) {
-              setTimeout(renderMath, 200);
+              setTimeout(renderMath, 300);
             }
           });
         } else if (attempts < maxAttempts) {
-          // Retry with exponential backoff
-          setTimeout(renderMath, Math.min(100 * attempts, 1000));
+          setTimeout(renderMath, 200);
         }
       };
       
-      // Start math rendering after a short delay to ensure DOM is ready
-      setTimeout(renderMath, 100);
+      // Start rendering immediately and retry if needed
+      renderMath();
     }
   }, [content]);
 
