@@ -1356,24 +1356,76 @@ ${fullResponse.slice(-1000)}...`;
                     </span>
                     <span>Response time: {(currentResult.processingTime / 1000).toFixed(1)}s</span>
                     <span>Words: {wordCount}</span>
-                    {isCheckingAI && <span>Checking AI...</span>}
-                    {aiDetectionResult && !isCheckingAI && (
-                      <span className={`font-medium ${
-                        aiDetectionResult.error 
-                          ? 'text-gray-500' 
-                          : aiDetectionResult.documents?.[0]?.average_generated_prob > 0.5 
-                            ? 'text-red-600' 
-                            : 'text-green-600'
-                      }`}>
-                        {aiDetectionResult.error 
-                          ? 'AI check failed' 
-                          : `${Math.round((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}% AI detected`
-                        }
+                    {isCheckingAI && (
+                      <span className="flex items-center">
+                        <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                        Checking AI...
                       </span>
                     )}
                   </div>
                   <span>Solved by {getProviderDisplayName(selectedProvider)}</span>
                 </div>
+              </div>
+            )}
+
+            {/* AI Detection Results Card */}
+            {aiDetectionResult && !isCheckingAI && (
+              <div className="mt-6">
+                <Card className="border-2 border-blue-200 bg-blue-50">
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold text-blue-900">AI Detection Results</h3>
+                      {aiDetectionResult.error ? (
+                        <span className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-medium">
+                          Service Unavailable
+                        </span>
+                      ) : (
+                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                          (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 
+                            ? 'bg-red-200 text-red-800' 
+                            : 'bg-green-200 text-green-800'
+                        }`}>
+                          {Math.round((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}% AI Detected
+                        </span>
+                      )}
+                    </div>
+                    
+                    {aiDetectionResult.error ? (
+                      <p className="text-gray-600 mt-2">
+                        {aiDetectionResult.error}
+                      </p>
+                    ) : (
+                      <div className="mt-3">
+                        <div className="flex items-center space-x-4 text-sm">
+                          <div className="flex items-center">
+                            <div className={`w-3 h-3 rounded-full mr-2 ${
+                              (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 
+                                ? 'bg-red-500' 
+                                : 'bg-green-500'
+                            }`}></div>
+                            <span className="font-medium">
+                              {(aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 
+                                ? 'Likely AI Generated' 
+                                : 'Likely Human Written'
+                              }
+                            </span>
+                          </div>
+                          <span className="text-gray-600">
+                            Confidence: {Math.round((1 - Math.abs((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) - 0.5) * 2) * 100)}%
+                          </span>
+                        </div>
+                        <div className="mt-2 bg-gray-200 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full ${
+                              (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 ? 'bg-red-500' : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.max(10, (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Card>
               </div>
             )}
           </Card>
