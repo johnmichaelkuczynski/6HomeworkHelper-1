@@ -44,6 +44,33 @@ export default function HomeworkAssistant() {
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
 
+  // Function to clear everything and start new assignment
+  const handleNewAssignment = () => {
+    setInputText("");
+    setCurrentAssignmentName("");
+    setSpecialInstructions("");
+    setCurrentResult(null);
+    setWordCount(0);
+    setAiDetectionResult(null);
+    setChatMessages([]);
+    setChatInput("");
+    setChatFileUpload(null);
+    setCritiqueText("");
+    setEditedTopSolution("");
+    setEditedBottomSolution("");
+    setAccumulatedContent("");
+    setSelectedSavedAssignment("");
+    setAssignmentName("");
+    setIsEditingTopSolution(false);
+    setIsEditingBottomSolution(false);
+    setIsChunkedProcessing(false);
+    setChunkProgress({ current: 0, total: 0 });
+    toast({
+      title: "New assignment started",
+      description: "All fields have been cleared",
+    });
+  };
+
   const { toast } = useToast();
 
   const assignmentsQuery = useQuery<any[]>({
@@ -809,16 +836,26 @@ ${fullResponse.slice(-1000)}...`;
               <h1 className="text-2xl font-bold text-slate-900">Homework Assistant</h1>
               <p className="text-sm text-slate-600 mt-1">AI-powered assignment solver</p>
             </div>
-            <Select value={selectedProvider} onValueChange={setSelectedProvider}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="anthropic">Claude (Anthropic)</SelectItem>
-                <SelectItem value="openai">GPT (OpenAI)</SelectItem>
-                <SelectItem value="perplexity">Perplexity</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={handleNewAssignment}
+                variant="outline"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                New Assignment
+              </Button>
+              <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="anthropic">Claude (Anthropic)</SelectItem>
+                  <SelectItem value="openai">GPT (OpenAI)</SelectItem>
+                  <SelectItem value="perplexity">Perplexity</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </header>
