@@ -44,16 +44,24 @@ async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
 }
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
+  // Try multiple PDF extraction methods
+  
+  // Method 1: pdf2json
   try {
-    // First try pdf2json
     const result = await new Promise<string>((resolve, reject) => {
       const pdfParser = new pdf2json();
       
+      const timeout = setTimeout(() => {
+        reject(new Error('PDF parsing timeout'));
+      }, 10000); // 10 second timeout
+      
       pdfParser.on("pdfParser_dataError", (errData: any) => {
+        clearTimeout(timeout);
         reject(new Error('PDF parsing failed'));
       });
       
       pdfParser.on("pdfParser_dataReady", (pdfData: any) => {
+        clearTimeout(timeout);
         try {
           let text = '';
           if (pdfData.Pages) {
@@ -68,6 +76,7 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
                     }
                   }
                 }
+                text += '\n'; // Add line break between text blocks
               }
             }
           }
@@ -80,16 +89,27 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
       pdfParser.parseBuffer(buffer);
     });
     
-    if (result && result.trim()) {
+    if (result && result.trim().length > 10) {
       return result;
     }
-    
-    throw new Error('No text extracted');
   } catch (error) {
-    // Fallback: instruct user to use alternative format
-    console.error('PDF processing error:', error);
-    throw new Error('PDF processing failed. Please save your PDF as a Word document (.docx) or take a screenshot and upload as an image (.png/.jpg) for better text extraction.');
+    console.log('pdf2json failed, trying alternative method');
   }
+  
+  // Method 2: Fallback to OCR using Tesseract on PDF pages
+  try {
+    console.log('Attempting OCR fallback for PDF');
+    // Convert PDF to image and use OCR
+    const text = await performOCR(buffer, 'document.pdf');
+    if (text && text.trim().length > 10) {
+      return text;
+    }
+  } catch (error) {
+    console.log('OCR fallback also failed');
+  }
+  
+  // If all methods fail, provide helpful error message
+  throw new Error('Unable to extract text from this PDF. Please try: 1) Converting to Word document (.docx), 2) Taking screenshots and uploading as images (.png/.jpg), or 3) Copying and pasting the text directly.');
 }
 
 async function extractTextFromWord(buffer: Buffer): Promise<string> {

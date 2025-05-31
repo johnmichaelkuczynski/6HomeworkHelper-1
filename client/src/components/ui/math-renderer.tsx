@@ -20,7 +20,7 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
       
       // Render math if MathJax is available - with retry mechanism
       const renderMath = () => {
-        if (window.MathJax && window.MathJax.typesetPromise) {
+        if (window.MathJax && window.MathJax.typesetPromise && containerRef.current) {
           window.MathJax.typesetPromise([containerRef.current]).catch((err: any) => {
             console.error('MathJax typeset error:', err);
           });
