@@ -9,80 +9,35 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (containerRef.current && content && typeof content === 'string') {
-      // Process content and auto-detect math expressions
-      let processedContent = content
-        // Convert common math notation to LaTeX
-        .replace(/lim\(([^)]+)\)/g, '\\lim_{$1}')
-        .replace(/([a-zA-Z]+)\(([^)]+)\)/g, '$1($2)')
-        .replace(/([xy]²)/g, '$1^2')
-        .replace(/([xy]³)/g, '$1^3')
-        .replace(/([xy])²/g, '$1^2')
-        .replace(/([xy])³/g, '$1^3')
-        .replace(/√\(([^)]+)\)/g, '\\sqrt{$1}')
-        .replace(/∞/g, '\\infty')
-        .replace(/≤/g, '\\leq')
-        .replace(/≥/g, '\\geq')
-        .replace(/→/g, '\\to')
-        .replace(/∫/g, '\\int')
-        .replace(/∑/g, '\\sum')
-        .replace(/π/g, '\\pi')
-        .replace(/α/g, '\\alpha')
-        .replace(/β/g, '\\beta')
-        .replace(/γ/g, '\\gamma')
-        .replace(/δ/g, '\\delta')
-        .replace(/θ/g, '\\theta')
-        .replace(/λ/g, '\\lambda')
-        .replace(/μ/g, '\\mu')
-        .replace(/σ/g, '\\sigma')
-        .replace(/φ/g, '\\phi')
-        .replace(/ψ/g, '\\psi')
-        .replace(/ω/g, '\\omega')
-        // Auto-wrap mathematical expressions that look like they should be LaTeX
-        .replace(/([a-zA-Z]+\([^)]*\)[^a-zA-Z]*=|=\s*[a-zA-Z]+\([^)]*\)|[a-zA-Z]\^[0-9]+|[a-zA-Z]_[0-9]+|\([a-zA-Z][²³⁴⁵⁶⁷⁸⁹⁰]*[-+][0-9]+\)|\([a-zA-Z][-+][0-9]+\)\([a-zA-Z][-+][0-9]+\))/g, (match) => {
-          if (match.includes('$') || match.includes('\\')) return match;
-          return `$${match}$`;
-        })
-        // Handle basic formatting
+    if (containerRef.current && content) {
+      // Test: Add simple math that should definitely work
+      let processedContent = content + '\n\nTest math: $x^2 + y^2 = z^2$ and $$\\lim_{x \\to \\infty} f(x) = L$$';
+      
+      // Basic formatting only
+      processedContent = processedContent
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n\n/g, '</p><p>')
         .replace(/\n/g, '<br/>');
-      
-      // Wrap in paragraph
-      processedContent = `<p>${processedContent}</p>`;
-      
-      // Set content directly
+
       containerRef.current.innerHTML = processedContent;
       
-      // Force MathJax rendering with multiple attempts
-      let attempts = 0;
-      const renderMath = () => {
-        attempts++;
-        if (window.MathJax && window.MathJax.typesetPromise && containerRef.current) {
-          window.MathJax.typesetPromise([containerRef.current]).catch((err: any) => {
-            console.error('MathJax error:', err);
-            if (attempts < 5) {
-              setTimeout(renderMath, 200);
-            }
-          });
-        } else if (attempts < 10) {
-          setTimeout(renderMath, 200);
-        }
-      };
+      // Debug MathJax
+      console.log('MathJax available:', !!window.MathJax);
+      console.log('MathJax typesetPromise:', !!window.MathJax?.typesetPromise);
       
-      // Start rendering
-      renderMath();
+      // Force MathJax to render
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([containerRef.current])
+          .then(() => console.log('MathJax render success'))
+          .catch(err => console.error('MathJax render error:', err));
+      }
     }
   }, [content]);
 
   return (
     <div 
       ref={containerRef}
-      className={`math-content prose prose-slate max-w-none text-slate-800 leading-relaxed ${className}`}
-      style={{
-        fontSize: '16px',
-        lineHeight: '1.6'
-      }}
+      className={`${className}`}
+      style={{ fontSize: '16px', lineHeight: '1.6' }}
     />
   );
 }
