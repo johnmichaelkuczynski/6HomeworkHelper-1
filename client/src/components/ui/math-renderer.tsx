@@ -18,12 +18,20 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
       // Set the raw content
       containerRef.current.innerHTML = processedContent;
       
-      // Render math if MathJax is available
-      if (window.MathJax) {
-        window.MathJax.typesetPromise([containerRef.current]).catch((err: any) => {
-          console.error('MathJax typeset error:', err);
-        });
-      }
+      // Render math if MathJax is available - with retry mechanism
+      const renderMath = () => {
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([containerRef.current]).catch((err: any) => {
+            console.error('MathJax typeset error:', err);
+          });
+        } else {
+          // Retry after a short delay if MathJax isn't ready yet
+          setTimeout(renderMath, 100);
+        }
+      };
+      
+      // Start math rendering after content is set
+      setTimeout(renderMath, 50);
     }
   }, [content]);
 
