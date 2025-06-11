@@ -985,7 +985,7 @@ ${fullResponse.slice(-1000)}...`;
                 <label className="text-sm font-medium text-slate-700 mb-2 block">
                   Enter Your Question or Problem
                 </label>
-                <Textarea
+                <TextareaWithVoice
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => {
@@ -994,7 +994,7 @@ ${fullResponse.slice(-1000)}...`;
                       handleProcessText();
                     }
                   }}
-                  placeholder="Type or paste your homework question here... (Enter to solve, Shift+Enter for new line)"
+                  placeholder="Type, paste, or speak your homework question here... (Enter to solve, Shift+Enter for new line)"
                   className="min-h-[200px] resize-none w-full text-base"
                   disabled={isProcessing}
                 />
@@ -1017,7 +1017,7 @@ ${fullResponse.slice(-1000)}...`;
                   Special Instructions (Optional)
                 </summary>
                 <div className="mt-2">
-                  <Textarea
+                  <TextareaWithVoice
                     value={specialInstructions}
                     onChange={(e) => setSpecialInstructions(e.target.value)}
                     placeholder="Add any special instructions for solving this problem..."
@@ -1030,7 +1030,7 @@ ${fullResponse.slice(-1000)}...`;
               <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                 <h3 className="text-sm font-medium text-slate-700 mb-2">Save This Assignment</h3>
                 <div className="flex space-x-2">
-                  <Input
+                  <InputWithVoice
                     value={currentAssignmentName}
                     onChange={(e) => setCurrentAssignmentName(e.target.value)}
                     placeholder="Enter assignment title..."
@@ -1323,7 +1323,7 @@ ${fullResponse.slice(-1000)}...`;
               <div className="p-6 border-t border-slate-200">
                 <h3 className="text-sm font-semibold text-slate-900 mb-3">Critique & Rewrite</h3>
                 <div className="space-y-3">
-                  <Textarea
+                  <TextareaWithVoice
                     value={critiqueText}
                     onChange={(e) => setCritiqueText(e.target.value)}
                     placeholder="Describe what you'd like changed or improved in the solution..."
@@ -1525,7 +1525,7 @@ ${fullResponse.slice(-1000)}...`;
                   </div>
                 )}
                 <div className="flex items-center space-x-2">
-                  <Input
+                  <InputWithVoice
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask the AI anything or upload a file..."
@@ -1566,7 +1566,7 @@ ${fullResponse.slice(-1000)}...`;
           <div className="space-y-6">
             <div>
               <label className="text-sm font-medium mb-2 block">Assignment Title</label>
-              <Input
+              <InputWithVoice
                 value={assignmentName}
                 onChange={(e) => setAssignmentName(e.target.value)}
                 placeholder="Enter a descriptive title for this assignment..."
@@ -1650,7 +1650,7 @@ ${fullResponse.slice(-1000)}...`;
               <label htmlFor="fromEmail" className="text-sm font-medium">
                 From Email (Your SendGrid verified sender):
               </label>
-              <Input
+              <InputWithVoice
                 id="fromEmail"
                 value={fromEmail}
                 onChange={(e) => setFromEmail(e.target.value)}
@@ -1662,7 +1662,7 @@ ${fullResponse.slice(-1000)}...`;
               <label htmlFor="toEmail" className="text-sm font-medium">
                 To Email:
               </label>
-              <Input
+              <InputWithVoice
                 id="toEmail"
                 value={toEmail}
                 onChange={(e) => setToEmail(e.target.value)}
