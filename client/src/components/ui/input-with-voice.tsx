@@ -14,9 +14,11 @@ const InputWithVoice = forwardRef<HTMLInputElement, InputWithVoiceProps>(
       if (onVoiceTranscript) {
         onVoiceTranscript(transcript);
       } else if (onChange) {
-        // Simulate an input change event
+        // Append transcript to existing value instead of replacing
+        const currentValue = String(value || '');
+        const newValue = currentValue ? currentValue + ' ' + transcript : transcript;
         const event = {
-          target: { value: transcript }
+          target: { value: newValue }
         } as React.ChangeEvent<HTMLInputElement>;
         onChange(event);
       }

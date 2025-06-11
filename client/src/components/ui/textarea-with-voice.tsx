@@ -14,9 +14,11 @@ const TextareaWithVoice = forwardRef<HTMLTextAreaElement, TextareaWithVoiceProps
       if (onVoiceTranscript) {
         onVoiceTranscript(transcript);
       } else if (onChange) {
-        // Simulate a textarea change event
+        // Append transcript to existing value instead of replacing
+        const currentValue = String(value || '');
+        const newValue = currentValue ? currentValue + ' ' + transcript : transcript;
         const event = {
-          target: { value: transcript }
+          target: { value: newValue }
         } as React.ChangeEvent<HTMLTextAreaElement>;
         onChange(event);
       }

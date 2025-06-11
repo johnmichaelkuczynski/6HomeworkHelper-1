@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Mic, MicOff, Volume2 } from 'lucide-react';
 import { Button } from './button';
-import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { cn } from '@/lib/utils';
 
 interface VoiceInputProps {
@@ -12,24 +11,75 @@ interface VoiceInputProps {
 }
 
 export function VoiceInput({ onTranscript, isActive = false, className, size = 'md' }: VoiceInputProps) {
-  const { isListening, transcript, error, isSupported, startListening, stopListening, resetTranscript } = useSpeechRecognition();
-  const [lastTranscript, setLastTranscript] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isSupported, setIsSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const accumulatedTextRef = useRef('');
 
   useEffect(() => {
-    if (transcript && transcript !== lastTranscript) {
-      onTranscript(transcript);
-      setLastTranscript(transcript);
-    }
-  }, [transcript, lastTranscript, onTranscript]);
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setIsSupported(true);
+      recognitionRef.current = new SpeechRecognition();
+      
+      const recognition = recognitionRef.current;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
 
-  const handleToggle = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      resetTranscript();
-      startListening();
+      recognition.onresult = (event: any) => {
+        let finalTranscript = '';
+        
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+
+        if (finalTranscript.trim()) {
+          accumulatedTextRef.current += finalTranscript;
+          onTranscript(finalTranscript.trim());
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setError(event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.onstart = () => {
+        setError(null);
+        setIsListening(true);
+      };
     }
-  };
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, [onTranscript]);
+
+  const handleToggle = useCallback(() => {
+    if (!recognitionRef.current) return;
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        setError('Failed to start recording');
+      }
+    }
+  }, [isListening]);
 
   if (!isSupported) {
     return null;

@@ -33,9 +33,11 @@ declare global {
 export function useSpeechRecognition() {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [interimTranscript, setInterimTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const finalTranscriptRef = useRef('');
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -49,33 +51,45 @@ export function useSpeechRecognition() {
       recognition.lang = 'en-US';
 
       recognition.addEventListener('result', (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        let interimTranscript = '';
+        let finalText = '';
+        let interimText = '';
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const result = event.results[i];
           if (result.isFinal) {
-            finalTranscript += result[0].transcript;
+            finalText += result[0].transcript;
           } else {
-            interimTranscript += result[0].transcript;
+            interimText += result[0].transcript;
           }
         }
 
-        setTranscript(finalTranscript + interimTranscript);
+        if (finalText) {
+          finalTranscriptRef.current += finalText;
+          setTranscript(finalTranscriptRef.current);
+          setInterimTranscript('');
+        } else {
+          setInterimTranscript(interimText);
+          setTranscript(finalTranscriptRef.current + interimText);
+        }
       });
 
       recognition.addEventListener('error', (event: SpeechRecognitionErrorEvent) => {
+        console.error('Speech recognition error:', event.error);
         setError(event.error);
         setIsListening(false);
       });
 
       recognition.addEventListener('end', () => {
         setIsListening(false);
+        // If we have accumulated text, keep it
+        if (finalTranscriptRef.current) {
+          setTranscript(finalTranscriptRef.current);
+        }
       });
 
       recognition.addEventListener('start', () => {
         setError(null);
-        setTranscript('');
+        setIsListening(true);
       });
     }
 
@@ -88,8 +102,12 @@ export function useSpeechRecognition() {
 
   const startListening = () => {
     if (recognitionRef.current && !isListening) {
-      setIsListening(true);
-      recognitionRef.current.start();
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        setError('Failed to start recording');
+      }
     }
   };
 
@@ -101,12 +119,15 @@ export function useSpeechRecognition() {
 
   const resetTranscript = () => {
     setTranscript('');
+    setInterimTranscript('');
     setError(null);
+    finalTranscriptRef.current = '';
   };
 
   return {
     isListening,
     transcript,
+    interimTranscript,
     error,
     isSupported,
     startListening,
