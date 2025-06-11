@@ -38,7 +38,6 @@ export function VoiceInput({ onTranscript, isActive = false, className, size = '
         }
 
         if (finalTranscript.trim()) {
-          accumulatedTextRef.current += finalTranscript;
           onTranscript(finalTranscript.trim());
         }
       };
