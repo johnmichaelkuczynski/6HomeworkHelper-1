@@ -1576,7 +1576,7 @@ ${fullResponse.slice(-1000)}...`;
 
             <div>
               <label className="text-sm font-medium mb-2 block">Question or Problem</label>
-              <Textarea
+              <TextareaWithVoice
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Type or paste your homework question here..."
@@ -1620,7 +1620,7 @@ ${fullResponse.slice(-1000)}...`;
 
             <div>
               <label className="text-sm font-medium mb-2 block">Special Instructions (Optional)</label>
-              <Textarea
+              <TextareaWithVoice
                 value={specialInstructions}
                 onChange={(e) => setSpecialInstructions(e.target.value)}
                 placeholder="Add any special instructions for solving this problem..."
