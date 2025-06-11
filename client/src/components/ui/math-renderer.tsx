@@ -84,31 +84,121 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
         .replace(/Ψ/g, '$\\Psi$')
         .replace(/Ω/g, '$\\Omega$')
         
-        // Convert common mathematical patterns
-        .replace(/\b([a-zA-Z])\^(\d+)/g, '$$$1^{$2}$$')
-        .replace(/\b([a-zA-Z])_(\d+)/g, '$$$1_{$2}$$')
-        .replace(/\b([a-zA-Z])\^([a-zA-Z])/g, '$$$1^{$2}$$')
-        .replace(/\b([a-zA-Z])_([a-zA-Z])/g, '$$$1_{$2}$$')
+        // Convert exponents - more comprehensive patterns
+        .replace(/([a-zA-Z0-9()]+)\^(\{[^}]+\})/g, '$$$1^$2$$')  // x^{2+3}
+        .replace(/([a-zA-Z0-9()]+)\^([a-zA-Z0-9+\-*/()]+)/g, '$$$1^{$2}$$')  // x^2, x^(n+1)
+        .replace(/([a-zA-Z0-9()]+)_(\{[^}]+\})/g, '$$$1_$2$$')  // x_{i+1}
+        .replace(/([a-zA-Z0-9()]+)_([a-zA-Z0-9+\-*/()]+)/g, '$$$1_{$2}$$')  // x_i, x_(n+1)
         
-        // Convert fractions
+        // Convert standalone exponents and subscripts in text
+        .replace(/\b([a-zA-Z]+)(\d+)\b/g, '$$$1_{$2}$$')  // x2 -> x_2
+        .replace(/\b([a-zA-Z])\s*\^\s*(\d+)/g, '$$$1^{$2}$$')  // x ^ 2 -> x^2
+        .replace(/\b([a-zA-Z])\s*\^\s*([a-zA-Z])/g, '$$$1^{$2}$$')  // x ^ n -> x^n
+        .replace(/\^([+-]?\d+)/g, '^{$1}')
+        .replace(/_([+-]?\d+)/g, '_{$1}')
+        
+        // Convert common exponent expressions
+        .replace(/\b2\^(\d+)/g, '$$2^{$1}$$')  // 2^8
+        .replace(/\b10\^([+-]?\d+)/g, '$$10^{$1}$$')  // 10^-3
+        .replace(/\be\^([a-zA-Z0-9+\-*/()]+)/g, '$$e^{$1}$$')  // e^x
+        
+        // Convert fractions - more patterns
         .replace(/(\d+)\/(\d+)/g, '$$\\frac{$1}{$2}$$')
         .replace(/\(([^)]+)\)\/\(([^)]+)\)/g, '$$\\frac{$1}{$2}$$')
+        .replace(/([a-zA-Z0-9]+)\/([a-zA-Z0-9]+)/g, '$$\\frac{$1}{$2}$$')
+        .replace(/\bfrac\{([^}]+)\}\{([^}]+)\}/g, '$$\\frac{$1}{$2}$$')
         
         // Convert sqrt expressions
         .replace(/sqrt\(([^)]+)\)/g, '$$\\sqrt{$1}$$')
         .replace(/\√\(([^)]+)\)/g, '$$\\sqrt{$1}$$')
+        .replace(/\\sqrt\{([^}]+)\}/g, '$$\\sqrt{$1}$$')
+        
+        // Convert exponential and logarithmic functions
+        .replace(/\be\^([a-zA-Z0-9+\-*/()]+)/g, '$$e^{$1}$$')
+        .replace(/\bexp\(([^)]+)\)/g, '$$e^{$1}$$')
+        .replace(/\bln\(([^)]+)\)/g, '$$\\ln($1)$$')
+        .replace(/\blog\(([^)]+)\)/g, '$$\\log($1)$$')
+        .replace(/\blog_(\d+)\(([^)]+)\)/g, '$$\\log_{$1}($2)$$')
+        
+        // Convert trigonometric functions
+        .replace(/\bsin\(([^)]+)\)/g, '$$\\sin($1)$$')
+        .replace(/\bcos\(([^)]+)\)/g, '$$\\cos($1)$$')
+        .replace(/\btan\(([^)]+)\)/g, '$$\\tan($1)$$')
+        .replace(/\bsec\(([^)]+)\)/g, '$$\\sec($1)$$')
+        .replace(/\bcsc\(([^)]+)\)/g, '$$\\csc($1)$$')
+        .replace(/\bcot\(([^)]+)\)/g, '$$\\cot($1)$$')
+        .replace(/\barcsin\(([^)]+)\)/g, '$$\\arcsin($1)$$')
+        .replace(/\barccos\(([^)]+)\)/g, '$$\\arccos($1)$$')
+        .replace(/\barctan\(([^)]+)\)/g, '$$\\arctan($1)$$')
         
         // Convert limit expressions
         .replace(/lim\s+([a-zA-Z]+)\s*→\s*([^\s]+)\s+([^\n]+)/g, '$$\\lim_{$1 \\to $2} $3$$')
         .replace(/lim\s+([a-zA-Z]+)\s*->\s*([^\s]+)\s+([^\n]+)/g, '$$\\lim_{$1 \\to $2} $3$$')
+        .replace(/\\lim_\{([^}]+)\}/g, '$$\\lim_{$1}$$')
         
         // Convert integral expressions
         .replace(/∫([^d]+)d([a-zA-Z])/g, '$$\\int $1 \\, d$2$$')
         .replace(/∫_([^∫]+)\^([^∫]+)([^d]+)d([a-zA-Z])/g, '$$\\int_{$1}^{$2} $3 \\, d$4$$')
+        .replace(/\\int_\{([^}]+)\}\^\{([^}]+)\}/g, '$$\\int_{$1}^{$2}$$')
         
         // Convert summation expressions
         .replace(/∑_([^∑]+)\^([^∑]+)([^\n]+)/g, '$$\\sum_{$1}^{$2} $3$$')
         .replace(/sum_([^sum]+)\^([^sum]+)([^\n]+)/g, '$$\\sum_{$1}^{$2} $3$$')
+        .replace(/\\sum_\{([^}]+)\}\^\{([^}]+)\}/g, '$$\\sum_{$1}^{$2}$$')
+        
+        // Convert product expressions
+        .replace(/\\prod_\{([^}]+)\}\^\{([^}]+)\}/g, '$$\\prod_{$1}^{$2}$$')
+        
+        // Convert matrix expressions
+        .replace(/\\begin\{matrix\}([^}]+)\\end\{matrix\}/g, '$$\\begin{matrix}$1\\end{matrix}$$')
+        .replace(/\\begin\{pmatrix\}([^}]+)\\end\{pmatrix\}/g, '$$\\begin{pmatrix}$1\\end{pmatrix}$$')
+        .replace(/\\begin\{bmatrix\}([^}]+)\\end\{bmatrix\}/g, '$$\\begin{bmatrix}$1\\end{bmatrix}$$')
+        
+        // Convert equations and expressions - more comprehensive
+        .replace(/([a-zA-Z0-9()^_{}+\-*/\\\s]+)\s*=\s*([^,\n.;|]+)/g, '$$$1 = $2$$')
+        .replace(/([a-zA-Z0-9()^_{}+\-*/\\\s]+)\s*≠\s*([^,\n.;|]+)/g, '$$$1 \\neq $2$$')
+        .replace(/([a-zA-Z0-9()^_{}+\-*/\\\s]+)\s*≈\s*([^,\n.;|]+)/g, '$$$1 \\approx $2$$')
+        .replace(/([a-zA-Z0-9()^_{}+\-*/\\\s]+)\s*≤\s*([^,\n.;|]+)/g, '$$$1 \\leq $2$$')
+        .replace(/([a-zA-Z0-9()^_{}+\-*/\\\s]+)\s*≥\s*([^,\n.;|]+)/g, '$$$1 \\geq $2$$')
+        .replace(/([a-zA-Z0-9()^_{}+\-*/\\\s]+)\s*<\s*([^,\n.;|]+)/g, '$$$1 < $2$$')
+        .replace(/([a-zA-Z0-9()^_{}+\-*/\\\s]+)\s*>\s*([^,\n.;|]+)/g, '$$$1 > $2$$')
+        
+        // Convert mathematical operations in expressions
+        .replace(/([a-zA-Z0-9)]+)\s*\+\s*([a-zA-Z0-9(]+)/g, '$$$1 + $2$$')
+        .replace(/([a-zA-Z0-9)]+)\s*-\s*([a-zA-Z0-9(]+)/g, '$$$1 - $2$$')
+        .replace(/([a-zA-Z0-9)]+)\s*\*\s*([a-zA-Z0-9(]+)/g, '$$$1 \\cdot $2$$')
+        .replace(/([a-zA-Z0-9)]+)\s*\times\s*([a-zA-Z0-9(]+)/g, '$$$1 \\times $2$$')
+        .replace(/([a-zA-Z0-9)]+)\s*÷\s*([a-zA-Z0-9(]+)/g, '$$$1 \\div $2$$')
+        
+        // Convert derivatives
+        .replace(/d\/dx\s*\(([^)]+)\)/g, '$$\\frac{d}{dx}($1)$$')
+        .replace(/d\/d([a-zA-Z])\s*\(([^)]+)\)/g, '$$\\frac{d}{d$1}($2)$$')
+        .replace(/∂\/∂([a-zA-Z])\s*\(([^)]+)\)/g, '$$\\frac{\\partial}{\\partial $1}($2)$$')
+        
+        // Handle complex mathematical expressions
+        .replace(/\b([a-zA-Z]+)\(([^)]+)\)\^([a-zA-Z0-9]+)/g, '$$$1($2)^{$3}$$')  // f(x)^2
+        .replace(/\b([a-zA-Z]+)\(([^)]+)\)_([a-zA-Z0-9]+)/g, '$$$1($2)_{$3}$$')  // f(x)_n
+        
+        // Handle common mathematical constants and functions
+        .replace(/\binfty\b/g, '$\\infty$')
+        .replace(/\bInfinity\b/g, '$\\infty$')
+        .replace(/\bempty\s+set\b/g, '$\\emptyset$')
+        .replace(/\breal\s+numbers\b/g, '$\\mathbb{R}$')
+        .replace(/\bnatural\s+numbers\b/g, '$\\mathbb{N}$')
+        .replace(/\bintegers\b/g, '$\\mathbb{Z}$')
+        .replace(/\brational\s+numbers\b/g, '$\\mathbb{Q}$')
+        .replace(/\bcomplex\s+numbers\b/g, '$\\mathbb{C}$')
+        
+        // Handle degree symbol
+        .replace(/(\d+)\s*degrees?/g, '$$$1°$$')
+        .replace(/(\d+)°/g, '$$$1^\\circ$$')
+        
+        // Handle percentage
+        .replace(/(\d+)%/g, '$$$1\\%$$')
+        
+        // Handle intervals
+        .replace(/\[([^,]+),\s*([^\]]+)\]/g, '$$[$1, $2]$$')
+        .replace(/\(([^,]+),\s*([^)]+)\)/g, '$$($1, $2)$$')
         
         // Restore preserved LaTeX
         .replace(/\$\$\$\$\$\$\$\$DISPLAY_MATH_([^_]+)_END\$\$\$\$\$\$\$\$/g, '$$$$$$1$$$$')
