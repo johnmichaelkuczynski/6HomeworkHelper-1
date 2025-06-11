@@ -152,13 +152,13 @@ async function processWithAnthropic(text: string): Promise<string> {
       max_tokens: 4000,
       messages: [{ 
         role: 'user', 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in plain text only - do not use any HTML, markdown formatting, headers (###), bold (**text**), italics (*text*), bullet points, or special characters for formatting. Use only regular text with line breaks for organization. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
+        content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}` 
       }],
       model: 'claude-3-7-sonnet-20250219',
     });
 
     const response = message.content[0]?.type === 'text' ? message.content[0].text : 'No response generated';
-    return cleanResponse(response);
+    return response;
   } catch (error) {
     console.error('Anthropic API error:', error);
     throw new Error('Failed to process with Anthropic');
@@ -172,13 +172,13 @@ async function processWithOpenAI(text: string): Promise<string> {
       model: "gpt-4o",
       messages: [{ 
         role: "user", 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in plain text only - do not use any HTML, markdown formatting, headers (###), bold (**text**), italics (*text*), bullet points, or special characters for formatting. Use only regular text with line breaks for organization. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}` 
+        content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}` 
       }],
       max_tokens: 4000,
     });
 
     const responseText = response.choices[0]?.message?.content || 'No response generated';
-    return cleanResponse(responseText);
+    return responseText;
   } catch (error) {
     console.error('OpenAI API error:', error);
     throw new Error('Failed to process with OpenAI');
@@ -198,7 +198,7 @@ async function processWithPerplexity(text: string): Promise<string> {
         messages: [
           {
             role: 'user',
-            content: `Solve this homework assignment. Provide a clear, step-by-step solution with proper mathematical notation where applicable. Write in plain text only - do not use any markdown formatting, headers (###), bold (**text**), italics (*text*), bullet points, or special characters for formatting. Use only regular text with line breaks for organization. Do not add commentary or explanations beyond what is needed to solve the problem:\n\n${text}`
+            content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}`
           }
         ],
         max_tokens: 4000,
@@ -213,7 +213,7 @@ async function processWithPerplexity(text: string): Promise<string> {
 
     const data = await response.json();
     const responseText = data.choices[0]?.message?.content || 'No response generated';
-    return cleanResponse(responseText);
+    return responseText;
   } catch (error) {
     console.error('Perplexity API error:', error);
     throw new Error('Failed to process with Perplexity');
