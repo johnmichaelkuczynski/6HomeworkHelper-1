@@ -613,9 +613,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'openai':
           llmResponse = await processWithOpenAI(extractedText);
           break;
+        case 'azure':
+          llmResponse = await processWithAzureOpenAI(extractedText);
+          break;
         case 'perplexity':
           llmResponse = await processWithPerplexity(extractedText);
           break;
+        default:
+          throw new Error(`Unsupported LLM provider: ${llmProvider}`);
       }
 
       const processingTime = Date.now() - startTime;
@@ -689,9 +694,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'openai':
           llmResponse = await processWithOpenAI(inputText);
           break;
+        case 'azure':
+          llmResponse = await processWithAzureOpenAI(inputText);
+          break;
         case 'perplexity':
           llmResponse = await processWithPerplexity(inputText);
           break;
+        default:
+          throw new Error(`Unsupported LLM provider: ${llmProvider}`);
       }
 
       const processingTime = Date.now() - startTime;

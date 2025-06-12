@@ -1009,6 +1009,7 @@ ${fullResponse.slice(-1000)}...`;
     switch (provider) {
       case "anthropic": return "Claude (Anthropic)";
       case "openai": return "GPT (OpenAI)";
+      case "azure": return "Azure OpenAI";
       case "perplexity": return "Perplexity";
       default: return provider;
     }
@@ -1050,6 +1051,7 @@ ${fullResponse.slice(-1000)}...`;
                 <SelectContent>
                   <SelectItem value="anthropic">Claude (Anthropic)</SelectItem>
                   <SelectItem value="openai">GPT (OpenAI)</SelectItem>
+                  <SelectItem value="azure">Azure OpenAI</SelectItem>
                   <SelectItem value="perplexity">Perplexity</SelectItem>
                 </SelectContent>
               </Select>
