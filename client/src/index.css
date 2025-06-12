@@ -9,9 +9,9 @@
     size: letter;
   }
 
-  /* Hide everything except the solution content */
-  body * {
-    visibility: hidden !important;
+  /* Hide UI elements but keep content visible */
+  button, nav, header, .print-hide {
+    display: none !important;
   }
   
   /* Show only the math content */
@@ -38,11 +38,6 @@
   .math-content div {
     margin-bottom: 16px !important;
     page-break-inside: avoid !important;
-  }
-  
-  /* Hide all buttons and UI elements */
-  button, nav, header, .print-hide {
-    display: none !important;
   }
 }
 
