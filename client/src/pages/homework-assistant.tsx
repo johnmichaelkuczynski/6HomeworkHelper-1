@@ -828,43 +828,114 @@ ${fullResponse.slice(-1000)}...`;
   const handlePrint = () => {
     if (!currentResult) return;
 
-    // Create HTML content that preserves mathematical notation
+    // Create a new window for printing with MathJax rendering
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups and try again",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
     <title>Assignment Solution</title>
     <meta charset="UTF-8">
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                packages: {'[+]': ['ams', 'newcommand', 'mathtools', 'physics']}
+            },
+            chtml: {
+                scale: 1.2,
+                minScale: 0.8,
+                matchFontHeight: false,
+                fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
+            },
+            loader: {
+                load: ['[tex]/ams', '[tex]/newcommand', '[tex]/mathtools', '[tex]/physics']
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    setTimeout(() => {
+                        window.print();
+                    }, 2000);
+                }
+            }
+        };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: 'Computer Modern', 'Times New Roman', serif;
             font-size: 12pt;
-            line-height: 1.6;
+            line-height: 1.8;
             margin: 1in;
             color: black;
             background: white;
+            max-width: none;
         }
         .header {
             text-align: center;
             border-bottom: 2px solid black;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            font-size: 20pt;
+            margin-bottom: 10px;
+            font-weight: bold;
         }
         .section {
             margin-bottom: 30px;
+            page-break-inside: avoid;
         }
         .section h2 {
-            font-size: 14pt;
-            margin-bottom: 10px;
+            font-size: 16pt;
+            margin-bottom: 15px;
             color: black;
+            font-weight: bold;
+            page-break-after: avoid;
         }
         .content {
             white-space: pre-wrap;
             word-wrap: break-word;
+            font-size: 12pt;
+            line-height: 1.8;
+        }
+        .mjx-chtml {
+            font-size: 120% !important;
+            line-height: 1.8 !important;
+        }
+        .MJXc-display {
+            margin: 1em 0 !important;
+        }
+        p {
+            margin-bottom: 12pt;
+            text-align: justify;
+        }
+        @page {
+            margin: 1in;
+            size: letter;
         }
         @media print {
-            @page { margin: 1in; }
-            body { margin: 0; }
+            body { 
+                margin: 0; 
+                font-size: 12pt;
+            }
+            .mjx-chtml {
+                font-size: 120% !important;
+            }
         }
     </style>
 </head>
@@ -888,20 +959,12 @@ ${fullResponse.slice(-1000)}...`;
 </body>
 </html>`;
 
-    // Create blob and download as HTML file
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `assignment_solution_${Date.now()}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
 
     toast({
-      title: "HTML file downloaded",
-      description: "Open the file and print to PDF to preserve formatting",
+      title: "Print window opened",
+      description: "Use Ctrl+P or Cmd+P to save as PDF with perfect math notation",
     });
   };
   

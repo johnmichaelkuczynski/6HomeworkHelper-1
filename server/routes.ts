@@ -551,8 +551,20 @@ async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment
 
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
     
-    // Wait for MathJax to render
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Give MathJax time to render
+    // Wait for MathJax to fully load and render all mathematics
+    await page.waitForFunction(() => {
+      return window.MathJax && window.MathJax.typesetPromise !== undefined;
+    }, { timeout: 15000 });
+    
+    // Force MathJax to render all math elements
+    await page.evaluate(() => {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        return window.MathJax.typesetPromise();
+      }
+    });
+    
+    // Additional wait to ensure complete rendering
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Generate PDF with high quality settings
     const pdfBuffer = await page.pdf({
