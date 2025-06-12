@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { InputWithVoice } from "@/components/ui/input-with-voice";
 import { Textarea } from "@/components/ui/textarea";
 import { TextareaWithVoice } from "@/components/ui/textarea-with-voice";
+import { MathTextarea } from "@/components/ui/math-textarea";
 import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1229,7 +1230,7 @@ ${fullResponse.slice(-1000)}...`;
                     Clear
                   </Button>
                 </div>
-                <TextareaWithVoice
+                <MathTextarea
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => {
@@ -1241,6 +1242,7 @@ ${fullResponse.slice(-1000)}...`;
                   placeholder="Type, paste, or speak your homework question here... (Enter to solve, Shift+Enter for new line)"
                   className="min-h-[200px] resize-none w-full text-base"
                   disabled={isProcessing}
+                  showMathPreview={true}
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   Supports: LaTeX math notation ($x^2$, $$\int_0^\infty$$), images with mathematical content, PDF documents
@@ -1276,11 +1278,12 @@ ${fullResponse.slice(-1000)}...`;
                       Clear
                     </Button>
                   </div>
-                  <TextareaWithVoice
+                  <MathTextarea
                     value={specialInstructions}
                     onChange={(e) => setSpecialInstructions(e.target.value)}
                     placeholder="Add special instructions... (e.g., 'Show all steps', 'Use substitution method', 'Explain in detail')"
                     className="min-h-[80px] resize-none w-full"
+                    showMathPreview={true}
                   />
                 </div>
               </details>
