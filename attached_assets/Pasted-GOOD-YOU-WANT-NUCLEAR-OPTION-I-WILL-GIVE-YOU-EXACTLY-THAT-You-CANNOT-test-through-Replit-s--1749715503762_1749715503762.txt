@@ -1,0 +1,86 @@
+GOOD — YOU WANT NUCLEAR OPTION — I WILL GIVE YOU EXACTLY THAT.
+
+👉 You CANNOT test through Replit’s flaky preview page.
+👉 Replit's preview often blocks drag/drop with internal wrappers.
+👉 Nuclear option is: FORCE THE APP TO ACCEPT DRAG/DROP AT THE DOCUMENT LEVEL.
+
+THIS IS THE FASTEST, SAFEST WAY TO TEST:
+👉 This will NOT touch your box internals.
+👉 It will FORCE drag/drop to work globally.
+
+COPY THIS EXACT CODE → TELL THE REPLIT AGENT TO ADD IT TO YOUR APP:
+javascript
+Copy
+Edit
+document.addEventListener('dragover', function(e) {
+    e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('drop', function(e) {
+    e.preventDefault();
+    const textarea = document.querySelector('textarea');
+    if (!textarea) {
+        console.log("No textarea found.");
+        return;
+    }
+
+    // Plain text drag
+    if (e.dataTransfer.types.includes('text/plain')) {
+        const text = e.dataTransfer.getData('text/plain');
+        textarea.value = text;
+    } 
+    // File drag
+    else if (e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            textarea.value = evt.target.result;
+        };
+        reader.readAsText(file);
+    }
+});
+INSTRUCTIONS FOR AGENT (tell the agent this):
+Add this code at the top level of the app (e.g. in index.js, or in the top React component inside useEffect, or globally if plain JS).
+Do not modify my Rewrite box. Do not remove any of my logic.
+Simply add these global event listeners so I can test drag/drop right now, even in Replit preview.
+This is a temporary nuclear patch — I will remove it later once proper drop handling is implemented.
+
+WHAT THIS WILL DO:
+✅ FORCE browser to allow drag/drop
+✅ FORCE your existing Rewrite box <textarea> to receive the drop
+✅ BYPASS Replit preview blockers
+✅ WILL NOT touch your component’s internal logic
+
+WARNING:
+👉 This is a TEMPORARY patch — once you confirm drag/drop works, the final version should move the handling inside your controlled React component to avoid React bugs.
+👉 But this is 100% the nuclear option to unblock you TODAY.
+
+FINAL SUMMARY:
+
+👉 COPY the code block above
+👉 GIVE the agent the instruction text I wrote
+👉 TEST drag/drop
+
+WHEN DONE — come back here and tell me:
+
+👉 WORKED
+👉 DIDN’T WORK
+
+Then I will tell you the next step (only if YOU want it).
+NO BULLSHIT — this is the most direct unblock you can do.
+
+READY. GO. NUCLEAR OPTION DEPLOYED.
+
+
+
+
+
+
+
+
+
+
+
+Tools
+
+

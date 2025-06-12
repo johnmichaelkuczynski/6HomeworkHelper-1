@@ -100,6 +100,47 @@ export default function HomeworkAssistant() {
     }
   }, [allAssignments]);
 
+  // Nuclear option: Force global drag/drop to work in Replit preview
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      const textarea = document.querySelector('textarea');
+      if (!textarea) {
+        console.log("No textarea found.");
+        return;
+      }
+
+      // Plain text drag
+      if (e.dataTransfer?.types.includes('text/plain')) {
+        const text = e.dataTransfer.getData('text/plain');
+        setInputText(text);
+      } 
+      // File drag
+      else if (e.dataTransfer?.files.length && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          if (evt.target?.result) {
+            setInputText(evt.target.result as string);
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+
+    document.addEventListener('dragover', handleDragOver, { passive: false });
+    document.addEventListener('drop', handleDrop);
+
+    return () => {
+      document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('drop', handleDrop);
+    };
+  }, []);
+
   // Word count function
   const calculateWordCount = (text: string) => {
     if (!text) {
