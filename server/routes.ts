@@ -886,7 +886,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const msg = {
         to: toEmail,
-        from: fromEmail,
+        from: process.env.SENDGRID_VERIFIED_SENDER || fromEmail,
         subject: title || 'Your Homework Solution',
         html: htmlContent,
       };
