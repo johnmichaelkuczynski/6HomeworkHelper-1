@@ -32,17 +32,17 @@ const openai = new OpenAI({
 });
 
 // Azure OpenAI client
-const azureOpenAI = process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT ? new OpenAI({
-  apiKey: process.env.AZURE_OPENAI_API_KEY,
+const azureOpenAI = process.env.AZURE_OPENAI_KEY && process.env.AZURE_OPENAI_ENDPOINT ? new OpenAI({
+  apiKey: process.env.AZURE_OPENAI_KEY,
   baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/gpt-4/`,
   defaultQuery: { 'api-version': '2024-02-15-preview' },
   defaultHeaders: {
-    'api-key': process.env.AZURE_OPENAI_API_KEY,
+    'api-key': process.env.AZURE_OPENAI_KEY,
   },
 }) : null;
 
 async function performMathpixOCR(buffer: Buffer): Promise<string> {
-  if (!process.env.MATHPIX_APP_ID || !process.env.MATHPIX_API_KEY) {
+  if (!process.env.MATHPIX_APP_ID || !process.env.MATHPIX_APP_KEY) {
     throw new Error('Mathpix credentials not configured');
   }
 
@@ -52,7 +52,7 @@ async function performMathpixOCR(buffer: Buffer): Promise<string> {
       method: 'POST',
       headers: {
         'app_id': process.env.MATHPIX_APP_ID,
-        'app_key': process.env.MATHPIX_API_KEY,
+        'app_key': process.env.MATHPIX_APP_KEY,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -79,7 +79,7 @@ async function performMathpixOCR(buffer: Buffer): Promise<string> {
 
 async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
   // Try Mathpix first for mathematical content
-  if (process.env.MATHPIX_APP_ID && process.env.MATHPIX_API_KEY) {
+  if (process.env.MATHPIX_APP_ID && process.env.MATHPIX_APP_KEY) {
     try {
       const mathpixResult = await performMathpixOCR(buffer);
       if (mathpixResult && mathpixResult.trim().length > 0) {
@@ -303,13 +303,13 @@ async function processWithPerplexity(text: string): Promise<string> {
 }
 
 async function searchWithGoogle(query: string): Promise<string> {
-  if (!process.env.GOOGLE_CSE_API_KEY || !process.env.GOOGLE_CSE_ID) {
+  if (!process.env.GOOGLE_API_KEY || !process.env.GOOGLE_CSE_ID) {
     return '';
   }
 
   try {
     const response = await fetch(
-      `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_CSE_API_KEY}&cx=${process.env.GOOGLE_CSE_ID}&q=${encodeURIComponent(query)}&num=3`
+      `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_API_KEY}&cx=${process.env.GOOGLE_CSE_ID}&q=${encodeURIComponent(query)}&num=3`
     );
 
     if (!response.ok) {
