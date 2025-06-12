@@ -16,6 +16,7 @@ export function SpeechInput({ onResult, onInterim, className, size = 'md' }: Spe
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
+  const accumulatedTextRef = useRef('');
 
   useEffect(() => {
     // Check for speech recognition support
@@ -39,33 +40,43 @@ export function SpeechInput({ onResult, onInterim, className, size = 'md' }: Spe
         let finalTranscript = '';
         let interimTranscript = '';
 
-        for (let i = 0; i < event.results.length; i++) {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcript;
+            finalTranscript += transcript + ' ';
           } else {
             interimTranscript += transcript;
           }
         }
 
-        // Send interim results for live feedback
-        if (interimTranscript && onInterim) {
-          onInterim(interimTranscript);
+        // Accumulate final text
+        if (finalTranscript.trim()) {
+          accumulatedTextRef.current += finalTranscript;
+          console.log('Final transcript:', finalTranscript.trim());
+          console.log('Accumulated text:', accumulatedTextRef.current);
+          onResult(finalTranscript.trim());
         }
 
-        // Send final results
-        if (finalTranscript.trim()) {
-          onResult(finalTranscript.trim());
+        // Show current accumulated + interim text for live feedback
+        if (onInterim) {
+          const totalText = accumulatedTextRef.current + interimTranscript;
+          console.log('Interim text:', interimTranscript);
+          console.log('Total text for preview:', totalText.trim());
+          onInterim(totalText.trim());
         }
       };
 
       recognition.onerror = (event: any) => {
-        setError(`Recording failed: ${event.error}`);
+        console.error('Speech recognition error:', event.error);
+        if (event.error !== 'aborted') {
+          setError(`Recording failed: ${event.error}`);
+        }
         setIsRecording(false);
       };
 
       recognition.onend = () => {
         setIsRecording(false);
+        // Don't automatically restart - let user control when to start/stop
       };
 
       recognitionRef.current = recognition;
@@ -82,6 +93,9 @@ export function SpeechInput({ onResult, onInterim, className, size = 'md' }: Spe
     if (!recognitionRef.current) return;
 
     try {
+      // Clear accumulated text when starting new recording
+      accumulatedTextRef.current = '';
+      
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
       recognitionRef.current.start();
@@ -93,6 +107,8 @@ export function SpeechInput({ onResult, onInterim, className, size = 'md' }: Spe
   const stopRecording = () => {
     if (recognitionRef.current && isRecording) {
       recognitionRef.current.stop();
+      // Clear accumulated text when stopping
+      accumulatedTextRef.current = '';
     }
   };
 

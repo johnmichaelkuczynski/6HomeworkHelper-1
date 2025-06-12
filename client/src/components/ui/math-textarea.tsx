@@ -37,7 +37,9 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
         onVoiceTranscript(transcript);
       } else if (onChange) {
         const currentValue = String(value || '');
-        const newValue = currentValue ? currentValue + ' ' + transcript : transcript;
+        // Don't add extra space if current value is empty or transcript already includes proper spacing
+        const separator = currentValue && !currentValue.endsWith(' ') ? ' ' : '';
+        const newValue = currentValue + separator + transcript;
         const syntheticEvent = {
           target: { value: newValue },
           currentTarget: { value: newValue },
