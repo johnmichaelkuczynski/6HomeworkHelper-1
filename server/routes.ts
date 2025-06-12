@@ -272,7 +272,19 @@ async function processWithOpenAI(text: string): Promise<string> {
       model: "gpt-4o",
       messages: [{ 
         role: "user", 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}` 
+        content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+
+Solve this homework assignment with these MANDATORY requirements:
+1. ALL mathematical expressions MUST use proper LaTeX notation
+2. Use $ for inline math: $x^2$, $\\frac{a}{b}$, $\\sin(x)$, $\\pi$, $\\alpha$
+3. Use $$ for display equations: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+4. Include every mathematical step with perfect LaTeX formatting
+5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
+6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
+7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
+8. Never use plain text for any mathematical symbol, number, or expression
+
+Assignment to solve:\n\n${text}` 
       }],
       max_tokens: 4000,
     });
@@ -295,7 +307,19 @@ async function processWithAzureOpenAI(text: string): Promise<string> {
       model: "gpt-4",
       messages: [{ 
         role: "user", 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}` 
+        content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+
+Solve this homework assignment with these MANDATORY requirements:
+1. ALL mathematical expressions MUST use proper LaTeX notation
+2. Use $ for inline math: $x^2$, $\\frac{a}{b}$, $\\sin(x)$, $\\pi$, $\\alpha$
+3. Use $$ for display equations: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+4. Include every mathematical step with perfect LaTeX formatting
+5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
+6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
+7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
+8. Never use plain text for any mathematical symbol, number, or expression
+
+Assignment to solve:\n\n${text}` 
       }],
       max_tokens: 4000,
     });
@@ -321,7 +345,19 @@ async function processWithPerplexity(text: string): Promise<string> {
         messages: [
           {
             role: 'user',
-            content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}`
+            content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+
+Solve this homework assignment with these MANDATORY requirements:
+1. ALL mathematical expressions MUST use proper LaTeX notation
+2. Use $ for inline math: $x^2$, $\\frac{a}{b}$, $\\sin(x)$, $\\pi$, $\\alpha$
+3. Use $$ for display equations: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+4. Include every mathematical step with perfect LaTeX formatting
+5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
+6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
+7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
+8. Never use plain text for any mathematical symbol, number, or expression
+
+Assignment to solve:\n\n${text}`
           }
         ],
         max_tokens: 4000,
@@ -411,52 +447,89 @@ async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment
     
     const page = await browser.newPage();
     
-    // Set content with proper HTML structure and math rendering
+    // Set content with enhanced HTML structure and perfect math rendering
     const fullHtml = `
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>
         window.MathJax = {
             tex: {
                 inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                processEnvironments: true,
+                packages: {'[+]': ['ams', 'newcommand', 'mathtools', 'physics']}
             },
             chtml: {
-                scale: 1,
-                minScale: 0.5,
-                matchFontHeight: false
+                scale: 1.2,
+                minScale: 0.8,
+                matchFontHeight: false,
+                fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
+            },
+            loader: {
+                load: ['[tex]/ams', '[tex]/newcommand', '[tex]/mathtools', '[tex]/physics']
+            },
+            startup: {
+                ready: () => {
+                    MathJax.startup.defaultReady();
+                    window.mathJaxReady = true;
+                }
             }
         };
     </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         body {
-            font-family: 'Times New Roman', serif;
+            font-family: 'Computer Modern', 'Times New Roman', serif;
             font-size: 12pt;
-            line-height: 1.6;
+            line-height: 1.8;
             color: #000;
             margin: 40px;
             background: white;
+            max-width: none;
         }
         h1, h2, h3 {
             color: #000;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
             font-weight: bold;
+            page-break-after: avoid;
         }
+        h1 { font-size: 18pt; }
+        h2 { font-size: 16pt; }
+        h3 { font-size: 14pt; }
         .solution-content {
             white-space: pre-wrap;
             word-wrap: break-word;
+            font-size: 12pt;
+            line-height: 1.8;
+        }
+        .mjx-chtml {
+            font-size: 120% !important;
+            line-height: 1.8 !important;
+        }
+        .MJXc-display {
+            margin: 1em 0 !important;
+        }
+        p {
+            margin-bottom: 12pt;
+            text-align: justify;
         }
         @page {
-            margin: 0.75in;
+            margin: 1in;
             size: letter;
         }
         @media print {
-            body { margin: 0; }
+            body { 
+                margin: 0; 
+                font-size: 12pt;
+            }
+            .mjx-chtml {
+                font-size: 120% !important;
+            }
         }
     </style>
 </head>
