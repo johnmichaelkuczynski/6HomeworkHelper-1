@@ -354,12 +354,127 @@ export default function HomeworkAssistant() {
       return;
     }
 
-    // Open print dialog for perfect PDF with rendered math
-    window.print();
+    // Get the actual rendered math content
+    const mathContentElement = document.querySelector('.math-content');
+    if (!mathContentElement) {
+      toast({
+        title: "Content not ready",
+        description: "Please wait for the solution to render completely",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Clone the content to preserve math rendering
+    const clonedContent = mathContentElement.cloneNode(true) as HTMLElement;
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups to generate PDF",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Write the complete HTML with proper styling
+    printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>${currentAssignmentName || 'Assignment Solution'}</title>
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+        displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+        processEscapes: true
+      }
+    };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            color: #000;
+            background: white;
+        }
+        h1, h2, h3 {
+            color: #000;
+            margin: 1em 0 0.5em 0;
+        }
+        h1 { font-size: 24px; }
+        h2 { font-size: 20px; }
+        h3 { font-size: 16px; }
+        p {
+            margin-bottom: 1em;
+            text-align: justify;
+        }
+        .math-content {
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        mjx-container {
+            margin: 1em 0;
+            overflow-x: auto;
+        }
+        @media print {
+            body {
+                margin: 0;
+                padding: 15px;
+                max-width: none;
+            }
+            mjx-container {
+                page-break-inside: avoid;
+            }
+        }
+        @page {
+            margin: 0.75in;
+            size: letter;
+        }
+    </style>
+</head>
+<body>
+    <h1>${(currentAssignmentName || 'Assignment Solution').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h1>
+    ${currentResult.extractedText ? `<h2>Problem Statement</h2><p>${currentResult.extractedText.replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p><h2>Solution</h2>` : ''}
+    <div class="math-content">${clonedContent.innerHTML}</div>
+    
+    <script>
+        // Auto-print when MathJax is done rendering
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            window.MathJax.typesetPromise().then(() => {
+                setTimeout(() => {
+                    window.print();
+                }, 1000);
+            });
+        } else {
+            setTimeout(() => {
+                window.print();
+            }, 2000);
+        }
+        
+        // Close window after printing
+        window.addEventListener('afterprint', () => {
+            window.close();
+        });
+    </script>
+</body>
+</html>
+    `);
+    
+    printWindow.document.close();
     
     toast({
-      title: "Print dialog opened",
-      description: "Save as PDF to get perfect mathematical notation",
+      title: "PDF window opened",
+      description: "Select 'Save as PDF' in the print dialog",
     });
   };
 
@@ -373,32 +488,40 @@ export default function HomeworkAssistant() {
       return;
     }
 
-    // Get the rendered content from the math renderer
-    const solutionElement = document.querySelector('.math-content');
-    if (!solutionElement) {
+    // Get the actual rendered math content
+    const mathContentElement = document.querySelector('.math-content');
+    if (!mathContentElement) {
       toast({
         title: "Content not ready",
-        description: "Please wait for the solution to render",
+        description: "Please wait for the solution to render completely",
         variant: "destructive",
       });
       return;
     }
 
-    // Create complete HTML document with MathJax
+    // Clone the content to preserve math rendering
+    const clonedContent = mathContentElement.cloneNode(true) as HTMLElement;
+
+    // Create complete HTML document with the rendered content
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${currentAssignmentName || 'Assignment Solution'}</title>
+    <title>${(currentAssignmentName || 'Assignment Solution').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
     
     <!-- MathJax Configuration -->
     <script>
     window.MathJax = {
       tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']],
-        processEscapes: true
+        inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+        displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+        processEscapes: true,
+        packages: {'[+]': ['ams', 'amsmath', 'amssymb', 'cancel', 'color']}
+      },
+      chtml: {
+        displayAlign: 'center',
+        displayIndent: '0em'
       }
     };
     </script>
@@ -410,39 +533,58 @@ export default function HomeworkAssistant() {
             font-family: 'Times New Roman', serif;
             line-height: 1.6;
             max-width: 800px;
-            margin: 0 auto;
+            margin: 20px auto;
             padding: 20px;
-            color: #333;
+            color: #000;
+            background: white;
         }
         h1, h2, h3 {
-            color: #2c3e50;
-            margin-top: 1.5em;
-            margin-bottom: 0.5em;
+            color: #000;
+            margin: 1em 0 0.5em 0;
+        }
+        h1 { font-size: 24px; }
+        h2 { font-size: 20px; }
+        h3 { font-size: 16px; }
+        p {
+            margin-bottom: 1em;
+            text-align: justify;
         }
         .math-content {
             font-size: 16px;
             line-height: 1.8;
         }
-        .math-content p {
-            margin-bottom: 1em;
-        }
         mjx-container {
+            margin: 1em 0;
             overflow-x: auto;
+        }
+        @media print {
+            body {
+                max-width: none;
+                margin: 0;
+                padding: 15px;
+            }
+            mjx-container {
+                page-break-inside: avoid;
+            }
+        }
+        @page {
+            margin: 0.75in;
+            size: letter;
         }
     </style>
 </head>
 <body>
-    <h1>${currentAssignmentName || 'Assignment Solution'}</h1>
-    ${currentResult.extractedText ? `<h2>Problem Statement</h2><p>${currentResult.extractedText.replace(/\n/g, '<br>')}</p><h2>Solution</h2>` : ''}
-    <div class="math-content">
-        ${currentResult.llmResponse.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>').replace(/^(?!<p>)/, '<p>').replace(/(?<!<\/p>)$/, '</p>')}
-    </div>
+    <h1>${(currentAssignmentName || 'Assignment Solution').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h1>
+    ${currentResult.extractedText ? `<h2>Problem Statement</h2><p>${currentResult.extractedText.replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p><h2>Solution</h2>` : ''}
+    <div class="math-content">${clonedContent.innerHTML}</div>
     
     <script>
         // Ensure MathJax renders after page load
         window.addEventListener('load', function() {
             if (window.MathJax && window.MathJax.typesetPromise) {
-                window.MathJax.typesetPromise();
+                window.MathJax.typesetPromise().then(() => {
+                    console.log('MathJax rendering complete');
+                });
             }
         });
     </script>
@@ -450,19 +592,19 @@ export default function HomeworkAssistant() {
 </html>`;
 
     // Create and download the HTML file
-    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${currentAssignmentName || 'assignment'}.html`;
+    a.download = `${(currentAssignmentName || 'assignment').replace(/[^a-z0-9]/gi, '_')}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
     toast({
-      title: "HTML downloaded",
-      description: "Complete HTML file with rendered mathematical notation",
+      title: "HTML downloaded with rendered math",
+      description: "Standalone HTML file with perfect mathematical notation",
     });
   };
 
