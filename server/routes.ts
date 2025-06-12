@@ -57,20 +57,49 @@ async function performMathpixOCR(buffer: Buffer): Promise<string> {
       },
       body: JSON.stringify({
         src: `data:image/jpeg;base64,${base64Image}`,
-        formats: ['text', 'latex_styled'],
+        formats: ['text', 'latex_styled', 'latex_simplified', 'asciimath'],
+        data_options: {
+          include_asciimath: true,
+          include_latex: true,
+          include_mathml: true,
+          include_word_data: false,
+          include_line_data: false
+        },
         format_options: {
           math_inline_delimiters: ['$', '$'],
-          math_display_delimiters: ['$$', '$$']
+          math_display_delimiters: ['$$', '$$'],
+          rm_spaces: true,
+          rm_fonts: false
         }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Mathpix API error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Mathpix API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    return data.latex_styled || data.text || '';
+    
+    // Prefer LaTeX styled format for perfect mathematical notation
+    let extractedText = data.latex_styled || data.latex_simplified || data.text || '';
+    
+    // Log confidence if available
+    if (data.confidence && data.confidence < 0.8) {
+      console.warn('Low confidence Mathpix OCR result:', data.confidence);
+    }
+    
+    // Enhance LaTeX formatting
+    if (extractedText) {
+      // Ensure proper LaTeX math delimiters
+      extractedText = extractedText.replace(/\\\(/g, '$').replace(/\\\)/g, '$');
+      extractedText = extractedText.replace(/\\\[/g, '$$').replace(/\\\]/g, '$$');
+      
+      // Clean up any double spaces
+      extractedText = extractedText.replace(/\s+/g, ' ').trim();
+    }
+    
+    return extractedText;
   } catch (error) {
     console.error('Mathpix OCR error:', error);
     throw error;
@@ -211,7 +240,19 @@ async function processWithAnthropic(text: string): Promise<string> {
       max_tokens: 4000,
       messages: [{ 
         role: 'user', 
-        content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}` 
+        content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+
+Solve this homework assignment with these MANDATORY requirements:
+1. ALL mathematical expressions MUST use proper LaTeX notation
+2. Use $ for inline math: $x^2$, $\\frac{a}{b}$, $\\sin(x)$, $\\pi$, $\\alpha$
+3. Use $$ for display equations: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+4. Include every mathematical step with perfect LaTeX formatting
+5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
+6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
+7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
+8. Never use plain text for any mathematical symbol, number, or expression
+
+Assignment to solve:\n\n${text}` 
       }],
       model: 'claude-3-7-sonnet-20250219',
     });
