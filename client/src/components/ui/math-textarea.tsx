@@ -1,6 +1,6 @@
 import { forwardRef, useState, useRef, useEffect } from 'react';
 import { Textarea } from './textarea';
-import { VoiceInput } from './voice-input';
+import { SpeechInput } from './speech-input';
 import { Button } from './button';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -31,13 +31,11 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
     const finalRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
 
     const handleVoiceTranscript = (transcript: string) => {
-      console.log('MathTextarea received transcript:', transcript);
       if (onVoiceTranscript) {
         onVoiceTranscript(transcript);
       } else if (onChange) {
         const currentValue = String(value || '');
         const newValue = currentValue ? currentValue + ' ' + transcript : transcript;
-        console.log('Updating textarea value from:', currentValue, 'to:', newValue);
         const syntheticEvent = {
           target: { value: newValue },
           currentTarget: { value: newValue },
@@ -103,8 +101,8 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
               )}
               
               {showVoiceButton && (
-                <VoiceInput
-                  onTranscript={handleVoiceTranscript}
+                <SpeechInput
+                  onResult={handleVoiceTranscript}
                   className="h-6 w-6"
                 />
               )}
