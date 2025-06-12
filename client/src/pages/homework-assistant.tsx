@@ -349,6 +349,223 @@ export default function HomeworkAssistant() {
 
 
 
+  // Print/Save as PDF function that preserves math notation
+  const handlePrintSaveAsPDF = () => {
+    if (!currentResult?.llmResponse) {
+      toast({
+        title: "No content to print",
+        description: "Please generate a solution first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Get the actual rendered math content
+    const mathContentElement = document.querySelector('.math-content');
+    if (!mathContentElement) {
+      toast({
+        title: "Content not ready",
+        description: "Please wait for the solution to render completely",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Clone the content to preserve math rendering
+    const clonedContent = mathContentElement.cloneNode(true) as HTMLElement;
+    
+    // Create a new window for printing with proper math rendering
+    const printWindow = window.open('', '_blank', 'width=800,height=600');
+    if (!printWindow) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups to use print function",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Write complete HTML with MathJax and proper styling for print
+    printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${(currentAssignmentName || 'Assignment Solution').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
+    
+    <!-- MathJax Configuration for Print -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+        displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+        processEscapes: true,
+        packages: {'[+]': ['ams', 'amsmath', 'amssymb', 'cancel', 'color']}
+      },
+      chtml: {
+        scale: 1.2,
+        minScale: 0.8,
+        matchFontHeight: false,
+        displayAlign: 'center'
+      },
+      startup: {
+        ready: () => {
+          MathJax.startup.defaultReady();
+          MathJax.startup.promise.then(() => {
+            window.mathJaxComplete = true;
+          });
+        }
+      }
+    };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            color: #000;
+            background: white;
+            font-size: 14pt;
+        }
+        h1, h2, h3 {
+            color: #000;
+            margin: 1em 0 0.5em 0;
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+        h1 { font-size: 20pt; }
+        h2 { font-size: 18pt; }
+        h3 { font-size: 16pt; }
+        p {
+            margin-bottom: 1em;
+            text-align: justify;
+            page-break-inside: avoid;
+        }
+        .math-content {
+            font-size: 14pt;
+            line-height: 1.8;
+        }
+        mjx-container {
+            margin: 0.8em 0 !important;
+            page-break-inside: avoid;
+            overflow: visible !important;
+        }
+        mjx-container[display="block"] {
+            text-align: center;
+            margin: 1.2em 0 !important;
+        }
+        .problem-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .solution-section {
+            margin-top: 20px;
+        }
+        @media print {
+            body {
+                max-width: none;
+                margin: 0;
+                padding: 15px;
+                font-size: 12pt;
+            }
+            .problem-section {
+                background: #f8f9fa !important;
+                border: 1px solid #000 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            mjx-container {
+                page-break-inside: avoid;
+                overflow: visible !important;
+            }
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+        }
+        @page {
+            margin: 0.75in;
+            size: letter;
+        }
+    </style>
+</head>
+<body>
+    <h1>${(currentAssignmentName || 'Assignment Solution').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h1>
+    
+    ${currentResult.extractedText ? `
+    <div class="problem-section">
+        <h2>Problem Statement</h2>
+        <p>${currentResult.extractedText.replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+    </div>
+    ` : ''}
+    
+    <div class="solution-section">
+        <h2>Solution</h2>
+        <div class="math-content">${clonedContent.innerHTML}</div>
+    </div>
+    
+    <script>
+        // Wait for MathJax to complete rendering before printing
+        function waitForMathJax() {
+            return new Promise((resolve) => {
+                if (window.mathJaxComplete) {
+                    resolve(true);
+                } else if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+                    window.MathJax.startup.promise.then(() => {
+                        setTimeout(() => {
+                            window.mathJaxComplete = true;
+                            resolve(true);
+                        }, 1500);
+                    });
+                } else {
+                    setTimeout(() => waitForMathJax().then(resolve), 200);
+                }
+            });
+        }
+        
+        // Auto-print when everything is ready
+        window.addEventListener('load', function() {
+            waitForMathJax().then(() => {
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+            });
+        });
+        
+        // Close window after printing
+        window.addEventListener('afterprint', function() {
+            window.close();
+        });
+        
+        // Fallback close for cancelled print
+        window.addEventListener('beforeunload', function() {
+            setTimeout(() => {
+                if (!window.closed) {
+                    window.close();
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
+    `);
+    
+    printWindow.document.close();
+    
+    toast({
+      title: "Print dialog opened",
+      description: "Select 'Save as PDF' to download with preserved math notation",
+    });
+  };
+
   // Chunked processing function
   const processInChunks = async (text: string, provider: string) => {
     const words = text.trim().split(/\s+/);
@@ -1196,6 +1413,15 @@ ${fullResponse.slice(-1000)}...`;
                         Solution
                       </h3>
                       <div className="flex items-center space-x-2">
+                        <Button
+                          onClick={handlePrintSaveAsPDF}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Print/Save as PDF"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </Button>
                         <Button
                           onClick={handleCopyToClipboard}
                           variant="ghost"
