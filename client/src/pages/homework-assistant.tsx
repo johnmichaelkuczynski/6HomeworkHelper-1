@@ -1580,58 +1580,6 @@ ${fullResponse.slice(-1000)}...`;
                       </h3>
                       <div className="flex items-center space-x-2">
                         <Button
-                          onClick={() => {
-                            if (!currentResult?.llmResponse) {
-                              toast({
-                                title: "No solution to email",
-                                description: "Please generate a solution first",
-                                variant: "destructive",
-                              });
-                              return;
-                            }
-                            setEmailSubject(`Assignment Solution: ${currentAssignmentName || 'Mathematical Problem'}`);
-                            setShowEmailDialog(true);
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-600 hover:text-slate-900"
-                          title="Email solution"
-                          disabled={isEmailSending}
-                        >
-                          {isEmailSending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Mail className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          onClick={generatePDF}
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-600 hover:text-slate-900"
-                          title="Download PDF (server-side)"
-                        >
-                          <Download className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={printSaveAsPDF}
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-600 hover:text-slate-900"
-                          title="Print/Save as PDF"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={downloadHTML}
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-600 hover:text-slate-900"
-                          title="Download HTML file"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </Button>
-                        <Button
                           onClick={handleCopyToClipboard}
                           variant="ghost"
                           size="sm"
@@ -1979,77 +1927,7 @@ ${fullResponse.slice(-1000)}...`;
         </DialogContent>
       </Dialog>
 
-      {/* Email Dialog */}
-      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Email Solution</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label htmlFor="fromEmail" className="text-sm font-medium">
-                From Email (Your SendGrid verified sender):
-              </label>
-              <InputWithVoice
-                id="fromEmail"
-                value={fromEmail}
-                onChange={(e) => setFromEmail(e.target.value)}
-                placeholder="your-verified@email.com"
-                type="email"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="toEmail" className="text-sm font-medium">
-                To Email:
-              </label>
-              <InputWithVoice
-                id="toEmail"
-                value={toEmail}
-                onChange={(e) => setToEmail(e.target.value)}
-                placeholder="recipient@email.com"
-                type="email"
-              />
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="emailSubject" className="text-sm font-medium">
-                Subject:
-              </label>
-              <InputWithVoice
-                id="emailSubject"
-                value={emailSubject}
-                onChange={(e) => setEmailSubject(e.target.value)}
-                placeholder="Assignment Solution"
-              />
-            </div>
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-xs text-yellow-800">
-                <strong>Note:</strong> The sender email must be verified with SendGrid. Only verified sender addresses can send emails through this system.
-              </p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleEmailShare}
-              disabled={isEmailSending || !fromEmail.trim() || !toEmail.trim()}
-            >
-              {isEmailSending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <Mail className="w-4 h-4 mr-2" />
-                  Send Email
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }
