@@ -31,7 +31,66 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY || "default_key" 
 });
 
+// Azure OpenAI client
+const azureOpenAI = process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT ? new OpenAI({
+  apiKey: process.env.AZURE_OPENAI_API_KEY,
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/gpt-4/`,
+  defaultQuery: { 'api-version': '2024-02-15-preview' },
+  defaultHeaders: {
+    'api-key': process.env.AZURE_OPENAI_API_KEY,
+  },
+}) : null;
+
+async function performMathpixOCR(buffer: Buffer): Promise<string> {
+  if (!process.env.MATHPIX_APP_ID || !process.env.MATHPIX_API_KEY) {
+    throw new Error('Mathpix credentials not configured');
+  }
+
+  try {
+    const base64Image = buffer.toString('base64');
+    const response = await fetch('https://api.mathpix.com/v3/text', {
+      method: 'POST',
+      headers: {
+        'app_id': process.env.MATHPIX_APP_ID,
+        'app_key': process.env.MATHPIX_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        src: `data:image/jpeg;base64,${base64Image}`,
+        formats: ['text', 'latex_styled'],
+        format_options: {
+          math_inline_delimiters: ['$', '$'],
+          math_display_delimiters: ['$$', '$$']
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Mathpix API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.latex_styled || data.text || '';
+  } catch (error) {
+    console.error('Mathpix OCR error:', error);
+    throw error;
+  }
+}
+
 async function performOCR(buffer: Buffer, fileName: string): Promise<string> {
+  // Try Mathpix first for mathematical content
+  if (process.env.MATHPIX_APP_ID && process.env.MATHPIX_API_KEY) {
+    try {
+      const mathpixResult = await performMathpixOCR(buffer);
+      if (mathpixResult && mathpixResult.trim().length > 0) {
+        return mathpixResult;
+      }
+    } catch (error) {
+      console.log('Mathpix failed, falling back to Tesseract');
+    }
+  }
+
+  // Fallback to Tesseract
   try {
     const result = await Tesseract.recognize(buffer, 'eng', {
       logger: m => console.log(m)
@@ -185,6 +244,29 @@ async function processWithOpenAI(text: string): Promise<string> {
   }
 }
 
+async function processWithAzureOpenAI(text: string): Promise<string> {
+  if (!azureOpenAI) {
+    throw new Error('Azure OpenAI not configured');
+  }
+
+  try {
+    const response = await azureOpenAI.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ 
+        role: "user", 
+        content: `Solve this homework assignment. Provide a clear, step-by-step solution using proper LaTeX mathematical notation for all mathematical expressions, equations, formulas, and symbols. Use $ for inline math (like $x^2$) and $$ for display math (like $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$). Include all mathematical steps with proper LaTeX formatting. For example: use $\\frac{a}{b}$ for fractions, $x^2$ for exponents, $\\sqrt{x}$ for square roots, $\\sum_{i=1}^n$ for summations, $\\int_a^b f(x)dx$ for integrals, Greek letters like $\\alpha, \\beta, \\pi$, etc. Do not use plain text for mathematical expressions:\n\n${text}` 
+      }],
+      max_tokens: 4000,
+    });
+
+    const responseText = response.choices[0]?.message?.content || 'No response generated';
+    return responseText;
+  } catch (error) {
+    console.error('Azure OpenAI API error:', error);
+    throw new Error('Failed to process with Azure OpenAI');
+  }
+}
+
 async function processWithPerplexity(text: string): Promise<string> {
   try {
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
@@ -217,6 +299,32 @@ async function processWithPerplexity(text: string): Promise<string> {
   } catch (error) {
     console.error('Perplexity API error:', error);
     throw new Error('Failed to process with Perplexity');
+  }
+}
+
+async function searchWithGoogle(query: string): Promise<string> {
+  if (!process.env.GOOGLE_CSE_API_KEY || !process.env.GOOGLE_CSE_ID) {
+    return '';
+  }
+
+  try {
+    const response = await fetch(
+      `https://www.googleapis.com/customsearch/v1?key=${process.env.GOOGLE_CSE_API_KEY}&cx=${process.env.GOOGLE_CSE_ID}&q=${encodeURIComponent(query)}&num=3`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Google CSE API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const results = data.items?.slice(0, 3) || [];
+    
+    return results.map((item: any) => 
+      `**${item.title}**\n${item.snippet}\nSource: ${item.link}`
+    ).join('\n\n');
+  } catch (error) {
+    console.error('Google Search error:', error);
+    return '';
   }
 }
 
@@ -468,7 +576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { llmProvider } = req.body;
-      if (!llmProvider || !['anthropic', 'openai', 'perplexity'].includes(llmProvider)) {
+      if (!llmProvider || !['anthropic', 'openai', 'perplexity', 'azure'].includes(llmProvider)) {
         return res.status(400).json({ error: "Invalid LLM provider" });
       }
 
