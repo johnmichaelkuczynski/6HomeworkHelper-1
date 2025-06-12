@@ -10,7 +10,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail } from "lucide-react";
+import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -41,10 +41,11 @@ export default function HomeworkAssistant() {
   const [savedAssignments, setSavedAssignments] = useState<{[key: string]: string}>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [assignmentName, setAssignmentName] = useState("");
-  const [toEmail, setToEmail] = useState("jm@analyticphilosophy.ai");
+  const [toEmail, setToEmail] = useState("");
   const [fromEmail, setFromEmail] = useState("");
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
 
   // Function to clear everything and start new assignment
   const handleNewAssignment = () => {
@@ -344,7 +345,71 @@ export default function HomeworkAssistant() {
     }
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
+    if (!currentResult?.llmResponse) {
+      toast({
+        title: "No content to export",
+        description: "Please generate a solution first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Get the actual rendered math content
+      const mathContentElement = document.querySelector('.math-content');
+      if (!mathContentElement) {
+        toast({
+          title: "Content not ready",
+          description: "Please wait for the solution to render completely",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Use server-side PDF generation for better math rendering
+      const response = await fetch('/api/html-to-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          htmlContent: mathContentElement.innerHTML,
+          title: currentAssignmentName || 'Assignment Solution',
+          extractedText: currentResult.extractedText
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF');
+      }
+
+      // Create download link for the PDF
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${(currentAssignmentName || 'assignment').replace(/[^a-z0-9]/gi, '_')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "PDF downloaded successfully",
+        description: "High-quality PDF with rendered mathematical notation",
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      toast({
+        title: "PDF generation failed",
+        description: "Please try the print/save option instead",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const printSaveAsPDF = () => {
     if (!currentResult?.llmResponse) {
       toast({
         title: "No content to export",
@@ -385,7 +450,7 @@ export default function HomeworkAssistant() {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>${currentAssignmentName || 'Assignment Solution'}</title>
+    <title>${(currentAssignmentName || 'Assignment Solution').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</title>
     <script>
     window.MathJax = {
       tex: {
@@ -473,9 +538,68 @@ export default function HomeworkAssistant() {
     printWindow.document.close();
     
     toast({
-      title: "PDF window opened",
+      title: "Print window opened",
       description: "Select 'Save as PDF' in the print dialog",
     });
+  };
+
+  const handleEmailShare = async () => {
+    if (!currentResult?.llmResponse) {
+      toast({
+        title: "No content to share",
+        description: "Please generate a solution first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsEmailSending(true);
+    try {
+      // Get the rendered math content
+      const mathContentElement = document.querySelector('.math-content');
+      const htmlContent = mathContentElement ? mathContentElement.innerHTML : currentResult.llmResponse;
+
+      const response = await fetch('/api/email-solution', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fromEmail: fromEmail.trim(),
+          toEmail: toEmail.trim(),
+          subject: emailSubject.trim() || `Assignment Solution: ${currentAssignmentName || 'Mathematical Problem'}`,
+          htmlContent: htmlContent,
+          extractedText: currentResult.extractedText,
+          title: currentAssignmentName || 'Assignment Solution'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send email');
+      }
+
+      toast({
+        title: "Email sent successfully",
+        description: `Solution shared with ${toEmail}`,
+      });
+      
+      setShowEmailDialog(false);
+      setFromEmail("");
+      setToEmail("");
+      setEmailSubject("");
+    } catch (error: any) {
+      console.error('Email sending error:', error);
+      toast({
+        title: "Email sending failed", 
+        description: error.message.includes('verified') 
+          ? "Sender email must be verified with SendGrid"
+          : error.message || "Please check email addresses and try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEmailSending(false);
+    }
   };
 
   const downloadHTML = () => {
@@ -1484,9 +1608,18 @@ ${fullResponse.slice(-1000)}...`;
                           variant="ghost"
                           size="sm"
                           className="text-slate-600 hover:text-slate-900"
-                          title="Print/Save as PDF"
+                          title="Download PDF (server-side)"
                         >
                           <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={printSaveAsPDF}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Print/Save as PDF"
+                        >
+                          <Printer className="w-4 h-4" />
                         </Button>
                         <Button
                           onClick={downloadHTML}
