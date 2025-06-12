@@ -25,12 +25,14 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
     ...props 
   }, ref) => {
     const [showPreview, setShowPreview] = useState(false);
+    const [interimText, setInterimText] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Use forwarded ref or internal ref
     const finalRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
 
     const handleVoiceTranscript = (transcript: string) => {
+      setInterimText(''); // Clear interim text when final result comes in
       if (onVoiceTranscript) {
         onVoiceTranscript(transcript);
       } else if (onChange) {
@@ -43,6 +45,10 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
         } as React.ChangeEvent<HTMLTextAreaElement>;
         onChange(syntheticEvent);
       }
+    };
+
+    const handleInterimTranscript = (transcript: string) => {
+      setInterimText(transcript);
     };
 
     const handleClear = () => {
@@ -71,6 +77,15 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
             onChange={onChange}
             {...props}
           />
+          
+          {/* Interim speech overlay */}
+          {interimText && (
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="h-full w-full p-3 text-gray-400 italic">
+                {String(value || '')}{value ? ' ' : ''}{interimText}
+              </div>
+            </div>
+          )}
           
           {hasButtons && (
             <div className="absolute top-2 right-2 flex items-center space-x-1">
@@ -103,6 +118,7 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
               {showVoiceButton && (
                 <SpeechInput
                   onResult={handleVoiceTranscript}
+                  onInterim={handleInterimTranscript}
                   className="h-6 w-6"
                 />
               )}

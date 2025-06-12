@@ -5,11 +5,12 @@ import { cn } from '@/lib/utils';
 
 interface SpeechInputProps {
   onResult: (text: string) => void;
+  onInterim?: (text: string) => void;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function SpeechInput({ onResult, className, size = 'md' }: SpeechInputProps) {
+export function SpeechInput({ onResult, onInterim, className, size = 'md' }: SpeechInputProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +26,8 @@ export function SpeechInput({ onResult, className, size = 'md' }: SpeechInputPro
       isInitializedRef.current = true;
       
       const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = 'en-US';
 
       recognition.onstart = () => {
@@ -35,9 +36,26 @@ export function SpeechInput({ onResult, className, size = 'md' }: SpeechInputPro
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        if (transcript.trim()) {
-          onResult(transcript.trim());
+        let finalTranscript = '';
+        let interimTranscript = '';
+
+        for (let i = 0; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Send interim results for live feedback
+        if (interimTranscript && onInterim) {
+          onInterim(interimTranscript);
+        }
+
+        // Send final results
+        if (finalTranscript.trim()) {
+          onResult(finalTranscript.trim());
         }
       };
 
