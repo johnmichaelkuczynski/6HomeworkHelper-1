@@ -1399,111 +1399,97 @@ ${fullResponse.slice(-1000)}...`;
               )}
 
               {currentResult && !isProcessing && (
-                <div className="space-y-6">
-                  {currentResult.extractedText && (
-                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                      <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
-                        <Lightbulb className="w-4 h-4 mr-2" />
-                        Problem:
-                      </h3>
-                      <p className="text-sm text-blue-800 font-mono bg-white p-3 rounded border">{currentResult.extractedText}</p>
-                    </div>
-                  )}
-                  
-                  <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm min-h-[500px]">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-                        <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
-                        Solution
-                      </h3>
-                      <div className="flex items-center space-x-2">
+                <Dialog open={!!currentResult} onOpenChange={() => setCurrentResult(null)}>
+                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+                    <DialogHeader className="border-b pb-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <DialogTitle className="text-lg font-medium text-gray-900">
+                            Rewrite Results - Rewritten Content
+                          </DialogTitle>
+                          <div className="mt-1 text-sm text-gray-500">
+                            <span>Mode: Rewrite Existing Only</span> • 
+                            <span> Original: {currentResult.extractedText?.length || 0} characters</span> • 
+                            <span> Final: {currentResult.llmResponse?.length || 0} characters</span>
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            <span>Chunks rewritten: 1</span>
+                          </div>
+                          <div className="text-sm text-gray-500 mt-1">
+                            <span>Model: CLAUDE</span>
+                          </div>
+                        </div>
                         <Button
-                          onClick={handlePrintSaveAsPDF}
                           variant="ghost"
                           size="sm"
-                          className="text-slate-600 hover:text-slate-900"
-                          title="Print/Save as PDF"
+                          onClick={() => setCurrentResult(null)}
+                          className="text-gray-400 hover:text-gray-600"
                         >
-                          <Printer className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={handleCopyToClipboard}
-                          variant="ghost"
-                          size="sm"
-                          className="text-slate-600 hover:text-slate-900"
-                          title="Copy to clipboard"
-                        >
-                          <Copy className="w-4 h-4" />
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
-
-
+                    </DialogHeader>
                     
-                    <div className="relative mb-6 max-h-[400px] overflow-y-auto">
-                      <MathRenderer 
-                        content={currentResult.llmResponse}
-                        className="space-y-4 math-content"
-                      />
-                    </div>
-                    
+                    <div className="py-4">
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                          Rewrite the Rewrite
+                        </Button>
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                          Add to Chat
+                        </Button>
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                          Back to Chat
+                        </Button>
+                        <Button 
+                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+                          onClick={handlePrintSaveAsPDF}
+                        >
+                          Save as PDF
+                        </Button>
+                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                          Download Word
+                        </Button>
+                        <div className="flex items-center ml-auto">
+                          <input
+                            type="email"
+                            placeholder="Enter email address"
+                            className="px-3 py-2 border border-gray-300 rounded-l text-sm"
+                          />
+                          <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r">
+                            Share
+                          </Button>
+                        </div>
+                      </div>
 
-                  </div>
-                </div>
+                      <div className="max-h-[500px] overflow-y-auto bg-gray-50 p-6 rounded">
+                        <div className="text-sm text-gray-600 mb-4">
+                          Before requesting that I verify whether the issue is resolved, please provide detailed information about the changes you made. Specifically:
+                        </div>
+                        <ol className="list-decimal list-inside text-sm text-gray-800 space-y-1 mb-4">
+                          <li>Document the exact code, configuration, or settings you modified</li>
+                          <li>If no changes were made, please state this explicitly</li>
+                          <li>Identify the specific files and line numbers that were modified</li>
+                          <li>Include both the original and updated content for comparison</li>
+                        </ol>
+                        <div className="text-sm text-gray-600 mb-6">
+                          Please thoroughly verify your solution three times before asking me to review it. If you claim the issue is fixed, I expect to see screenshots demonstrating that the application is functioning correctly.
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded border">
+                          <MathRenderer 
+                            content={currentResult.llmResponse}
+                            className="math-content"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
 
-            {/* Critique & Rewrite Section */}
-            {currentResult && (
-              <div className="p-6 border-t border-slate-200">
-                <h3 className="text-sm font-semibold text-slate-900 mb-3">Critique & Rewrite</h3>
-                <div className="space-y-3">
-                  <TextareaWithVoice
-                    value={critiqueText}
-                    onChange={(e) => setCritiqueText(e.target.value)}
-                    placeholder="Describe what you'd like changed or improved in the solution..."
-                    className="min-h-[80px] resize-none"
-                  />
-                  <Button
-                    onClick={handleCritiqueRewrite}
-                    disabled={isRewriting || !critiqueText.trim()}
-                    size="sm"
-                    className="w-full"
-                  >
-                    {isRewriting ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Rewriting...
-                      </>
-                    ) : (
-                      'Rewrite Solution'
-                    )}
-                  </Button>
-                </div>
-              </div>
-            )}
 
-            {currentResult && (
-              <div className="px-6 py-3 bg-slate-50 rounded-b-xl border-t border-slate-200">
-                <div className="flex items-center justify-between text-xs text-slate-500">
-                  <div className="flex items-center space-x-4">
-                    <span className="flex items-center">
-                      <CheckCircle className="w-3 h-3 text-emerald-500 mr-1" />
-                      Processed successfully
-                    </span>
-                    <span>Response time: {(currentResult.processingTime / 1000).toFixed(1)}s</span>
-                    <span>Words: {wordCount}</span>
-                    {isCheckingAI && (
-                      <span className="flex items-center">
-                        <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                        Checking AI...
-                      </span>
-                    )}
-                  </div>
-                  <span>Solved by {getProviderDisplayName(selectedProvider)}</span>
-                </div>
-              </div>
-            )}
 
             {/* AI Detection Results Card */}
             {aiDetectionResult && !isCheckingAI && (
