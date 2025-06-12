@@ -1398,94 +1398,65 @@ ${fullResponse.slice(-1000)}...`;
                 </div>
               )}
 
-              {currentResult && !isProcessing && (
-                <Dialog open={!!currentResult} onOpenChange={() => setCurrentResult(null)}>
-                  <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-                    <DialogHeader className="border-b pb-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <DialogTitle className="text-lg font-medium text-gray-900">
-                            Rewrite Results - Rewritten Content
-                          </DialogTitle>
-                          <div className="mt-1 text-sm text-gray-500">
-                            <span>Mode: Rewrite Existing Only</span> • 
-                            <span> Original: {currentResult.extractedText?.length || 0} characters</span> • 
-                            <span> Final: {currentResult.llmResponse?.length || 0} characters</span>
-                          </div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            <span>Chunks rewritten: 1</span>
-                          </div>
-                          <div className="text-sm text-gray-500 mt-1">
-                            <span>Model: CLAUDE</span>
-                          </div>
-                        </div>
+              {currentResult && (
+                <div className="space-y-6">
+                  {/* Problem Statement */}
+                  {currentResult.extractedText && (
+                    <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                      <h3 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                        <Lightbulb className="w-4 h-4 mr-2" />
+                        Problem:
+                      </h3>
+                      <p className="text-sm text-blue-800 font-mono bg-white p-3 rounded border whitespace-pre-wrap">
+                        {currentResult.extractedText}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Solution */}
+                  <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                        <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
+                        Solution
+                      </h3>
+                      <div className="flex items-center space-x-2">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          onClick={() => setCurrentResult(null)}
-                          className="text-gray-400 hover:text-gray-600"
+                          onClick={handlePrint}
+                          className="border-blue-200 text-blue-700 hover:bg-blue-50"
                         >
-                          <X className="w-4 h-4" />
+                          <Printer className="w-4 h-4 mr-2" />
+                          Print/PDF
                         </Button>
-                      </div>
-                    </DialogHeader>
-                    
-                    <div className="py-4">
-                      <div className="flex flex-wrap gap-2 mb-6">
-                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                          Rewrite the Rewrite
-                        </Button>
-                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                          Add to Chat
-                        </Button>
-                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                          Back to Chat
-                        </Button>
-                        <Button 
-                          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-                          onClick={handlePrintSaveAsPDF}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCopyToClipboard}
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
                         >
-                          Save as PDF
+                          <Copy className="w-4 h-4 mr-2" />
+                          Copy
                         </Button>
-                        <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                          Download Word
-                        </Button>
-                        <div className="flex items-center ml-auto">
-                          <input
-                            type="email"
-                            placeholder="Enter email address"
-                            className="px-3 py-2 border border-gray-300 rounded-l text-sm"
-                          />
-                          <Button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-r">
-                            Share
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="max-h-[500px] overflow-y-auto bg-gray-50 p-6 rounded">
-                        <div className="text-sm text-gray-600 mb-4">
-                          Before requesting that I verify whether the issue is resolved, please provide detailed information about the changes you made. Specifically:
-                        </div>
-                        <ol className="list-decimal list-inside text-sm text-gray-800 space-y-1 mb-4">
-                          <li>Document the exact code, configuration, or settings you modified</li>
-                          <li>If no changes were made, please state this explicitly</li>
-                          <li>Identify the specific files and line numbers that were modified</li>
-                          <li>Include both the original and updated content for comparison</li>
-                        </ol>
-                        <div className="text-sm text-gray-600 mb-6">
-                          Please thoroughly verify your solution three times before asking me to review it. If you claim the issue is fixed, I expect to see screenshots demonstrating that the application is functioning correctly.
-                        </div>
-                        
-                        <div className="bg-white p-4 rounded border">
-                          <MathRenderer 
-                            content={currentResult.llmResponse}
-                            className="math-content"
-                          />
-                        </div>
                       </div>
                     </div>
-                  </DialogContent>
-                </Dialog>
+                    <div className="relative">
+                      <MathRenderer 
+                        content={currentResult.llmResponse}
+                        className="space-y-4 math-content pr-12"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Word Count and AI Detection */}
+                  {wordCount > 0 && (
+                    <div className="flex items-center justify-between text-sm text-slate-600 bg-slate-50 p-3 rounded">
+                      <span>Word count: {wordCount}</span>
+                      <span>Generated by {getProviderDisplayName(selectedProvider)}</span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
