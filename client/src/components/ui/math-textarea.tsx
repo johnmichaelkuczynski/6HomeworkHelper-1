@@ -32,7 +32,6 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
     const finalRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
 
     const handleVoiceTranscript = (transcript: string) => {
-      setInterimText(''); // Clear interim text when final result comes in
       if (onVoiceTranscript) {
         onVoiceTranscript(transcript);
       } else if (onChange) {
@@ -50,6 +49,7 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
     };
 
     const handleInterimTranscript = (transcript: string) => {
+      // Show interim text overlay without clearing previous content
       setInterimText(transcript);
     };
 
@@ -83,8 +83,8 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
           {/* Interim speech overlay */}
           {interimText && (
             <div className="absolute inset-0 pointer-events-none">
-              <div className="h-full w-full p-3 text-gray-400 italic">
-                {String(value || '')}{value ? ' ' : ''}{interimText}
+              <div className="h-full w-full p-3 text-gray-400 italic whitespace-pre-wrap">
+                {interimText}
               </div>
             </div>
           )}

@@ -39,17 +39,22 @@ export function AzureSpeechInput({ onResult, onInterim, className, size = 'md' }
       recognizerRef.current.recognizing = (s: any, e: any) => {
         const interimText = e.result.text;
         if (onInterim && interimText) {
-          onInterim(interimText);
+          // Show accumulated final text + current interim text
+          const totalText = accumulatedTextRef.current + interimText;
+          onInterim(totalText.trim());
         }
       };
 
       recognizerRef.current.recognized = (s: any, e: any) => {
         if (e.result.reason === SpeechSDK.ResultReason.RecognizedSpeech && e.result.text) {
           const finalText = e.result.text;
+          // Accumulate the recognized text
+          accumulatedTextRef.current += finalText + ' ';
           onResult(finalText);
-          // Clear interim after final result
+          
+          // Update interim display with accumulated text
           if (onInterim) {
-            onInterim('');
+            onInterim(accumulatedTextRef.current.trim());
           }
         }
       };
@@ -91,7 +96,14 @@ export function AzureSpeechInput({ onResult, onInterim, className, size = 'md' }
       recognizerRef.current.stopContinuousRecognitionAsync(
         () => {
           setIsRecording(false);
+          // Send final accumulated text and clear
+          if (accumulatedTextRef.current.trim() && onResult) {
+            onResult(accumulatedTextRef.current.trim());
+          }
           accumulatedTextRef.current = '';
+          if (onInterim) {
+            onInterim('');
+          }
         },
         (err: any) => {
           console.error('Error stopping recognition:', err);
