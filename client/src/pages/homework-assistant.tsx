@@ -1037,6 +1037,41 @@ ${fullResponse.slice(-1000)}...`;
             </div>
             <div className="flex items-center space-x-3">
               <Button
+                onClick={() => {
+                  // Nuclear reset - clear everything
+                  setInputText("");
+                  setCurrentAssignmentName("");
+                  setSpecialInstructions("");
+                  setCurrentResult(null);
+                  setWordCount(0);
+                  setAiDetectionResult(null);
+                  setChatMessages([]);
+                  setChatInput("");
+                  setChatFileUpload(null);
+                  setCritiqueText("");
+                  setEditedTopSolution("");
+                  setEditedBottomSolution("");
+                  setAccumulatedContent("");
+                  setSelectedSavedAssignment("");
+                  setAssignmentName("");
+                  setIsEditingTopSolution(false);
+                  setIsEditingBottomSolution(false);
+                  setIsChunkedProcessing(false);
+                  setChunkProgress({ current: 0, total: 0 });
+                  // Clear any file uploads
+                  const fileInputs = document.querySelectorAll('input[type="file"]');
+                  fileInputs.forEach(input => (input as HTMLInputElement).value = '');
+                  toast({
+                    title: "System Reset",
+                    description: "All data cleared - fresh start",
+                  });
+                }}
+                variant="outline"
+                className="border-red-200 text-red-700 hover:bg-red-50 font-semibold"
+              >
+                🗘 NUKE
+              </Button>
+              <Button
                 onClick={handleNewAssignment}
                 variant="outline"
                 className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
@@ -1180,9 +1215,20 @@ ${fullResponse.slice(-1000)}...`;
 
               {/* Main Question Input */}
               <div>
-                <label className="text-sm font-medium text-slate-700 mb-2 block">
-                  Enter Your Question or Problem
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Enter Your Question or Problem
+                  </label>
+                  <Button
+                    onClick={() => setInputText("")}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-slate-500 hover:text-red-600"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Clear
+                  </Button>
+                </div>
                 <TextareaWithVoice
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value)}
@@ -1196,6 +1242,9 @@ ${fullResponse.slice(-1000)}...`;
                   className="min-h-[200px] resize-none w-full text-base"
                   disabled={isProcessing}
                 />
+                <p className="text-xs text-slate-500 mt-1">
+                  Supports: LaTeX math notation ($x^2$, $$\int_0^\infty$$), images with mathematical content, PDF documents
+                </p>
               </div>
 
               {/* File Upload */}
@@ -1215,10 +1264,22 @@ ${fullResponse.slice(-1000)}...`;
                   Special Instructions (Optional)
                 </summary>
                 <div className="mt-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-slate-600">LaTeX math notation supported</span>
+                    <Button
+                      onClick={() => setSpecialInstructions("")}
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-slate-500 hover:text-red-600"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Clear
+                    </Button>
+                  </div>
                   <TextareaWithVoice
                     value={specialInstructions}
                     onChange={(e) => setSpecialInstructions(e.target.value)}
-                    placeholder="Add any special instructions for solving this problem..."
+                    placeholder="Add special instructions... (e.g., 'Show all steps', 'Use substitution method', 'Explain in detail')"
                     className="min-h-[80px] resize-none w-full"
                   />
                 </div>
@@ -1226,7 +1287,18 @@ ${fullResponse.slice(-1000)}...`;
 
               {/* Save Assignment - Always Visible */}
               <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-                <h3 className="text-sm font-medium text-slate-700 mb-2">Save This Assignment</h3>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-slate-700">Save This Assignment</h3>
+                  <Button
+                    onClick={() => setCurrentAssignmentName("")}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-slate-500 hover:text-red-600"
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    Clear
+                  </Button>
+                </div>
                 <div className="flex space-x-2">
                   <InputWithVoice
                     value={currentAssignmentName}
@@ -1618,32 +1690,50 @@ ${fullResponse.slice(-1000)}...`;
                     </Button>
                   </div>
                 )}
-                <div className="flex items-center space-x-2">
-                  <InputWithVoice
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask the AI anything or upload a file..."
-                    className="flex-1"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleChatMessage();
-                      }
-                    }}
-                    disabled={isChatting}
-                  />
-                  <FileUpload
-                    onFileSelect={handleChatFileUpload}
-                    isProcessing={isChatting}
-                    accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
-                  />
-                  <Button 
-                    size="sm" 
-                    onClick={handleChatMessage}
-                    disabled={isChatting || (!chatInput.trim() && !chatFileUpload)}
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-600">Chat supports LaTeX math notation and file uploads</span>
+                    <Button
+                      onClick={() => {
+                        setChatInput("");
+                        setChatMessages([]);
+                        setChatFileUpload(null);
+                      }}
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-slate-500 hover:text-red-600"
+                    >
+                      <X className="w-3 h-3 mr-1" />
+                      Clear Chat
+                    </Button>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <InputWithVoice
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Ask the AI anything or upload a file with math content..."
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleChatMessage();
+                        }
+                      }}
+                      disabled={isChatting}
+                    />
+                    <FileUpload
+                      onFileSelect={handleChatFileUpload}
+                      isProcessing={isChatting}
+                      accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+                    />
+                    <Button 
+                      size="sm" 
+                      onClick={handleChatMessage}
+                      disabled={isChatting || (!chatInput.trim() && !chatFileUpload)}
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
