@@ -694,6 +694,27 @@ ${escapedContent}
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  
+  // Azure Speech configuration endpoint
+  app.get('/api/azure-speech-config', (req, res) => {
+    const endpoint = process.env.AZURE_SPEECH_ENDPOINT;
+    const subscriptionKey = process.env.AZURE_SPEECH_KEY;
+    
+    if (!subscriptionKey) {
+      return res.status(500).json({ error: 'Azure Speech key not configured' });
+    }
+    
+    // Extract region from endpoint URL if available, otherwise default to eastus
+    let region = 'eastus';
+    if (endpoint) {
+      const match = endpoint.match(/https:\/\/([^.]+)\.cognitiveservices\.azure\.com/);
+      if (match) {
+        region = match[1];
+      }
+    }
+    
+    res.json({ subscriptionKey, region });
+  });
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), async (req, res) => {
     try {

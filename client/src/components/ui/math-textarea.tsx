@@ -1,6 +1,6 @@
 import { forwardRef, useState, useRef, useEffect } from 'react';
 import { Textarea } from './textarea';
-import { SpeechInput } from './speech-input';
+import { AzureSpeechInput } from './azure-speech-input';
 import { Button } from './button';
 import { X, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -118,7 +118,7 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
               )}
               
               {showVoiceButton && (
-                <SpeechInput
+                <AzureSpeechInput
                   onResult={handleVoiceTranscript}
                   onInterim={handleInterimTranscript}
                   className="h-6 w-6"
