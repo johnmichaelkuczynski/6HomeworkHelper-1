@@ -69,10 +69,12 @@ export function AzureSpeechInput({ onResult, onInterim, className, size = 'md' }
       // Start continuous recognition
       recognizerRef.current.startContinuousRecognitionAsync(
         () => {
+          console.log('Azure Speech recognition started');
           setIsRecording(true);
           setError(null);
         },
         (err: any) => {
+          console.error('Failed to start Azure Speech recognition:', err);
           setError(`Failed to start recording: ${err}`);
           setIsRecording(false);
         }
