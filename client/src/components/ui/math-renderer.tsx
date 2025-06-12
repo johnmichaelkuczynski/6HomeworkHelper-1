@@ -10,8 +10,6 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
 
   useEffect(() => {
     if (containerRef.current && content) {
-      console.log('Math content to render:', content);
-      
       // Set content directly with minimal processing
       let processedContent = content
         // Basic formatting only
@@ -28,20 +26,9 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
       containerRef.current.innerHTML = processedContent;
       containerRef.current.classList.add('math-content');
       
-      console.log('Processed HTML:', containerRef.current.innerHTML);
-      
       // Force MathJax to render all mathematical content
       if (window.MathJax && window.MathJax.typesetPromise) {
-        console.log('Triggering MathJax rendering...');
-        window.MathJax.typesetPromise([containerRef.current])
-          .then(() => {
-            console.log('MathJax rendering completed');
-          })
-          .catch((error) => {
-            console.error('MathJax rendering error:', error);
-          });
-      } else {
-        console.error('MathJax not available');
+        window.MathJax.typesetPromise([containerRef.current]).catch(console.error);
       }
     }
   }, [content])
