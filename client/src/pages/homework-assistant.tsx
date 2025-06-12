@@ -344,7 +344,7 @@ export default function HomeworkAssistant() {
     }
   };
 
-  const generatePDF = async () => {
+  const generatePDF = () => {
     if (!currentResult?.llmResponse) {
       toast({
         title: "No content to export",
@@ -354,61 +354,116 @@ export default function HomeworkAssistant() {
       return;
     }
 
-    try {
-      // Get the rendered HTML content from the MathRenderer component
-      const solutionElement = document.querySelector('.math-content');
-      let htmlContent = '';
-      
-      if (solutionElement) {
-        htmlContent = solutionElement.innerHTML;
-      } else {
-        // Fallback to plain text if math rendering not available
-        htmlContent = currentResult.llmResponse.replace(/\n/g, '<br>');
-      }
+    // Open print dialog for perfect PDF with rendered math
+    window.print();
+    
+    toast({
+      title: "Print dialog opened",
+      description: "Save as PDF to get perfect mathematical notation",
+    });
+  };
 
-      // Add problem statement if available
-      if (currentResult.extractedText) {
-        htmlContent = `<h2>Problem Statement</h2><p>${currentResult.extractedText.replace(/\n/g, '<br>')}</p><h2>Solution</h2>${htmlContent}`;
-      }
-
-      const response = await fetch('/api/html-to-pdf', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          htmlContent: htmlContent,
-          title: currentAssignmentName || 'Assignment Solution'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate PDF');
-      }
-
-      // Create download link for the PDF
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${currentAssignmentName || 'assignment'}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
+  const downloadHTML = () => {
+    if (!currentResult?.llmResponse) {
       toast({
-        title: "PDF downloaded successfully",
-        description: "High-fidelity PDF with preserved formatting and math notation",
-      });
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      toast({
-        title: "PDF generation failed",
-        description: "Please try again or use copy to clipboard",
+        title: "No content to export",
+        description: "Please generate a solution first",
         variant: "destructive",
       });
+      return;
     }
+
+    // Get the rendered content from the math renderer
+    const solutionElement = document.querySelector('.math-content');
+    if (!solutionElement) {
+      toast({
+        title: "Content not ready",
+        description: "Please wait for the solution to render",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create complete HTML document with MathJax
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${currentAssignmentName || 'Assignment Solution'}</title>
+    
+    <!-- MathJax Configuration -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      }
+    };
+    </script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+        }
+        .math-content {
+            font-size: 16px;
+            line-height: 1.8;
+        }
+        .math-content p {
+            margin-bottom: 1em;
+        }
+        mjx-container {
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>${currentAssignmentName || 'Assignment Solution'}</h1>
+    ${currentResult.extractedText ? `<h2>Problem Statement</h2><p>${currentResult.extractedText.replace(/\n/g, '<br>')}</p><h2>Solution</h2>` : ''}
+    <div class="math-content">
+        ${currentResult.llmResponse.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>').replace(/^(?!<p>)/, '<p>').replace(/(?<!<\/p>)$/, '</p>')}
+    </div>
+    
+    <script>
+        // Ensure MathJax renders after page load
+        window.addEventListener('load', function() {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise();
+            }
+        });
+    </script>
+</body>
+</html>`;
+
+    // Create and download the HTML file
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentAssignmentName || 'assignment'}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "HTML downloaded",
+      description: "Complete HTML file with rendered mathematical notation",
+    });
   };
 
   // Chunked processing function
@@ -1287,9 +1342,18 @@ ${fullResponse.slice(-1000)}...`;
                           variant="ghost"
                           size="sm"
                           className="text-slate-600 hover:text-slate-900"
-                          title="Download as PDF"
+                          title="Print/Save as PDF"
                         >
                           <Download className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={downloadHTML}
+                          variant="ghost"
+                          size="sm"
+                          className="text-slate-600 hover:text-slate-900"
+                          title="Download HTML file"
+                        >
+                          <FileText className="w-4 h-4" />
                         </Button>
                         <Button
                           onClick={handleCopyToClipboard}
