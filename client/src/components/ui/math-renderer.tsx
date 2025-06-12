@@ -10,21 +10,38 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
 
   useEffect(() => {
     if (containerRef.current && content) {
+      console.log('Math content to render:', content);
+      
       // Set content directly with minimal processing
-      containerRef.current.innerHTML = content
+      let processedContent = content
         // Basic formatting only
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br/>')
-        .replace(/^(?!<p>)/, '<p>')
-        .replace(/(?<!<\/p>)$/, '</p>');
+        .replace(/\n/g, '<br/>');
 
+      // Wrap in paragraphs if not already wrapped
+      if (!processedContent.startsWith('<p>')) {
+        processedContent = '<p>' + processedContent + '</p>';
+      }
+
+      containerRef.current.innerHTML = processedContent;
       containerRef.current.classList.add('math-content');
+      
+      console.log('Processed HTML:', containerRef.current.innerHTML);
       
       // Force MathJax to render all mathematical content
       if (window.MathJax && window.MathJax.typesetPromise) {
-        window.MathJax.typesetPromise([containerRef.current]).catch(console.error);
+        console.log('Triggering MathJax rendering...');
+        window.MathJax.typesetPromise([containerRef.current])
+          .then(() => {
+            console.log('MathJax rendering completed');
+          })
+          .catch((error) => {
+            console.error('MathJax rendering error:', error);
+          });
+      } else {
+        console.error('MathJax not available');
       }
     }
   }, [content])
