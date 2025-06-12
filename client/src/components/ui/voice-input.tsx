@@ -38,6 +38,7 @@ export function VoiceInput({ onTranscript, isActive = false, className, size = '
         }
 
         if (finalTranscript.trim()) {
+          console.log('Voice transcript received:', finalTranscript.trim());
           onTranscript(finalTranscript.trim());
         }
       };
@@ -65,13 +66,36 @@ export function VoiceInput({ onTranscript, isActive = false, className, size = '
     };
   }, [onTranscript]);
 
-  const handleToggle = useCallback(() => {
-    if (!recognitionRef.current) return;
+  const handleToggle = useCallback(async () => {
+    if (!recognitionRef.current) {
+      setError('Speech recognition not supported');
+      return;
+    }
 
     if (isListening) {
       recognitionRef.current.stop();
     } else {
       try {
+        // Check microphone permissions first
+        if (navigator.permissions) {
+          const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          if (permission.state === 'denied') {
+            setError('Microphone access denied');
+            return;
+          }
+        }
+
+        // Request microphone access
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (permError) {
+            console.error('Microphone permission error:', permError);
+            setError('Microphone permission required');
+            return;
+          }
+        }
+
         recognitionRef.current.start();
       } catch (error) {
         console.error('Failed to start speech recognition:', error);
@@ -109,7 +133,7 @@ export function VoiceInput({ onTranscript, isActive = false, className, size = '
         className
       )}
       onClick={handleToggle}
-      title={isListening ? "Stop dictation" : "Start voice dictation"}
+      title={error ? error : (isListening ? "Stop dictation" : "Start voice dictation")}
     >
       {isListening ? (
         <Volume2 className={cn(iconSizes[size], "animate-pulse")} />

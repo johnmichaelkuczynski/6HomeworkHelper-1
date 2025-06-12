@@ -31,15 +31,19 @@ const MathTextarea = forwardRef<HTMLTextAreaElement, MathTextareaProps>(
     const finalRef = (ref as React.RefObject<HTMLTextAreaElement>) || textareaRef;
 
     const handleVoiceTranscript = (transcript: string) => {
+      console.log('MathTextarea received transcript:', transcript);
       if (onVoiceTranscript) {
         onVoiceTranscript(transcript);
       } else if (onChange) {
         const currentValue = String(value || '');
         const newValue = currentValue ? currentValue + ' ' + transcript : transcript;
-        const event = {
-          target: { value: newValue }
+        console.log('Updating textarea value from:', currentValue, 'to:', newValue);
+        const syntheticEvent = {
+          target: { value: newValue },
+          currentTarget: { value: newValue },
+          type: 'change'
         } as React.ChangeEvent<HTMLTextAreaElement>;
-        onChange(event);
+        onChange(syntheticEvent);
       }
     };
 
