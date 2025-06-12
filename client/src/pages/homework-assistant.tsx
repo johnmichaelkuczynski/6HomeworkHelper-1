@@ -1589,6 +1589,7 @@ ${fullResponse.slice(-1000)}...`;
                               });
                               return;
                             }
+                            setEmailSubject(`Assignment Solution: ${currentAssignmentName || 'Mathematical Problem'}`);
                             setShowEmailDialog(true);
                           }}
                           variant="ghost"
@@ -2009,56 +2010,30 @@ ${fullResponse.slice(-1000)}...`;
                 type="email"
               />
             </div>
+            <div className="space-y-2">
+              <label htmlFor="emailSubject" className="text-sm font-medium">
+                Subject:
+              </label>
+              <InputWithVoice
+                id="emailSubject"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Assignment Solution"
+              />
+            </div>
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-yellow-800">
+                <strong>Note:</strong> The sender email must be verified with SendGrid. Only verified sender addresses can send emails through this system.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
               Cancel
             </Button>
             <Button 
-              onClick={async () => {
-                if (!fromEmail.trim() || !toEmail.trim()) {
-                  toast({
-                    title: "Missing email addresses",
-                    description: "Please enter both from and to email addresses",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-
-                setIsEmailSending(true);
-                try {
-                  const response = await fetch('/api/email-solution', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      fromEmail: fromEmail.trim(),
-                      toEmail: toEmail.trim(),
-                      content: currentResult.llmResponse,
-                      title: currentAssignmentName || 'Assignment Solution'
-                    }),
-                  });
-
-                  if (response.ok) {
-                    toast({
-                      title: "Email sent successfully",
-                      description: `Solution sent to ${toEmail}`,
-                    });
-                    setShowEmailDialog(false);
-                  } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to send email');
-                  }
-                } catch (error: any) {
-                  toast({
-                    title: "Email failed",
-                    description: error.message || "Could not send email",
-                    variant: "destructive",
-                  });
-                } finally {
-                  setIsEmailSending(false);
-                }
-              }}
-              disabled={isEmailSending}
+              onClick={handleEmailShare}
+              disabled={isEmailSending || !fromEmail.trim() || !toEmail.trim()}
             >
               {isEmailSending ? (
                 <>
