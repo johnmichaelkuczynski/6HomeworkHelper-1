@@ -1198,44 +1198,7 @@ ${fullResponse.slice(-1000)}...`;
                     }}
                   />
                   <Button
-                    onClick={async () => {
-                      if (!inputText.trim()) {
-                        toast({
-                          title: "Nothing to save",
-                          description: "Please enter some content first",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      
-                      try {
-                        const response = await fetch('/api/save-assignment', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({
-                            inputText: inputText,
-                            title: currentAssignmentName || inputText.substring(0, 50) + '...',
-                            specialInstructions: specialInstructions
-                          }),
-                        });
-                        
-                        if (response.ok) {
-                          toast({
-                            title: "Assignment saved",
-                            description: "You can now reuse this assignment anytime",
-                          });
-                          setCurrentAssignmentName(""); // Clear the name field after saving
-                        } else {
-                          throw new Error('Failed to save');
-                        }
-                      } catch (error) {
-                        toast({
-                          title: "Save failed",
-                          description: "Could not save assignment",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
+                    onClick={handleSaveAssignment}
                     variant="outline"
                     size="sm"
                     disabled={!inputText.trim()}
