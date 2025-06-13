@@ -42,6 +42,9 @@ export default function HomeworkAssistant() {
   const [savedAssignments, setSavedAssignments] = useState<{[key: string]: string}>({});
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [assignmentName, setAssignmentName] = useState("");
+  const [showRefineDialog, setShowRefineDialog] = useState(false);
+  const [refinementFeedback, setRefinementFeedback] = useState("");
+  const [isRefining, setIsRefining] = useState(false);
 
 
   // Function to clear everything and start new assignment
@@ -58,6 +61,8 @@ export default function HomeworkAssistant() {
     setCritiqueText("");
     setEditedTopSolution("");
     setEditedBottomSolution("");
+    setRefinementFeedback("");
+    setShowRefineDialog(false);
     setAccumulatedContent("");
     setSelectedSavedAssignment("");
     setAssignmentName("");
@@ -193,6 +198,57 @@ export default function HomeworkAssistant() {
       setAiDetectionResult({ error: 'AI detection unavailable' });
     } finally {
       setIsCheckingAI(false);
+    }
+  };
+
+  // Refine solution function
+  const handleRefineSolution = async () => {
+    if (!refinementFeedback.trim() || !currentResult) return;
+    
+    setIsRefining(true);
+    
+    try {
+      const response = await fetch('/api/refine-solution', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          originalProblem: currentResult.extractedText || inputText,
+          currentSolution: currentResult.llmResponse,
+          feedback: refinementFeedback,
+          provider: selectedProvider
+        }),
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update the current result with the refined solution
+        setCurrentResult({
+          ...currentResult,
+          llmResponse: result.refinedSolution,
+          processingTime: result.processingTime
+        });
+        
+        // Clear and close the refinement dialog
+        setRefinementFeedback("");
+        setShowRefineDialog(false);
+        
+        toast({
+          title: "Solution Refined",
+          description: "Your solution has been improved based on your feedback.",
+        });
+      } else {
+        throw new Error(result.error || 'Failed to refine solution');
+      }
+    } catch (error) {
+      console.error('Error refining solution:', error);
+      toast({
+        title: "Error",
+        description: "Failed to refine solution. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefining(false);
     }
   };
 
@@ -1564,6 +1620,15 @@ ${fullResponse.slice(-1000)}...`;
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => setShowRefineDialog(true)}
+                          className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                        >
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          Refine Solution
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={handlePrint}
                           className="border-blue-200 text-blue-700 hover:bg-blue-50"
                         >
@@ -1889,6 +1954,40 @@ ${fullResponse.slice(-1000)}...`;
         </DialogContent>
       </Dialog>
 
+      {/* Refine Solution Dialog */}
+      <Dialog open={showRefineDialog} onOpenChange={setShowRefineDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Refine Solution</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              Tell me what you like or dislike about the current solution. I'll improve it based on your feedback while keeping the good parts:
+            </p>
+            <MathTextarea
+              value={refinementFeedback}
+              onChange={(e) => setRefinementFeedback(e.target.value)}
+              placeholder="For example: 'Make it more detailed in section 2, simplify the explanation of X, add more examples for Y, change the tone to be more formal, etc.'"
+              className="min-h-[120px]"
+              showClearButton={true}
+              showVoiceButton={true}
+              showMathPreview={false}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRefineDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleRefineSolution}
+              disabled={!refinementFeedback.trim() || isRefining}
+            >
+              {isRefining && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Refine Solution
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

@@ -715,6 +715,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     res.json({ subscriptionKey, region });
   });
+
+  // Refine solution endpoint
+  app.post('/api/refine-solution', async (req, res) => {
+    try {
+      const { originalProblem, currentSolution, feedback, provider } = req.body;
+      
+      if (!originalProblem || !currentSolution || !feedback || !provider) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      const startTime = Date.now();
+      
+      const refinementPrompt = `You are an expert academic assistant. I need you to refine and improve an existing solution based on specific feedback.
+
+ORIGINAL PROBLEM:
+${originalProblem}
+
+CURRENT SOLUTION:
+${currentSolution}
+
+USER FEEDBACK FOR IMPROVEMENT:
+${feedback}
+
+Please refine the solution based on the feedback while:
+1. Keeping the good parts that weren't criticized
+2. Addressing all the specific points mentioned in the feedback
+3. Maintaining mathematical accuracy and proper LaTeX notation
+4. Ensuring the solution flows logically and is well-structured
+
+Provide the refined solution with all mathematical expressions in proper LaTeX format (use $ for inline math and $$ for display math). Do not include any meta-commentary about the refinement process - just provide the improved solution directly.`;
+
+      let refinedSolution;
+      
+      try {
+        switch (provider) {
+          case 'anthropic':
+            refinedSolution = await processWithAnthropic(refinementPrompt);
+            break;
+          case 'openai':
+            refinedSolution = await processWithOpenAI(refinementPrompt);
+            break;
+          case 'azure':
+            refinedSolution = await processWithAzureOpenAI(refinementPrompt);
+            break;
+          case 'perplexity':
+            refinedSolution = await processWithPerplexity(refinementPrompt);
+            break;
+          default:
+            throw new Error('Invalid provider');
+        }
+      } catch (error) {
+        console.error(`Error with ${provider}:`, error);
+        throw error;
+      }
+
+      const processingTime = Date.now() - startTime;
+
+      res.json({
+        success: true,
+        refinedSolution: cleanResponse(refinedSolution),
+        processingTime,
+        provider
+      });
+
+    } catch (error) {
+      console.error('Refine solution error:', error);
+      res.status(500).json({ 
+        error: 'Failed to refine solution',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
   // File upload endpoint
   app.post("/api/upload", upload.single('file'), async (req, res) => {
     try {
