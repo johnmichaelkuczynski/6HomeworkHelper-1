@@ -885,7 +885,51 @@ ${fullResponse.slice(-1000)}...`;
 
     const title = currentAssignmentName || 'Assignment Solution';
 
-    // If there's a graph, download both files
+    // Handle multiple graphs - download combined PDF according to 1+n protocol
+    if (currentResult.graphImages && Array.isArray(currentResult.graphImages) && currentResult.graphImages.length > 0) {
+      try {
+        // Use the new combined PDF endpoint that creates 1+n documents in a single PDF
+        const combinedResponse = await fetch('/api/generate-combined-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: currentResult.llmResponse,
+            title: title,
+            extractedText: currentResult.extractedText,
+            graphImages: currentResult.graphImages,
+            graphData: currentResult.graphData
+          })
+        });
+
+        if (combinedResponse.ok) {
+          const combinedBlob = await combinedResponse.blob();
+          const combinedUrl = window.URL.createObjectURL(combinedBlob);
+          const combinedLink = document.createElement('a');
+          combinedLink.href = combinedUrl;
+          combinedLink.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_complete.pdf`;
+          document.body.appendChild(combinedLink);
+          combinedLink.click();
+          document.body.removeChild(combinedLink);
+          window.URL.revokeObjectURL(combinedUrl);
+          
+          const graphCount = currentResult.graphImages.length;
+          toast({
+            title: "Complete solution downloaded",
+            description: `Downloaded ${1 + graphCount} documents combined: ${graphCount} graph(s) + 1 solution PDF`,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Combined download error:', error);
+        toast({
+          title: "Combined download failed",
+          description: "Falling back to individual downloads",
+          variant: "destructive",
+        });
+      }
+    }
+
+    // Legacy support for single graph
     if (currentResult.graphImage) {
       try {
         // Download the graph PDF first
@@ -1688,8 +1732,45 @@ ${fullResponse.slice(-1000)}...`;
                       </div>
                     </div>
                     
-                    {/* Generated Graph Display */}
-                    {currentResult.graphImage && (
+                    {/* Multiple Graphs Display - According to Multi-Graph Protocol */}
+                    {currentResult.graphImages && Array.isArray(currentResult.graphImages) && currentResult.graphImages.length > 0 && (
+                      <div className="mb-6 space-y-4">
+                        <h4 className="text-md font-medium text-slate-900 mb-3 flex items-center">
+                          📊 Generated Graphs ({currentResult.graphImages.length})
+                        </h4>
+                        {currentResult.graphImages.map((graphImage, index) => (
+                          <div key={index} className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                            <h5 className="text-sm font-medium text-slate-700 mb-2">
+                              Graph {index + 1}
+                              {currentResult.graphData && Array.isArray(currentResult.graphData) && currentResult.graphData[index] && 
+                                ` - ${currentResult.graphData[index].title}`
+                              }
+                            </h5>
+                            <div className="flex justify-center bg-white p-4 rounded border">
+                              <img 
+                                src={`data:image/png;base64,${graphImage}`}
+                                alt={`Generated graph ${index + 1} for homework solution`}
+                                className="max-w-full h-auto max-h-96 border border-slate-200 rounded shadow-sm"
+                              />
+                            </div>
+                            {currentResult.graphData && Array.isArray(currentResult.graphData) && currentResult.graphData[index] && (
+                              <div className="mt-3 text-sm text-slate-600">
+                                <p><strong>Graph Type:</strong> {currentResult.graphData[index].type}</p>
+                                <p><strong>Title:</strong> {currentResult.graphData[index].title}</p>
+                                <p><strong>X-axis:</strong> {currentResult.graphData[index].xLabel}</p>
+                                <p><strong>Y-axis:</strong> {currentResult.graphData[index].yLabel}</p>
+                                {currentResult.graphData[index].description && 
+                                  <p><strong>Description:</strong> {currentResult.graphData[index].description}</p>
+                                }
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Legacy Single Graph Display */}
+                    {currentResult.graphImage && !currentResult.graphImages && (
                       <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
                         <h4 className="text-md font-medium text-slate-900 mb-3 flex items-center">
                           📊 Generated Graph

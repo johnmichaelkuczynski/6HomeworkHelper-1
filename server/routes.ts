@@ -12,6 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import puppeteer from 'puppeteer';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
+import { PDFDocument } from 'pdf-lib';
 
 // LLM imports
 // @ts-ignore
@@ -256,6 +257,19 @@ function detectGraphRequirements(text: string): boolean {
   
   const lowerText = text.toLowerCase();
   return graphKeywords.some(keyword => lowerText.includes(keyword));
+}
+
+// PDF combining function
+async function combinePDFs(pdfBuffers: Buffer[]): Promise<Buffer> {
+  const mergedPdf = await PDFDocument.create();
+  
+  for (const pdfBuffer of pdfBuffers) {
+    const pdf = await PDFDocument.load(pdfBuffer);
+    const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+    copiedPages.forEach((page) => mergedPdf.addPage(page));
+  }
+  
+  return Buffer.from(await mergedPdf.save());
 }
 
 async function generateGraph(graphData: GraphRequest): Promise<string> {
@@ -1818,6 +1832,244 @@ Please provide an improved solution that addresses the feedback. Maintain proper
     } catch (error: any) {
       console.error('Rewrite error:', error);
       res.status(500).json({ error: error.message || 'Rewrite failed' });
+    }
+  });
+
+  // Multi-graph PDF generation endpoint
+  app.post("/api/generate-multi-graph-pdf", async (req, res) => {
+    try {
+      const { graphImages, graphData, title } = req.body;
+      
+      if (!graphImages || !Array.isArray(graphImages) || graphImages.length === 0) {
+        return res.status(400).json({ error: "Graph images are required" });
+      }
+
+      const pdfBuffers: Buffer[] = [];
+      
+      // Generate individual graph PDFs
+      for (let i = 0; i < graphImages.length; i++) {
+        const graphImage = graphImages[i];
+        const graphInfo = graphData && graphData[i] ? JSON.parse(graphData[i]) : {};
+        const graphTitle = graphInfo.title || `Graph ${i + 1}`;
+        
+        const graphHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${graphTitle}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .graph-container {
+            text-align: center;
+            max-width: 100%;
+        }
+        .graph-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .graph-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .graph-description {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+            max-width: 600px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="graph-container">
+        <h1 class="graph-title">${graphTitle}</h1>
+        <img src="data:image/png;base64,${graphImage}" alt="${graphTitle}" class="graph-image" />
+        ${graphInfo.description ? `<p class="graph-description">${graphInfo.description}</p>` : ''}
+    </div>
+</body>
+</html>`;
+
+        const graphPdfBuffer = await convertHtmlToPdf(graphHtml, graphTitle);
+        pdfBuffers.push(graphPdfBuffer);
+      }
+
+      // Combine all PDFs
+      const combinedPdf = await combinePDFs(pdfBuffers);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${title || 'graphs'}_combined.pdf"`);
+      res.setHeader('Content-Length', combinedPdf.length);
+      
+      res.send(combinedPdf);
+    } catch (error: any) {
+      console.error('Multi-graph PDF generation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate multi-graph PDF' });
+    }
+  });
+
+  // Combined solution + graphs PDF endpoint
+  app.post("/api/generate-combined-pdf", async (req, res) => {
+    try {
+      const { content, title, extractedText, graphImages, graphData } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      const pdfBuffers: Buffer[] = [];
+
+      // Generate individual graph PDFs first
+      if (graphImages && Array.isArray(graphImages) && graphImages.length > 0) {
+        for (let i = 0; i < graphImages.length; i++) {
+          const graphImage = graphImages[i];
+          const graphInfo = graphData && graphData[i] ? JSON.parse(graphData[i]) : {};
+          const graphTitle = graphInfo.title || `Graph ${i + 1}`;
+          
+          const graphHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${graphTitle}</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .graph-container {
+            text-align: center;
+            max-width: 100%;
+        }
+        .graph-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .graph-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .graph-description {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+            max-width: 600px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="graph-container">
+        <h1 class="graph-title">${graphTitle}</h1>
+        <img src="data:image/png;base64,${graphImage}" alt="${graphTitle}" class="graph-image" />
+        ${graphInfo.description ? `<p class="graph-description">${graphInfo.description}</p>` : ''}
+    </div>
+</body>
+</html>`;
+
+          const graphPdfBuffer = await convertHtmlToPdf(graphHtml, graphTitle);
+          pdfBuffers.push(graphPdfBuffer);
+        }
+      }
+
+      // Generate main solution PDF
+      let solutionHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title || 'Assignment Solution'}</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            color: #000;
+            background: white;
+            font-size: 14pt;
+        }
+        h1, h2, h3 {
+            color: #333;
+            margin-top: 1.5em;
+            margin-bottom: 0.5em;
+            page-break-after: avoid;
+        }
+        .problem-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 20px;
+        }
+        .solution-section {
+            margin-top: 20px;
+        }
+        @media print {
+            body { margin: 0; }
+            .problem-section { 
+                background: #f5f5f5 !important; 
+                -webkit-print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>${(title || 'Assignment Solution').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h1>
+    
+    ${extractedText ? `
+    <div class="problem-section">
+        <h2>Problem Statement</h2>
+        <p>${extractedText.replace(/\n/g, '<br>').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+    </div>
+    ` : ''}
+    
+    <div class="solution-section">
+        <h2>Solution</h2>
+        <div class="math-content">${content}</div>
+    </div>
+</body>
+</html>`;
+
+      const solutionPdfBuffer = await convertHtmlToPdf(solutionHtml, title || 'Assignment Solution');
+      pdfBuffers.push(solutionPdfBuffer);
+
+      // Combine all PDFs
+      const combinedPdf = await combinePDFs(pdfBuffers);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${title || 'assignment'}_complete.pdf"`);
+      res.setHeader('Content-Length', combinedPdf.length);
+      
+      res.send(combinedPdf);
+    } catch (error: any) {
+      console.error('Combined PDF generation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate combined PDF' });
     }
   });
 
