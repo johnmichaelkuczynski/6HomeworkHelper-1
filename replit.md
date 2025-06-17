@@ -76,17 +76,24 @@ The application follows a full-stack architecture with clear separation between 
 1. **Input Processing**:
    - User submits text or uploads files
    - Files are processed for text extraction
-   - Content is validated and stored
+   - Content is validated and analyzed for graph requirements
 
 2. **AI Processing**:
-   - Extracted text is sent to selected LLM provider
+   - Extracted text is sent to selected LLM provider with graph detection
    - AI generates detailed solution with step-by-step explanations
-   - Response is stored with metadata
+   - If graphs are required, AI also provides structured graph data
+   - Response and graph data are processed and stored
 
-3. **Output Generation**:
+3. **Graph Generation** (when required):
+   - Graph data is extracted from AI response
+   - Chart.js generates professional graphs on server
+   - Graph images are encoded and stored alongside solutions
+
+4. **Output Generation**:
    - Solutions are rendered with mathematical notation
-   - Content is formatted for display and export
-   - Users can edit, save, or export results
+   - Generated graphs are displayed above text solutions
+   - Content is formatted for display and export with integrated graphs
+   - Users can edit, save, or export complete solutions
 
 ## External Dependencies
 
@@ -123,6 +130,7 @@ The application follows a full-stack architecture with clear separation between 
 ## Changelog
 
 - June 17, 2025. Initial setup
+- June 17, 2025. Integrated automatic graph generation for homework assignments requiring visual components
 
 ## User Preferences
 
