@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TextareaWithVoice } from "@/components/ui/textarea-with-voice";
 import { MathTextarea } from "@/components/ui/math-textarea";
 import { FileUpload } from "@/components/ui/file-upload";
-import { MathRenderer, getGraphsFromContent } from "@/components/ui/math-renderer";
+import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer } from "lucide-react";
@@ -1020,19 +1020,6 @@ ${fullResponse.slice(-1000)}...`;
             margin-bottom: 12pt;
             text-align: justify;
         }
-        .graph-container {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            text-align: center;
-            page-break-inside: avoid;
-        }
-        .graph-container svg {
-            max-width: 100%;
-            height: auto;
-        }
         @page {
             margin: 1in;
             size: letter;
@@ -1044,10 +1031,6 @@ ${fullResponse.slice(-1000)}...`;
             }
             .mjx-chtml {
                 font-size: 120% !important;
-            }
-            .graph-container {
-                background: white !important;
-                border: 1px solid #000 !important;
             }
         }
     </style>
@@ -1067,7 +1050,8 @@ ${fullResponse.slice(-1000)}...`;
     
     <div class="section">
         <h2>Solution:</h2>
-        <div class="content" id="solution-content">${currentResult.llmResponse}</div>
+        ${currentResult.graphImage ? `<div style="text-align: center; margin: 20px 0;"><img src="data:image/png;base64,${currentResult.graphImage}" alt="Generated Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; page-break-inside: avoid;" /></div>` : ''}
+        <div class="content">${currentResult.llmResponse}</div>
     </div>
 </body>
 </html>`;
@@ -1075,95 +1059,12 @@ ${fullResponse.slice(-1000)}...`;
     printWindow.document.write(htmlContent);
     printWindow.document.close();
 
-    // After the document is written, we need to process and inject the rendered graphs
-    printWindow.addEventListener('load', () => {
-      const sourceContainer = document.querySelector('.math-content');
-      const targetContainer = printWindow.document.getElementById('solution-content');
-      
-      if (sourceContainer && targetContainer) {
-        // Clone the fully rendered content including SVG graphs
-        const clonedContent = sourceContainer.cloneNode(true) as HTMLElement;
-        targetContainer.innerHTML = clonedContent.innerHTML;
-        
-        // Ensure MathJax renders in the print window
-        if (printWindow.MathJax && printWindow.MathJax.typesetPromise) {
-          printWindow.MathJax.typesetPromise([targetContainer]).then(() => {
-            setTimeout(() => {
-              printWindow.print();
-            }, 500);
-          }).catch(console.error);
-        }
-      }
-    });
-
     toast({
       title: "Print window opened",
       description: "Use Ctrl+P or Cmd+P to save as PDF with perfect math notation",
     });
   };
-
-  // Combined PDF download with graphs first, then solution
-  const handleDownloadCombinedPDF = async () => {
-    if (!currentResult) return;
-
-    try {
-      const mathContentElement = document.querySelector('.math-content');
-      const graphs = getGraphsFromContent(mathContentElement as HTMLElement);
-      
-      const title = currentAssignmentName || 'Assignment Solution';
-      const solution = currentResult.llmResponse || '';
-      
-      // Prepare graph data for backend
-      let graphData: any[] = [];
-      if (graphs && graphs.length > 0) {
-        graphData = graphs.map((graph, index) => ({
-          type: 'line',
-          title: graph.title || `Graph ${index + 1}`,
-          xLabel: 'X-axis',
-          yLabel: 'Y-axis',
-          data: [{ x: 1, y: 1 }, { x: 2, y: 2 }], // Use graph data from LLM response
-          description: `Generated graph from solution content`
-        }));
-      }
-
-      const response = await fetch('/api/generate-combined-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          graphData: graphData,
-          solution: solution,
-          title: title
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to generate combined PDF');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_complete.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      toast({
-        title: "Complete solution downloaded",
-        description: `PDF includes ${graphData.length} graphs and full solution`,
-      });
-    } catch (error: any) {
-      console.error('Combined PDF download error:', error);
-      toast({
-        title: "Download failed",
-        description: error.message || "Failed to generate combined PDF",
-        variant: "destructive",
-      });
-    }
-  };
-
+  
   const handleCopyToClipboard = () => {
     if (!currentResult) return;
     
@@ -1774,15 +1675,6 @@ ${fullResponse.slice(-1000)}...`;
                         >
                           <Printer className="w-4 h-4 mr-2" />
                           Print/PDF
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleDownloadCombinedPDF}
-                          className="border-purple-200 text-purple-700 hover:bg-purple-50"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          Download Complete PDF
                         </Button>
                         <Button
                           variant="outline"

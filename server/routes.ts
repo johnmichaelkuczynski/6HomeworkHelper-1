@@ -338,204 +338,7 @@ async function generateGraph(graphData: GraphRequest): Promise<string> {
   return imageBuffer.toString('base64');
 }
 
-// Generate multiple graphs and return array of base64 images
-async function generateMultipleGraphs(graphDataArray: GraphRequest[]): Promise<string[]> {
-  const graphImages: string[] = [];
-  
-  for (const graphData of graphDataArray) {
-    try {
-      const graphImage = await generateGraph(graphData);
-      graphImages.push(graphImage);
-    } catch (error) {
-      console.error('Error generating graph:', error);
-      // Continue with other graphs even if one fails
-    }
-  }
-  
-  return graphImages;
-}
-
-// Create combined PDF with all graphs first, then solution
-async function createCombinedPDF(graphDataArray: GraphRequest[], solution: string, title: string): Promise<Buffer> {
-  const puppeteer = await import('puppeteer');
-  
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
-  
-  try {
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 800 });
-
-    // Generate all graphs
-    const graphImages = await generateMultipleGraphs(graphDataArray);
-    
-    // Create HTML content with graphs first, then solution
-    const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>${title}</title>
-    <style>
-        body {
-            font-family: 'Times New Roman', serif;
-            line-height: 1.6;
-            margin: 40px;
-            font-size: 14px;
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
-        }
-        
-        .header h1 {
-            font-size: 24px;
-            margin: 0 0 10px 0;
-            font-weight: bold;
-        }
-        
-        .header h2 {
-            font-size: 18px;
-            margin: 0 0 10px 0;
-            color: #555;
-        }
-        
-        .header p {
-            margin: 5px 0;
-            color: #666;
-            font-size: 12px;
-        }
-        
-        .graphs-section {
-            margin-bottom: 50px;
-        }
-        
-        .graph-container {
-            text-align: center;
-            margin: 30px 0;
-            page-break-inside: avoid;
-        }
-        
-        .graph-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        
-        .graph-image {
-            max-width: 100%;
-            height: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .solution-section {
-            border-top: 2px solid #333;
-            padding-top: 30px;
-        }
-        
-        .solution-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .solution-content {
-            line-height: 1.8;
-        }
-        
-        .page-break {
-            page-break-before: always;
-        }
-        
-        @media print {
-            .graph-container {
-                page-break-inside: avoid;
-            }
-        }
-    </style>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
-                displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
-                processEscapes: true,
-                processEnvironments: true
-            },
-            options: {
-                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
-            }
-        };
-    </script>
-</head>
-<body>
-    <div class="header">
-        <h1>Complete Solution Package</h1>
-        <h2>${title}</h2>
-        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-        <p>Total Graphs: ${graphImages.length}</p>
-    </div>
-    
-    ${graphImages.length > 0 ? `
-    <div class="graphs-section">
-        <div class="solution-title">📊 Generated Graphs</div>
-        ${graphImages.map((graphImage, index) => `
-        <div class="graph-container">
-            <div class="graph-title">Graph ${index + 1}: ${graphDataArray[index]?.title || 'Generated Graph'}</div>
-            <img src="data:image/png;base64,${graphImage}" alt="Graph ${index + 1}" class="graph-image" />
-            ${graphDataArray[index]?.description ? `<p style="margin-top: 10px; font-style: italic; color: #666;">${graphDataArray[index].description}</p>` : ''}
-        </div>
-        `).join('')}
-    </div>
-    ` : ''}
-    
-    <div class="solution-section ${graphImages.length > 0 ? 'page-break' : ''}">
-        <div class="solution-title">📝 Solution</div>
-        <div class="solution-content">
-            ${solution.replace(/\n/g, '<br>')}
-        </div>
-    </div>
-</body>
-</html>`;
-
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    
-    // Wait for MathJax to render
-    try {
-      await page.waitForFunction(() => window.MathJax && window.MathJax.typesetPromise, { timeout: 10000 });
-      await page.evaluate(() => window.MathJax.typesetPromise());
-    } catch (error) {
-      console.log('MathJax rendering timeout, proceeding without MathJax');
-    }
-    
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        bottom: '20mm',
-        left: '15mm',
-        right: '15mm'
-      }
-    });
-
-    return Buffer.from(pdfBuffer);
-  } finally {
-    await browser.close();
-  }
-}
-
-async function processWithAnthropic(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
+async function processWithAnthropic(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   try {
     // Check if the assignment requires a graph
     const needsGraph = detectGraphRequirements(text);
@@ -556,7 +359,7 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires graphs/plots. If multiple graphs are needed, provide each one separately. After solving the problem, you MUST provide graph data in this EXACT JSON format for EACH graph:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
 
 GRAPH_DATA_START
 {
@@ -572,7 +375,6 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
-If you need multiple graphs, use separate GRAPH_DATA_START/GRAPH_DATA_END blocks for each one.
 Generate realistic data points based on the scientific/mathematical principles in the assignment. For enzyme activity vs temperature, show typical enzyme behavior with optimal temperature and denaturation.`;
     }
 
@@ -589,20 +391,18 @@ Generate realistic data points based on the scientific/mathematical principles i
 
     const response = message.content[0]?.type === 'text' ? message.content[0].text : 'No response generated';
     
-    // Extract ALL graph data blocks
-    const graphDataArray: GraphRequest[] = [];
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
     if (needsGraph && response.includes('GRAPH_DATA_START')) {
-      const graphDataRegex = /GRAPH_DATA_START\s*([\s\S]*?)\s*GRAPH_DATA_END/g;
-      let match;
-      
-      while ((match = graphDataRegex.exec(response)) !== null) {
-        try {
-          const graphJson = match[1].trim();
-          const graphData = JSON.parse(graphJson);
-          graphDataArray.push(graphData);
-        } catch (error) {
-          console.error('Failed to parse graph data:', error);
+      try {
+        const graphStart = response.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = response.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = response.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
         }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
       }
     }
 
@@ -611,17 +411,14 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { 
-      response: cleanedResponse, 
-      graphData: graphDataArray.length > 0 ? graphDataArray : undefined 
-    };
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('Anthropic API error:', error);
     throw new Error('Failed to process with Anthropic');
   }
 }
 
-async function processWithOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
+async function processWithOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   try {
     // Check if the assignment requires a graph
     const needsGraph = detectGraphRequirements(text);
@@ -642,7 +439,7 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires graphs/plots. If multiple graphs are needed, provide each one separately. After solving the problem, you MUST provide graph data in this EXACT JSON format for EACH graph:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
 
 GRAPH_DATA_START
 {
@@ -658,7 +455,6 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
-If you need multiple graphs, use separate GRAPH_DATA_START/GRAPH_DATA_END blocks for each one.
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
@@ -675,20 +471,18 @@ Generate realistic data points based on the scientific/mathematical principles i
 
     const responseText = response.choices[0]?.message?.content || 'No response generated';
     
-    // Extract ALL graph data blocks
-    const graphDataArray: GraphRequest[] = [];
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
     if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
-      const graphDataRegex = /GRAPH_DATA_START\s*([\s\S]*?)\s*GRAPH_DATA_END/g;
-      let match;
-      
-      while ((match = graphDataRegex.exec(responseText)) !== null) {
-        try {
-          const graphJson = match[1].trim();
-          const graphData = JSON.parse(graphJson);
-          graphDataArray.push(graphData);
-        } catch (error) {
-          console.error('Failed to parse graph data:', error);
+      try {
+        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = responseText.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
         }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
       }
     }
 
@@ -697,17 +491,14 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { 
-      response: cleanedResponse, 
-      graphData: graphDataArray.length > 0 ? graphDataArray : undefined 
-    };
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('OpenAI API error:', error);
     throw new Error('Failed to process with OpenAI');
   }
 }
 
-async function processWithAzureOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
+async function processWithAzureOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   if (!azureOpenAI) {
     throw new Error('Azure OpenAI not configured');
   }
@@ -732,7 +523,7 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires graphs/plots. If multiple graphs are needed, provide each one separately. After solving the problem, you MUST provide graph data in this EXACT JSON format for EACH graph:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
 
 GRAPH_DATA_START
 {
@@ -748,7 +539,6 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
-If you need multiple graphs, use separate GRAPH_DATA_START/GRAPH_DATA_END blocks for each one.
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
@@ -765,20 +555,18 @@ Generate realistic data points based on the scientific/mathematical principles i
 
     const responseText = response.choices[0]?.message?.content || 'No response generated';
     
-    // Extract ALL graph data blocks
-    const graphDataArray: GraphRequest[] = [];
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
     if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
-      const graphDataRegex = /GRAPH_DATA_START\s*([\s\S]*?)\s*GRAPH_DATA_END/g;
-      let match;
-      
-      while ((match = graphDataRegex.exec(responseText)) !== null) {
-        try {
-          const graphJson = match[1].trim();
-          const graphData = JSON.parse(graphJson);
-          graphDataArray.push(graphData);
-        } catch (error) {
-          console.error('Failed to parse graph data:', error);
+      try {
+        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = responseText.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
         }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
       }
     }
 
@@ -787,17 +575,14 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { 
-      response: cleanedResponse, 
-      graphData: graphDataArray.length > 0 ? graphDataArray : undefined 
-    };
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('Azure OpenAI API error:', error);
     throw new Error('Failed to process with Azure OpenAI');
   }
 }
 
-async function processWithPerplexity(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
+async function processWithPerplexity(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   try {
     // Check if the assignment requires a graph
     const needsGraph = detectGraphRequirements(text);
@@ -818,7 +603,7 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires graphs/plots. If multiple graphs are needed, provide each one separately. After solving the problem, you MUST provide graph data in this EXACT JSON format for EACH graph:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
 
 GRAPH_DATA_START
 {
@@ -834,7 +619,6 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
-If you need multiple graphs, use separate GRAPH_DATA_START/GRAPH_DATA_END blocks for each one.
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
@@ -867,20 +651,18 @@ Generate realistic data points based on the scientific/mathematical principles i
     const data = await response.json();
     const responseText = data.choices[0]?.message?.content || 'No response generated';
     
-    // Extract ALL graph data blocks
-    const graphDataArray: GraphRequest[] = [];
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
     if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
-      const graphDataRegex = /GRAPH_DATA_START\s*([\s\S]*?)\s*GRAPH_DATA_END/g;
-      let match;
-      
-      while ((match = graphDataRegex.exec(responseText)) !== null) {
-        try {
-          const graphJson = match[1].trim();
-          const graphData = JSON.parse(graphJson);
-          graphDataArray.push(graphData);
-        } catch (error) {
-          console.error('Failed to parse graph data:', error);
+      try {
+        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = responseText.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
         }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
       }
     }
 
@@ -889,10 +671,7 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { 
-      response: cleanedResponse, 
-      graphData: graphDataArray.length > 0 ? graphDataArray : undefined 
-    };
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('Perplexity API error:', error);
     throw new Error('Failed to process with Perplexity');
@@ -1280,7 +1059,7 @@ Please refine the solution based on the feedback while:
 
 Provide the refined solution with all mathematical expressions in proper LaTeX format (use $ for inline math and $$ for display math). Do not include any meta-commentary about the refinement process - just provide the improved solution directly.`;
 
-      let refinedResult: {response: string, graphData?: GraphRequest[]};
+      let refinedResult: {response: string, graphData?: GraphRequest};
       
       try {
         switch (provider) {
@@ -1358,7 +1137,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       }
 
       // Process with selected LLM
-      let llmResult: {response: string, graphData?: GraphRequest[]};
+      let llmResult: {response: string, graphData?: GraphRequest};
       switch (llmProvider) {
         case 'anthropic':
           llmResult = await processWithAnthropic(extractedText);
@@ -1378,15 +1157,13 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       const processingTime = Date.now() - startTime;
 
-      // Generate graphs if required
+      // Generate graph if required
       let graphImage: string | undefined;
       let graphDataJson: string | undefined;
       
-      if (llmResult.graphData && llmResult.graphData.length > 0) {
+      if (llmResult.graphData) {
         try {
-          // For now, generate an image from the first graph for backward compatibility
-          // TODO: Update to handle multiple graphs properly
-          graphImage = await generateGraph(llmResult.graphData[0]);
+          graphImage = await generateGraph(llmResult.graphData);
           graphDataJson = JSON.stringify(llmResult.graphData);
         } catch (error) {
           console.error('Graph generation error:', error);
@@ -1457,7 +1234,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       const startTime = Date.now();
 
       // Process with selected LLM
-      let llmResult: {response: string, graphData?: GraphRequest[]};
+      let llmResult: {response: string, graphData?: GraphRequest};
       switch (llmProvider) {
         case 'anthropic':
           llmResult = await processWithAnthropic(inputText);
@@ -1477,15 +1254,13 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       const processingTime = Date.now() - startTime;
 
-      // Generate graphs if required
+      // Generate graph if required
       let graphImage: string | undefined;
       let graphDataJson: string | undefined;
       
-      if (llmResult.graphData && llmResult.graphData.length > 0) {
+      if (llmResult.graphData) {
         try {
-          // For now, generate an image from the first graph for backward compatibility
-          // TODO: Update to handle multiple graphs properly
-          graphImage = await generateGraph(llmResult.graphData[0]);
+          graphImage = await generateGraph(llmResult.graphData);
           graphDataJson = JSON.stringify(llmResult.graphData);
         } catch (error) {
           console.error('Graph generation error:', error);
@@ -1832,48 +1607,6 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     }
   });
 
-  // Combined PDF generation endpoint for multiple graphs + solution
-  app.post("/api/generate-combined-pdf", async (req, res) => {
-    try {
-      const { graphData, solution, title } = req.body;
-      
-      if (!solution || typeof solution !== 'string') {
-        return res.status(400).json({ error: "Solution is required" });
-      }
-
-      let graphDataArray: GraphRequest[] = [];
-      
-      // Parse graph data if provided
-      if (graphData) {
-        try {
-          if (typeof graphData === 'string') {
-            graphDataArray = JSON.parse(graphData);
-          } else if (Array.isArray(graphData)) {
-            graphDataArray = graphData;
-          }
-        } catch (error) {
-          console.error('Failed to parse graph data:', error);
-        }
-      }
-
-      // Ensure graphDataArray is an array
-      if (!Array.isArray(graphDataArray)) {
-        graphDataArray = [];
-      }
-
-      const pdfBuffer = await createCombinedPDF(graphDataArray, solution, title || 'Assignment Solution');
-      
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${(title || 'assignment').replace(/[^a-zA-Z0-9]/g, '_')}_complete.pdf"`);
-      res.setHeader('Content-Length', pdfBuffer.length);
-      
-      res.send(pdfBuffer);
-    } catch (error: any) {
-      console.error('Combined PDF generation error:', error);
-      res.status(500).json({ error: error.message || 'Failed to generate combined PDF' });
-    }
-  });
-
   // Email solution endpoint using SendGrid
   app.post("/api/email-solution", async (req, res) => {
     try {
@@ -1924,7 +1657,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         chatPrompt = `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"\n\nQuestion: ${message}`;
       }
 
-      let result: {response: string, graphData?: GraphRequest[]};
+      let result: {response: string, graphData?: GraphRequest};
       switch (provider) {
         case 'anthropic':
           result = await processWithAnthropic(chatPrompt);
@@ -1971,7 +1704,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       let chatPrompt = message ? `${message}\n\nFile content:\n${extractedText}` : `Please analyze this file content:\n\n${extractedText}`;
 
-      let result: {response: string, graphData?: GraphRequest[]};
+      let result: {response: string, graphData?: GraphRequest};
       switch (provider) {
         case 'anthropic':
           result = await processWithAnthropic(chatPrompt);
@@ -2014,7 +1747,7 @@ ${critique}
 
 Please provide an improved solution that addresses the feedback. Maintain proper mathematical notation and formatting.`;
 
-      let result: {response: string, graphData?: GraphRequest[]};
+      let result: {response: string, graphData?: GraphRequest};
       switch (provider) {
         case 'anthropic':
           result = await processWithAnthropic(rewritePrompt);
