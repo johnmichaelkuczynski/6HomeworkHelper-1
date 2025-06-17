@@ -103,22 +103,6 @@
   margin: 1em 0 !important;
 }
 
-/* Graph container styling */
-.graph-container {
-  position: relative;
-  margin: 1.5rem 0;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.5rem;
-  padding: 1rem;
-}
-
-.graph-container canvas {
-  display: block !important;
-  max-width: 100% !important;
-  height: 400px !important;
-}
-
 :root {
       --background: 0 0% 100%;
 --foreground: 20 14.3% 4.1%;

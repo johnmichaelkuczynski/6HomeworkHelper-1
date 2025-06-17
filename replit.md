@@ -134,6 +134,7 @@ The application follows a full-stack architecture with clear separation between 
 - June 17, 2025. Implemented dual-download PDF system: separate graph PDF and solution PDF when graphs are generated
 - June 17, 2025. **COMPLETED**: Dual-download PDF system fully functional - automatically downloads both graph PDF and solution PDF with embedded graph
 - June 17, 2025. Removed AI detection interface to maximize solution viewing space
+- June 17, 2025. **COMPLETED**: Implemented two-document system - main solution shows graph citations (e.g., "See Appendix A, Graph 1") and separate "Download Appendix" button generates professional academic appendix with all graphs
 
 ## User Preferences
 
