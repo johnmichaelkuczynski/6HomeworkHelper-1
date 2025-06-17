@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TextareaWithVoice } from "@/components/ui/textarea-with-voice";
 import { MathTextarea } from "@/components/ui/math-textarea";
 import { FileUpload } from "@/components/ui/file-upload";
-import { MathRenderer, getGraphsFromContent } from "@/components/ui/math-renderer";
+import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer } from "lucide-react";
@@ -1020,19 +1020,6 @@ ${fullResponse.slice(-1000)}...`;
             margin-bottom: 12pt;
             text-align: justify;
         }
-        .graph-container {
-            margin: 20px 0;
-            padding: 15px;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            text-align: center;
-            page-break-inside: avoid;
-        }
-        .graph-container svg {
-            max-width: 100%;
-            height: auto;
-        }
         @page {
             margin: 1in;
             size: letter;
@@ -1044,10 +1031,6 @@ ${fullResponse.slice(-1000)}...`;
             }
             .mjx-chtml {
                 font-size: 120% !important;
-            }
-            .graph-container {
-                background: white !important;
-                border: 1px solid #000 !important;
             }
         }
     </style>
@@ -1067,7 +1050,8 @@ ${fullResponse.slice(-1000)}...`;
     
     <div class="section">
         <h2>Solution:</h2>
-        <div class="content" id="solution-content">${currentResult.llmResponse}</div>
+        ${currentResult.graphImage ? `<div style="text-align: center; margin: 20px 0;"><img src="data:image/png;base64,${currentResult.graphImage}" alt="Generated Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; page-break-inside: avoid;" /></div>` : ''}
+        <div class="content">${currentResult.llmResponse}</div>
     </div>
 </body>
 </html>`;
@@ -1075,154 +1059,9 @@ ${fullResponse.slice(-1000)}...`;
     printWindow.document.write(htmlContent);
     printWindow.document.close();
 
-    // After the document is written, we need to process and inject the rendered graphs
-    printWindow.addEventListener('load', () => {
-      const sourceContainer = document.querySelector('.math-content');
-      const targetContainer = printWindow.document.getElementById('solution-content');
-      
-      if (sourceContainer && targetContainer) {
-        // Clone the fully rendered content including SVG graphs
-        const clonedContent = sourceContainer.cloneNode(true) as HTMLElement;
-        targetContainer.innerHTML = clonedContent.innerHTML;
-        
-        // Ensure MathJax renders in the print window
-        if (printWindow.MathJax && printWindow.MathJax.typesetPromise) {
-          printWindow.MathJax.typesetPromise([targetContainer]).then(() => {
-            setTimeout(() => {
-              printWindow.print();
-            }, 500);
-          }).catch(console.error);
-        }
-      }
-    });
-
     toast({
       title: "Print window opened",
       description: "Use Ctrl+P or Cmd+P to save as PDF with perfect math notation",
-    });
-  };
-
-  const handleDownloadAppendix = () => {
-    if (!currentResult) return;
-
-    // Get graphs data from the rendered content
-    const mathContentElement = document.querySelector('.math-content');
-    const graphs = getGraphsFromContent(mathContentElement as HTMLElement);
-    
-    if (!graphs || graphs.length === 0) {
-      toast({
-        title: "No graphs found",
-        description: "This solution doesn't contain any graphs to include in an appendix",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const title = currentAssignmentName || 'Assignment';
-    
-    // Create appendix document
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: "Popup blocked",
-        description: "Please allow popups to download appendix",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const appendixHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Appendix A - Graphs and Charts</title>
-    <meta charset="UTF-8">
-    <style>
-        body {
-            font-family: 'Times New Roman', serif;
-            font-size: 12pt;
-            line-height: 1.6;
-            margin: 1in;
-            color: black;
-            background: white;
-        }
-        .header {
-            text-align: center;
-            border-bottom: 2px solid black;
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            font-size: 18pt;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .graph-section {
-            margin-bottom: 40px;
-            page-break-inside: avoid;
-        }
-        .graph-title {
-            font-size: 14pt;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .graph-container {
-            text-align: center;
-            margin: 20px 0;
-            border: 1px solid #333;
-            padding: 20px;
-            background: white;
-        }
-        .graph-container svg {
-            max-width: 100%;
-            height: auto;
-        }
-        @page {
-            margin: 1in;
-            size: letter;
-        }
-        @media print {
-            body { 
-                margin: 0; 
-                font-size: 12pt;
-            }
-            .graph-container {
-                border: 1px solid #000 !important;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Appendix A</h1>
-        <h2>Graphs and Charts</h2>
-        <p>${title}</p>
-        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-    </div>
-    
-    ${graphs.map((graph, index) => `
-    <div class="graph-section">
-        <div class="graph-title">Graph ${index + 1}: ${graph.title}</div>
-        <div class="graph-container">
-            ${graph.svg}
-        </div>
-    </div>
-    `).join('')}
-</body>
-</html>`;
-
-    printWindow.document.write(appendixHtml);
-    printWindow.document.close();
-    
-    // Auto-print after a short delay
-    setTimeout(() => {
-      printWindow.print();
-    }, 1000);
-
-    toast({
-      title: "Appendix ready",
-      description: `Generated appendix with ${graphs.length} graph${graphs.length > 1 ? 's' : ''}`,
     });
   };
   
@@ -1836,15 +1675,6 @@ ${fullResponse.slice(-1000)}...`;
                         >
                           <Printer className="w-4 h-4 mr-2" />
                           Print/PDF
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleDownloadAppendix}
-                          className="border-purple-200 text-purple-700 hover:bg-purple-50"
-                        >
-                          <FileText className="w-4 h-4 mr-2" />
-                          Download Appendix
                         </Button>
                         <Button
                           variant="outline"
