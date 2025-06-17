@@ -11,6 +11,7 @@ import { randomBytes } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import puppeteer from 'puppeteer';
+import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 
 // LLM imports
 // @ts-ignore
@@ -233,14 +234,116 @@ function cleanResponse(text: string): string {
     .trim();
 }
 
-async function processWithAnthropic(text: string): Promise<string> {
+// Graph generation functions
+interface GraphRequest {
+  type: string;
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  data: Array<{x: number | string, y: number}>;
+  description?: string;
+}
+
+function detectGraphRequirements(text: string): boolean {
+  const graphKeywords = [
+    'graph', 'plot', 'chart', 'curve', 'diagram',
+    'sketch', 'draw', 'illustrate', 'show graphically',
+    'plot the', 'graph the', 'chart the', 'sketch the',
+    'function of', 'vs', 'versus', 'against',
+    'relationship between', 'correlation',
+    'as a function of', 'dependence'
+  ];
+  
+  const lowerText = text.toLowerCase();
+  return graphKeywords.some(keyword => lowerText.includes(keyword));
+}
+
+async function generateGraph(graphData: GraphRequest): Promise<string> {
+  const width = 800;
+  const height = 600;
+  const chartJSNodeCanvas = new ChartJSNodeCanvas({ width, height });
+
+  // Determine chart type based on data and request
+  let chartType: 'line' | 'bar' | 'scatter' = 'line';
+  if (graphData.type.toLowerCase().includes('bar')) {
+    chartType = 'bar';
+  } else if (graphData.type.toLowerCase().includes('scatter')) {
+    chartType = 'scatter';
+  }
+
+  let chartData: any;
+  let chartLabels: any;
+
+  if (chartType === 'scatter') {
+    chartData = graphData.data.map(d => ({
+      x: typeof d.x === 'string' ? parseFloat(d.x) || 0 : d.x,
+      y: d.y
+    }));
+    chartLabels = undefined;
+  } else {
+    chartData = graphData.data.map(d => d.y);
+    chartLabels = graphData.data.map(d => d.x);
+  }
+
+  const configuration: any = {
+    type: chartType,
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: graphData.title,
+        data: chartData,
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: chartType === 'bar' ? 'rgba(59, 130, 246, 0.6)' : 'rgba(59, 130, 246, 0.1)',
+        borderWidth: 2,
+        fill: chartType === 'line',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        title: {
+          display: true,
+          text: graphData.title,
+          font: { size: 16, weight: 'bold' }
+        },
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          title: {
+            display: true,
+            text: graphData.xLabel,
+            font: { size: 14, weight: 'bold' }
+          },
+          grid: { color: 'rgba(0,0,0,0.1)' }
+        },
+        y: {
+          display: true,
+          title: {
+            display: true,
+            text: graphData.yLabel,
+            font: { size: 14, weight: 'bold' }
+          },
+          grid: { color: 'rgba(0,0,0,0.1)' }
+        }
+      }
+    }
+  };
+
+  const imageBuffer = await chartJSNodeCanvas.renderToBuffer(configuration);
+  return imageBuffer.toString('base64');
+}
+
+async function processWithAnthropic(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   try {
-    // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
-    const message = await anthropic.messages.create({
-      max_tokens: 4000,
-      messages: [{ 
-        role: 'user', 
-        content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+    // Check if the assignment requires a graph
+    const needsGraph = detectGraphRequirements(text);
+    
+    let prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
 
 Solve this homework assignment with these MANDATORY requirements:
 1. ALL mathematical expressions MUST use proper LaTeX notation
@@ -250,29 +353,77 @@ Solve this homework assignment with these MANDATORY requirements:
 5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
 6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
 7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
-8. Never use plain text for any mathematical symbol, number, or expression
+8. Never use plain text for any mathematical symbol, number, or expression`;
 
-Assignment to solve:\n\n${text}` 
+    if (needsGraph) {
+      prompt += `
+
+ADDITIONAL GRAPH REQUIREMENT:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+
+GRAPH_DATA_START
+{
+  "type": "line|bar|scatter",
+  "title": "Graph Title",
+  "xLabel": "X-axis Label", 
+  "yLabel": "Y-axis Label",
+  "data": [
+    {"x": value1, "y": value1},
+    {"x": value2, "y": value2}
+  ],
+  "description": "Brief description of what the graph shows"
+}
+GRAPH_DATA_END
+
+Generate realistic data points based on the scientific/mathematical principles in the assignment. For enzyme activity vs temperature, show typical enzyme behavior with optimal temperature and denaturation.`;
+    }
+
+    prompt += `\n\nAssignment to solve:\n\n${text}`;
+
+    const message = await anthropic.messages.create({
+      max_tokens: 4000,
+      messages: [{ 
+        role: 'user', 
+        content: prompt
       }],
       model: 'claude-3-7-sonnet-20250219',
     });
 
     const response = message.content[0]?.type === 'text' ? message.content[0].text : 'No response generated';
-    return response;
+    
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
+    if (needsGraph && response.includes('GRAPH_DATA_START')) {
+      try {
+        const graphStart = response.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = response.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = response.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
+        }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
+      }
+    }
+
+    // Clean the response to remove graph data markers
+    const cleanedResponse = response
+      .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
+      .trim();
+
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('Anthropic API error:', error);
     throw new Error('Failed to process with Anthropic');
   }
 }
 
-async function processWithOpenAI(text: string): Promise<string> {
+async function processWithOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   try {
-    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ 
-        role: "user", 
-        content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+    // Check if the assignment requires a graph
+    const needsGraph = detectGraphRequirements(text);
+    
+    let prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
 
 Solve this homework assignment with these MANDATORY requirements:
 1. ALL mathematical expressions MUST use proper LaTeX notation
@@ -282,32 +433,81 @@ Solve this homework assignment with these MANDATORY requirements:
 5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
 6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
 7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
-8. Never use plain text for any mathematical symbol, number, or expression
+8. Never use plain text for any mathematical symbol, number, or expression`;
 
-Assignment to solve:\n\n${text}` 
+    if (needsGraph) {
+      prompt += `
+
+ADDITIONAL GRAPH REQUIREMENT:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+
+GRAPH_DATA_START
+{
+  "type": "line|bar|scatter",
+  "title": "Graph Title",
+  "xLabel": "X-axis Label", 
+  "yLabel": "Y-axis Label",
+  "data": [
+    {"x": value1, "y": value1},
+    {"x": value2, "y": value2}
+  ],
+  "description": "Brief description of what the graph shows"
+}
+GRAPH_DATA_END
+
+Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
+    }
+
+    prompt += `\n\nAssignment to solve:\n\n${text}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ 
+        role: "user", 
+        content: prompt
       }],
       max_tokens: 4000,
     });
 
     const responseText = response.choices[0]?.message?.content || 'No response generated';
-    return responseText;
+    
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
+    if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
+      try {
+        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = responseText.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
+        }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
+      }
+    }
+
+    // Clean the response to remove graph data markers
+    const cleanedResponse = responseText
+      .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
+      .trim();
+
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('OpenAI API error:', error);
     throw new Error('Failed to process with OpenAI');
   }
 }
 
-async function processWithAzureOpenAI(text: string): Promise<string> {
+async function processWithAzureOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   if (!azureOpenAI) {
     throw new Error('Azure OpenAI not configured');
   }
 
   try {
-    const response = await azureOpenAI.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ 
-        role: "user", 
-        content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+    // Check if the assignment requires a graph
+    const needsGraph = detectGraphRequirements(text);
+    
+    let prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
 
 Solve this homework assignment with these MANDATORY requirements:
 1. ALL mathematical expressions MUST use proper LaTeX notation
@@ -317,23 +517,113 @@ Solve this homework assignment with these MANDATORY requirements:
 5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
 6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
 7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
-8. Never use plain text for any mathematical symbol, number, or expression
+8. Never use plain text for any mathematical symbol, number, or expression`;
 
-Assignment to solve:\n\n${text}` 
+    if (needsGraph) {
+      prompt += `
+
+ADDITIONAL GRAPH REQUIREMENT:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+
+GRAPH_DATA_START
+{
+  "type": "line|bar|scatter",
+  "title": "Graph Title",
+  "xLabel": "X-axis Label", 
+  "yLabel": "Y-axis Label",
+  "data": [
+    {"x": value1, "y": value1},
+    {"x": value2, "y": value2}
+  ],
+  "description": "Brief description of what the graph shows"
+}
+GRAPH_DATA_END
+
+Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
+    }
+
+    prompt += `\n\nAssignment to solve:\n\n${text}`;
+
+    const response = await azureOpenAI.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ 
+        role: "user", 
+        content: prompt
       }],
       max_tokens: 4000,
     });
 
     const responseText = response.choices[0]?.message?.content || 'No response generated';
-    return responseText;
+    
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
+    if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
+      try {
+        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = responseText.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
+        }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
+      }
+    }
+
+    // Clean the response to remove graph data markers
+    const cleanedResponse = responseText
+      .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
+      .trim();
+
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('Azure OpenAI API error:', error);
     throw new Error('Failed to process with Azure OpenAI');
   }
 }
 
-async function processWithPerplexity(text: string): Promise<string> {
+async function processWithPerplexity(text: string): Promise<{response: string, graphData?: GraphRequest}> {
   try {
+    // Check if the assignment requires a graph
+    const needsGraph = detectGraphRequirements(text);
+    
+    let prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+
+Solve this homework assignment with these MANDATORY requirements:
+1. ALL mathematical expressions MUST use proper LaTeX notation
+2. Use $ for inline math: $x^2$, $\\frac{a}{b}$, $\\sin(x)$, $\\pi$, $\\alpha$
+3. Use $$ for display equations: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+4. Include every mathematical step with perfect LaTeX formatting
+5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
+6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
+7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
+8. Never use plain text for any mathematical symbol, number, or expression`;
+
+    if (needsGraph) {
+      prompt += `
+
+ADDITIONAL GRAPH REQUIREMENT:
+This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+
+GRAPH_DATA_START
+{
+  "type": "line|bar|scatter",
+  "title": "Graph Title",
+  "xLabel": "X-axis Label", 
+  "yLabel": "Y-axis Label",
+  "data": [
+    {"x": value1, "y": value1},
+    {"x": value2, "y": value2}
+  ],
+  "description": "Brief description of what the graph shows"
+}
+GRAPH_DATA_END
+
+Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
+    }
+
+    prompt += `\n\nAssignment to solve:\n\n${text}`;
+
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
       method: 'POST',
       headers: {
@@ -345,19 +635,7 @@ async function processWithPerplexity(text: string): Promise<string> {
         messages: [
           {
             role: 'user',
-            content: `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
-
-Solve this homework assignment with these MANDATORY requirements:
-1. ALL mathematical expressions MUST use proper LaTeX notation
-2. Use $ for inline math: $x^2$, $\\frac{a}{b}$, $\\sin(x)$, $\\pi$, $\\alpha$
-3. Use $$ for display equations: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
-4. Include every mathematical step with perfect LaTeX formatting
-5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
-6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
-7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
-8. Never use plain text for any mathematical symbol, number, or expression
-
-Assignment to solve:\n\n${text}`
+            content: prompt
           }
         ],
         max_tokens: 4000,
@@ -372,7 +650,28 @@ Assignment to solve:\n\n${text}`
 
     const data = await response.json();
     const responseText = data.choices[0]?.message?.content || 'No response generated';
-    return responseText;
+    
+    // Extract graph data if present
+    let graphData: GraphRequest | undefined;
+    if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
+      try {
+        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
+        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
+        if (graphEnd > graphStart) {
+          const graphJson = responseText.substring(graphStart, graphEnd).trim();
+          graphData = JSON.parse(graphJson);
+        }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
+      }
+    }
+
+    // Clean the response to remove graph data markers
+    const cleanedResponse = responseText
+      .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
+      .trim();
+
+    return { response: cleanedResponse, graphData };
   } catch (error) {
     console.error('Perplexity API error:', error);
     throw new Error('Failed to process with Perplexity');
