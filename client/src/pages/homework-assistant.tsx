@@ -1020,6 +1020,19 @@ ${fullResponse.slice(-1000)}...`;
             margin-bottom: 12pt;
             text-align: justify;
         }
+        .graph-container {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+        .graph-container svg {
+            max-width: 100%;
+            height: auto;
+        }
         @page {
             margin: 1in;
             size: letter;
@@ -1031,6 +1044,10 @@ ${fullResponse.slice(-1000)}...`;
             }
             .mjx-chtml {
                 font-size: 120% !important;
+            }
+            .graph-container {
+                background: white !important;
+                border: 1px solid #000 !important;
             }
         }
     </style>
@@ -1050,14 +1067,34 @@ ${fullResponse.slice(-1000)}...`;
     
     <div class="section">
         <h2>Solution:</h2>
-        ${currentResult.graphImage ? `<div style="text-align: center; margin: 20px 0;"><img src="data:image/png;base64,${currentResult.graphImage}" alt="Generated Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; page-break-inside: avoid;" /></div>` : ''}
-        <div class="content">${currentResult.llmResponse}</div>
+        <div class="content" id="solution-content">${currentResult.llmResponse}</div>
     </div>
 </body>
 </html>`;
 
     printWindow.document.write(htmlContent);
     printWindow.document.close();
+
+    // After the document is written, we need to process and inject the rendered graphs
+    printWindow.addEventListener('load', () => {
+      const sourceContainer = document.querySelector('.math-content');
+      const targetContainer = printWindow.document.getElementById('solution-content');
+      
+      if (sourceContainer && targetContainer) {
+        // Clone the fully rendered content including SVG graphs
+        const clonedContent = sourceContainer.cloneNode(true) as HTMLElement;
+        targetContainer.innerHTML = clonedContent.innerHTML;
+        
+        // Ensure MathJax renders in the print window
+        if (printWindow.MathJax && printWindow.MathJax.typesetPromise) {
+          printWindow.MathJax.typesetPromise([targetContainer]).then(() => {
+            setTimeout(() => {
+              printWindow.print();
+            }, 500);
+          }).catch(console.error);
+        }
+      }
+    });
 
     toast({
       title: "Print window opened",
