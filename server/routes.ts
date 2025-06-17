@@ -728,7 +728,7 @@ async function checkAIDetection(text: string): Promise<any> {
 }
 
 // HTML to PDF conversion using Puppeteer
-async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment Solution'): Promise<Buffer> {
+async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment Solution', graphImage?: string): Promise<Buffer> {
   let browser;
   try {
     browser = await puppeteer.launch({
@@ -821,6 +821,15 @@ async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment
             margin: 1in;
             size: letter;
         }
+        .graph-image {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            display: block;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            page-break-inside: avoid;
+        }
         @media print {
             body { 
                 margin: 0; 
@@ -829,11 +838,16 @@ async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment
             .mjx-chtml {
                 font-size: 120% !important;
             }
+            .graph-image {
+                max-width: 100%;
+                page-break-inside: avoid;
+            }
         }
     </style>
 </head>
 <body>
     <h1>${title}</h1>
+    ${graphImage ? `<img src="data:image/png;base64,${graphImage}" alt="Generated Graph" class="graph-image" />` : ''}
     <div class="solution-content">${htmlContent}</div>
     <script>
         // Wait for MathJax to finish rendering
@@ -890,7 +904,7 @@ async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment
 }
 
 // PDF Generation function using LaTeX/Tectonic
-async function generatePDF(content: string, title: string = 'Assignment Solution', extractedText?: string): Promise<Buffer> {
+async function generatePDF(content: string, title: string = 'Assignment Solution', extractedText?: string, graphImage?: string): Promise<Buffer> {
   const tempId = randomBytes(16).toString('hex');
   const tempDir = path.join('/tmp', `latex_${tempId}`);
   const texFile = path.join(tempDir, 'document.tex');
@@ -1474,13 +1488,13 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
   // HTML to PDF conversion endpoint
   app.post("/api/html-to-pdf", async (req, res) => {
     try {
-      const { htmlContent, title } = req.body;
+      const { htmlContent, title, graphImage } = req.body;
       
       if (!htmlContent || typeof htmlContent !== 'string') {
         return res.status(400).json({ error: "HTML content is required" });
       }
 
-      const pdfBuffer = await convertHtmlToPdf(htmlContent, title);
+      const pdfBuffer = await convertHtmlToPdf(htmlContent, title, graphImage);
       
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
@@ -1497,13 +1511,13 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
   // PDF generation endpoint (LaTeX fallback)
   app.post("/api/generate-pdf", async (req, res) => {
     try {
-      const { content, title, extractedText } = req.body;
+      const { content, title, extractedText, graphImage } = req.body;
       
       if (!content || typeof content !== 'string') {
         return res.status(400).json({ error: "Content is required" });
       }
 
-      const pdfBuffer = await generatePDF(content, title, extractedText);
+      const pdfBuffer = await generatePDF(content, title, extractedText, graphImage);
       
       // Set headers for PDF download
       res.setHeader('Content-Type', 'application/pdf');
