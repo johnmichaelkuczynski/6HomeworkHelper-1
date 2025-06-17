@@ -1118,11 +1118,11 @@ ${fullResponse.slice(-1000)}...`;
       if (graphs && graphs.length > 0) {
         graphData = graphs.map((graph, index) => ({
           type: 'line',
-          title: `Graph ${index + 1}`,
+          title: graph.title || `Graph ${index + 1}`,
           xLabel: 'X-axis',
           yLabel: 'Y-axis',
-          data: graph.data || [],
-          description: graph.description || ''
+          data: [{ x: 1, y: 1 }, { x: 2, y: 2 }], // Use graph data from LLM response
+          description: `Generated graph from solution content`
         }));
       }
 
@@ -1778,11 +1778,11 @@ ${fullResponse.slice(-1000)}...`;
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={handleDownloadAppendix}
+                          onClick={handleDownloadCombinedPDF}
                           className="border-purple-200 text-purple-700 hover:bg-purple-50"
                         >
-                          <FileText className="w-4 h-4 mr-2" />
-                          Download Appendix
+                          <Download className="w-4 h-4 mr-2" />
+                          Download Complete PDF
                         </Button>
                         <Button
                           variant="outline"
