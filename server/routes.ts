@@ -338,7 +338,7 @@ async function generateGraph(graphData: GraphRequest): Promise<string> {
   return imageBuffer.toString('base64');
 }
 
-async function processWithAnthropic(text: string): Promise<{response: string, graphData?: GraphRequest}> {
+async function processWithAnthropic(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
     // Check if the assignment requires a graph
     const needsGraph = detectGraphRequirements(text);
@@ -359,8 +359,9 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+This assignment may require one or more graphs/plots. After solving the problem, you MUST provide graph data for EACH required graph in this EXACT JSON format at the very end of your response:
 
+For each graph needed:
 GRAPH_DATA_START
 {
   "type": "line|bar|scatter",
@@ -375,7 +376,8 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
-Generate realistic data points based on the scientific/mathematical principles in the assignment. For enzyme activity vs temperature, show typical enzyme behavior with optimal temperature and denaturation.`;
+If multiple graphs are needed, provide multiple GRAPH_DATA_START...GRAPH_DATA_END blocks.
+Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
     prompt += `\n\nAssignment to solve:\n\n${text}`;
@@ -391,15 +393,20 @@ Generate realistic data points based on the scientific/mathematical principles i
 
     const response = message.content[0]?.type === 'text' ? message.content[0].text : 'No response generated';
     
-    // Extract graph data if present
-    let graphData: GraphRequest | undefined;
+    // Extract multiple graph data if present
+    const graphData: GraphRequest[] = [];
     if (needsGraph && response.includes('GRAPH_DATA_START')) {
       try {
-        const graphStart = response.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
-        const graphEnd = response.indexOf('GRAPH_DATA_END');
-        if (graphEnd > graphStart) {
-          const graphJson = response.substring(graphStart, graphEnd).trim();
-          graphData = JSON.parse(graphJson);
+        const graphRegex = /GRAPH_DATA_START([\s\S]*?)GRAPH_DATA_END/g;
+        let match;
+        while ((match = graphRegex.exec(response)) !== null) {
+          try {
+            const graphJson = match[1].trim();
+            const parsedGraph = JSON.parse(graphJson);
+            graphData.push(parsedGraph);
+          } catch (error) {
+            console.error('Failed to parse individual graph data:', error);
+          }
         }
       } catch (error) {
         console.error('Failed to parse graph data:', error);
@@ -411,14 +418,17 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { response: cleanedResponse, graphData };
+    return { 
+      response: cleanedResponse, 
+      graphData: graphData.length > 0 ? graphData : undefined 
+    };
   } catch (error) {
     console.error('Anthropic API error:', error);
     throw new Error('Failed to process with Anthropic');
   }
 }
 
-async function processWithOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest}> {
+async function processWithOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
     // Check if the assignment requires a graph
     const needsGraph = detectGraphRequirements(text);
@@ -439,8 +449,9 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+This assignment may require one or more graphs/plots. After solving the problem, you MUST provide graph data for EACH required graph in this EXACT JSON format at the very end of your response:
 
+For each graph needed:
 GRAPH_DATA_START
 {
   "type": "line|bar|scatter",
@@ -455,6 +466,7 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
+If multiple graphs are needed, provide multiple GRAPH_DATA_START...GRAPH_DATA_END blocks.
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
@@ -471,15 +483,20 @@ Generate realistic data points based on the scientific/mathematical principles i
 
     const responseText = response.choices[0]?.message?.content || 'No response generated';
     
-    // Extract graph data if present
-    let graphData: GraphRequest | undefined;
+    // Extract multiple graph data if present
+    const graphData: GraphRequest[] = [];
     if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
       try {
-        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
-        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
-        if (graphEnd > graphStart) {
-          const graphJson = responseText.substring(graphStart, graphEnd).trim();
-          graphData = JSON.parse(graphJson);
+        const graphRegex = /GRAPH_DATA_START([\s\S]*?)GRAPH_DATA_END/g;
+        let match;
+        while ((match = graphRegex.exec(responseText)) !== null) {
+          try {
+            const graphJson = match[1].trim();
+            const parsedGraph = JSON.parse(graphJson);
+            graphData.push(parsedGraph);
+          } catch (error) {
+            console.error('Failed to parse individual graph data:', error);
+          }
         }
       } catch (error) {
         console.error('Failed to parse graph data:', error);
@@ -491,14 +508,17 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { response: cleanedResponse, graphData };
+    return { 
+      response: cleanedResponse, 
+      graphData: graphData.length > 0 ? graphData : undefined 
+    };
   } catch (error) {
     console.error('OpenAI API error:', error);
     throw new Error('Failed to process with OpenAI');
   }
 }
 
-async function processWithAzureOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest}> {
+async function processWithAzureOpenAI(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   if (!azureOpenAI) {
     throw new Error('Azure OpenAI not configured');
   }
@@ -523,8 +543,9 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+This assignment may require one or more graphs/plots. After solving the problem, you MUST provide graph data for EACH required graph in this EXACT JSON format at the very end of your response:
 
+For each graph needed:
 GRAPH_DATA_START
 {
   "type": "line|bar|scatter",
@@ -539,6 +560,7 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
+If multiple graphs are needed, provide multiple GRAPH_DATA_START...GRAPH_DATA_END blocks.
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
@@ -555,15 +577,20 @@ Generate realistic data points based on the scientific/mathematical principles i
 
     const responseText = response.choices[0]?.message?.content || 'No response generated';
     
-    // Extract graph data if present
-    let graphData: GraphRequest | undefined;
+    // Extract multiple graph data if present
+    const graphData: GraphRequest[] = [];
     if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
       try {
-        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
-        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
-        if (graphEnd > graphStart) {
-          const graphJson = responseText.substring(graphStart, graphEnd).trim();
-          graphData = JSON.parse(graphJson);
+        const graphRegex = /GRAPH_DATA_START([\s\S]*?)GRAPH_DATA_END/g;
+        let match;
+        while ((match = graphRegex.exec(responseText)) !== null) {
+          try {
+            const graphJson = match[1].trim();
+            const parsedGraph = JSON.parse(graphJson);
+            graphData.push(parsedGraph);
+          } catch (error) {
+            console.error('Failed to parse individual graph data:', error);
+          }
         }
       } catch (error) {
         console.error('Failed to parse graph data:', error);
@@ -575,7 +602,10 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { response: cleanedResponse, graphData };
+    return { 
+      response: cleanedResponse, 
+      graphData: graphData.length > 0 ? graphData : undefined 
+    };
   } catch (error) {
     console.error('Azure OpenAI API error:', error);
     throw new Error('Failed to process with Azure OpenAI');
