@@ -607,6 +607,7 @@ export default function HomeworkAssistant() {
     
     <div class="solution-section">
         <h2>Solution</h2>
+        ${currentResult.graphImage ? `<img src="data:image/png;base64,${currentResult.graphImage}" alt="Generated Graph" style="max-width: 100%; height: auto; margin: 20px 0; display: block; border: 1px solid #ddd; border-radius: 4px; page-break-inside: avoid;" />` : ''}
         <div class="math-content">${clonedContent.innerHTML}</div>
     </div>
     
