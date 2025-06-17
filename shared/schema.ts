@@ -10,6 +10,8 @@ export const assignments = pgTable("assignments", {
   extractedText: text("extracted_text"),
   llmProvider: text("llm_provider").notNull(), // 'anthropic', 'openai', 'perplexity'
   llmResponse: text("llm_response"),
+  graphData: text("graph_data"), // JSON string containing graph configuration and data
+  graphImage: text("graph_image"), // base64 encoded graph image
   processingTime: integer("processing_time"), // in milliseconds
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -37,6 +39,8 @@ export const processAssignmentResponseSchema = z.object({
   id: z.number(),
   extractedText: z.string().optional(),
   llmResponse: z.string(),
+  graphData: z.string().optional(),
+  graphImage: z.string().optional(),
   processingTime: z.number(),
   success: z.boolean(),
 });
