@@ -1052,6 +1052,7 @@ ${fullResponse.slice(-1000)}...`;
     
     <div class="section">
         <h2>Solution:</h2>
+        ${currentResult.graphImage ? `<div style="text-align: center; margin: 20px 0;"><img src="data:image/png;base64,${currentResult.graphImage}" alt="Generated Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; page-break-inside: avoid;" /></div>` : ''}
         <div class="content">${currentResult.llmResponse}</div>
     </div>
 </body>
@@ -1742,62 +1743,27 @@ ${fullResponse.slice(-1000)}...`;
 
 
 
-            {/* AI Detection Results Card */}
+            {/* AI Detection Results Card - Compact */}
             {aiDetectionResult && !isCheckingAI && (
-              <div className="mt-6">
-                <Card className="border-2 border-blue-200 bg-blue-50">
-                  <div className="p-4">
+              <div className="mt-4">
+                <Card className="border border-blue-200 bg-blue-50">
+                  <div className="p-3">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-blue-900">AI Detection Results</h3>
+                      <h3 className="text-sm font-semibold text-blue-900">AI Detection</h3>
                       {aiDetectionResult.error ? (
-                        <span className="px-3 py-1 bg-gray-200 text-gray-700 rounded-full text-sm font-medium">
-                          Service Unavailable
+                        <span className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs">
+                          Unavailable
                         </span>
                       ) : (
-                        <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${
                           (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 
                             ? 'bg-red-200 text-red-800' 
                             : 'bg-green-200 text-green-800'
                         }`}>
-                          {Math.round((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}% AI Detected
+                          {Math.round((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}% AI
                         </span>
                       )}
                     </div>
-                    
-                    {aiDetectionResult.error ? (
-                      <p className="text-gray-600 mt-2">
-                        {aiDetectionResult.error}
-                      </p>
-                    ) : (
-                      <div className="mt-3">
-                        <div className="flex items-center space-x-4 text-sm">
-                          <div className="flex items-center">
-                            <div className={`w-3 h-3 rounded-full mr-2 ${
-                              (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 
-                                ? 'bg-red-500' 
-                                : 'bg-green-500'
-                            }`}></div>
-                            <span className="font-medium">
-                              {(aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 
-                                ? 'Likely AI Generated' 
-                                : 'Likely Human Written'
-                              }
-                            </span>
-                          </div>
-                          <span className="text-gray-600">
-                            Confidence: {Math.round((1 - Math.abs((aiDetectionResult.documents?.[0]?.average_generated_prob || 0) - 0.5) * 2) * 100)}%
-                          </span>
-                        </div>
-                        <div className="mt-2 bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${
-                              (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) > 0.5 ? 'bg-red-500' : 'bg-green-500'
-                            }`}
-                            style={{ width: `${Math.max(10, (aiDetectionResult.documents?.[0]?.average_generated_prob || 0) * 100)}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </Card>
               </div>
