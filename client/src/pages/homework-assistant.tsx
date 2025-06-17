@@ -1553,7 +1553,7 @@ ${fullResponse.slice(-1000)}...`;
               )}
             </div>
 
-            <div className="p-6 overflow-y-auto max-h-96">
+            <div className="p-6 overflow-y-auto flex-1">
               {isProcessing && !accumulatedContent && (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center space-y-4">
