@@ -882,8 +882,49 @@ ${fullResponse.slice(-1000)}...`;
 
 
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!currentResult) return;
+
+    const title = currentAssignmentName || 'Assignment Solution';
+
+    // If there's a graph, download both files
+    if (currentResult.graphImage) {
+      try {
+        // Download the graph PDF first
+        const graphResponse = await fetch('/api/generate-graph-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            graphImage: currentResult.graphImage,
+            title: `${title} - Graph`
+          })
+        });
+
+        if (graphResponse.ok) {
+          const graphBlob = await graphResponse.blob();
+          const graphUrl = window.URL.createObjectURL(graphBlob);
+          const graphLink = document.createElement('a');
+          graphLink.href = graphUrl;
+          graphLink.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_graph.pdf`;
+          document.body.appendChild(graphLink);
+          graphLink.click();
+          document.body.removeChild(graphLink);
+          window.URL.revokeObjectURL(graphUrl);
+          
+          toast({
+            title: "Graph downloaded",
+            description: "Graph PDF downloaded. Now downloading solution PDF...",
+          });
+        }
+      } catch (error) {
+        console.error('Graph download error:', error);
+        toast({
+          title: "Graph download failed",
+          description: "Continuing with solution download",
+          variant: "destructive",
+        });
+      }
+    }
 
     // Create a new window for printing with MathJax rendering
     const printWindow = window.open('', '_blank');

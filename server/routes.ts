@@ -1531,6 +1531,82 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     }
   });
 
+  // Graph PDF generation endpoint
+  app.post("/api/generate-graph-pdf", async (req, res) => {
+    try {
+      const { graphImage, title } = req.body;
+      
+      if (!graphImage || typeof graphImage !== 'string') {
+        return res.status(400).json({ error: "Graph image is required" });
+      }
+
+      const graphHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title || 'Generated Graph'}</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            margin: 0;
+            padding: 40px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #000;
+            margin-bottom: 30px;
+            font-size: 24pt;
+            text-align: center;
+        }
+        .graph-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .graph-image {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        @page {
+            margin: 0.75in;
+            size: letter;
+        }
+        @media print {
+            body { margin: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h1>${title || 'Generated Graph'}</h1>
+    <div class="graph-container">
+        <img src="data:image/png;base64,${graphImage}" alt="Generated Graph" class="graph-image" />
+    </div>
+</body>
+</html>`;
+
+      const pdfBuffer = await convertHtmlToPdf(graphHtml, title || 'Generated Graph');
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${(title || 'graph').replace(/[^a-zA-Z0-9]/g, '_')}_graph.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error('Graph PDF generation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate graph PDF' });
+    }
+  });
+
   // Email solution endpoint using SendGrid
   app.post("/api/email-solution", async (req, res) => {
     try {

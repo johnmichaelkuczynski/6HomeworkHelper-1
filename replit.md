@@ -131,6 +131,7 @@ The application follows a full-stack architecture with clear separation between 
 
 - June 17, 2025. Initial setup
 - June 17, 2025. Integrated automatic graph generation for homework assignments requiring visual components
+- June 17, 2025. Implemented dual-download PDF system: separate graph PDF and solution PDF when graphs are generated
 
 ## User Preferences
 
