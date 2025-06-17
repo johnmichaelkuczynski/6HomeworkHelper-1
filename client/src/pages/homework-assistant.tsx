@@ -1738,7 +1738,7 @@ ${fullResponse.slice(-1000)}...`;
                         <h4 className="text-md font-medium text-slate-900 mb-3 flex items-center">
                           📊 Generated Graphs ({currentResult.graphImages.length})
                         </h4>
-                        {currentResult.graphImages.map((graphImage, index) => (
+                        {currentResult.graphImages.map((graphImage: string, index: number) => (
                           <div key={index} className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                             <h5 className="text-sm font-medium text-slate-700 mb-2">
                               Graph {index + 1}
