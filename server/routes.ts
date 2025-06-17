@@ -612,7 +612,7 @@ Generate realistic data points based on the scientific/mathematical principles i
   }
 }
 
-async function processWithPerplexity(text: string): Promise<{response: string, graphData?: GraphRequest}> {
+async function processWithPerplexity(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
     // Check if the assignment requires a graph
     const needsGraph = detectGraphRequirements(text);
@@ -633,8 +633,9 @@ Solve this homework assignment with these MANDATORY requirements:
       prompt += `
 
 ADDITIONAL GRAPH REQUIREMENT:
-This assignment requires a graph/plot. After solving the problem, you MUST also provide graph data in this EXACT JSON format at the very end of your response:
+This assignment may require one or more graphs/plots. After solving the problem, you MUST provide graph data for EACH required graph in this EXACT JSON format at the very end of your response:
 
+For each graph needed:
 GRAPH_DATA_START
 {
   "type": "line|bar|scatter",
@@ -649,6 +650,7 @@ GRAPH_DATA_START
 }
 GRAPH_DATA_END
 
+If multiple graphs are needed, provide multiple GRAPH_DATA_START...GRAPH_DATA_END blocks.
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
@@ -681,15 +683,20 @@ Generate realistic data points based on the scientific/mathematical principles i
     const data = await response.json();
     const responseText = data.choices[0]?.message?.content || 'No response generated';
     
-    // Extract graph data if present
-    let graphData: GraphRequest | undefined;
+    // Extract multiple graph data if present
+    const graphData: GraphRequest[] = [];
     if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
       try {
-        const graphStart = responseText.indexOf('GRAPH_DATA_START') + 'GRAPH_DATA_START'.length;
-        const graphEnd = responseText.indexOf('GRAPH_DATA_END');
-        if (graphEnd > graphStart) {
-          const graphJson = responseText.substring(graphStart, graphEnd).trim();
-          graphData = JSON.parse(graphJson);
+        const graphRegex = /GRAPH_DATA_START([\s\S]*?)GRAPH_DATA_END/g;
+        let match;
+        while ((match = graphRegex.exec(responseText)) !== null) {
+          try {
+            const graphJson = match[1].trim();
+            const parsedGraph = JSON.parse(graphJson);
+            graphData.push(parsedGraph);
+          } catch (error) {
+            console.error('Failed to parse individual graph data:', error);
+          }
         }
       } catch (error) {
         console.error('Failed to parse graph data:', error);
@@ -701,7 +708,10 @@ Generate realistic data points based on the scientific/mathematical principles i
       .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
       .trim();
 
-    return { response: cleanedResponse, graphData };
+    return { 
+      response: cleanedResponse, 
+      graphData: graphData.length > 0 ? graphData : undefined 
+    };
   } catch (error) {
     console.error('Perplexity API error:', error);
     throw new Error('Failed to process with Perplexity');
@@ -1089,7 +1099,7 @@ Please refine the solution based on the feedback while:
 
 Provide the refined solution with all mathematical expressions in proper LaTeX format (use $ for inline math and $$ for display math). Do not include any meta-commentary about the refinement process - just provide the improved solution directly.`;
 
-      let refinedResult: {response: string, graphData?: GraphRequest};
+      let refinedResult: {response: string, graphData?: GraphRequest[]};
       
       try {
         switch (provider) {
@@ -1167,7 +1177,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       }
 
       // Process with selected LLM
-      let llmResult: {response: string, graphData?: GraphRequest};
+      let llmResult: {response: string, graphData?: GraphRequest[]};
       switch (llmProvider) {
         case 'anthropic':
           llmResult = await processWithAnthropic(extractedText);
@@ -1187,17 +1197,23 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       const processingTime = Date.now() - startTime;
 
-      // Generate graph if required
-      let graphImage: string | undefined;
-      let graphDataJson: string | undefined;
+      // Generate graphs if required
+      let graphImages: string[] | undefined;
+      let graphDataJsons: string[] | undefined;
       
-      if (llmResult.graphData) {
+      if (llmResult.graphData && llmResult.graphData.length > 0) {
         try {
-          graphImage = await generateGraph(llmResult.graphData);
-          graphDataJson = JSON.stringify(llmResult.graphData);
+          graphImages = [];
+          graphDataJsons = [];
+          
+          for (const graphData of llmResult.graphData) {
+            const graphImage = await generateGraph(graphData);
+            graphImages.push(graphImage);
+            graphDataJsons.push(JSON.stringify(graphData));
+          }
         } catch (error) {
           console.error('Graph generation error:', error);
-          // Continue without graph if generation fails
+          // Continue without graphs if generation fails
         }
       }
 
@@ -1207,8 +1223,8 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         id: Date.now(), // Generate a temporary ID for the response
         extractedText,
         llmResponse: llmResult.response,
-        graphData: graphDataJson,
-        graphImage,
+        graphData: graphDataJsons,
+        graphImages: graphImages,
         processingTime,
         success: true,
       };
@@ -1264,7 +1280,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       const startTime = Date.now();
 
       // Process with selected LLM
-      let llmResult: {response: string, graphData?: GraphRequest};
+      let llmResult: {response: string, graphData?: GraphRequest[]};
       switch (llmProvider) {
         case 'anthropic':
           llmResult = await processWithAnthropic(inputText);
@@ -1284,17 +1300,23 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       const processingTime = Date.now() - startTime;
 
-      // Generate graph if required
-      let graphImage: string | undefined;
-      let graphDataJson: string | undefined;
+      // Generate graphs if required
+      let graphImages: string[] | undefined;
+      let graphDataJsons: string[] | undefined;
       
-      if (llmResult.graphData) {
+      if (llmResult.graphData && llmResult.graphData.length > 0) {
         try {
-          graphImage = await generateGraph(llmResult.graphData);
-          graphDataJson = JSON.stringify(llmResult.graphData);
+          graphImages = [];
+          graphDataJsons = [];
+          
+          for (const graphData of llmResult.graphData) {
+            const graphImage = await generateGraph(graphData);
+            graphImages.push(graphImage);
+            graphDataJsons.push(JSON.stringify(graphData));
+          }
         } catch (error) {
           console.error('Graph generation error:', error);
-          // Continue without graph if generation fails
+          // Continue without graphs if generation fails
         }
       }
 
@@ -1306,8 +1328,8 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         extractedText: null,
         llmProvider,
         llmResponse: llmResult.response,
-        graphData: graphDataJson,
-        graphImage,
+        graphData: graphDataJsons,
+        graphImages: graphImages,
         processingTime,
       });
 
@@ -1315,8 +1337,8 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         id: assignment.id,
         extractedText: inputText,
         llmResponse: llmResult.response,
-        graphData: graphDataJson,
-        graphImage,
+        graphData: graphDataJsons,
+        graphImages: graphImages,
         processingTime,
         success: true,
       };
