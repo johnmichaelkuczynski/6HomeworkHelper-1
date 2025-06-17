@@ -146,8 +146,8 @@ function createSVGChart(graphData: GraphData, width: number = 600, height: numbe
   `;
 }
 
-function parseGraphData(content: string): { content: string; graphs: { id: string; svg: string }[] } {
-  const graphs: { id: string; svg: string }[] = [];
+function parseGraphData(content: string): { content: string; graphs: { id: string; svg: string; title: string }[] } {
+  const graphs: { id: string; svg: string; title: string }[] = [];
   let processedContent = content;
 
   // Find all GRAPH_DATA_START blocks
@@ -157,7 +157,7 @@ function parseGraphData(content: string): { content: string; graphs: { id: strin
 
   while ((match = graphDataRegex.exec(content)) !== null) {
     const graphDataText = match[1].trim();
-    const graphId = `graph-${graphCounter++}`;
+    const graphId = `graph-${graphCounter + 1}`;
     
     try {
       // Try to parse as JSON
@@ -209,13 +209,15 @@ function parseGraphData(content: string): { content: string; graphs: { id: strin
       // Validate required fields
       if (graphData.data && graphData.data.length > 0) {
         const svg = createSVGChart(graphData);
-        graphs.push({ id: graphId, svg });
+        graphs.push({ id: graphId, svg, title: graphData.title });
         
-        // Replace the graph data block with a placeholder
-        processedContent = processedContent.replace(
-          match[0], 
-          `<div class="graph-placeholder" data-graph-id="${graphId}"></div>`
-        );
+        // Replace the graph data block with a citation reference
+        const citation = `<div class="graph-citation" style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px; padding: 8px; margin: 16px 0; text-align: center;">
+          <strong>📊 See Appendix A, Graph ${graphCounter + 1}:</strong> ${graphData.title}
+        </div>`;
+        
+        processedContent = processedContent.replace(match[0], citation);
+        graphCounter++;
       }
     } catch (error) {
       console.error('Failed to parse graph data:', error);
@@ -231,8 +233,13 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
 
   useEffect(() => {
     if (containerRef.current && content) {
-      // Parse graph data and extract SVGs
+      // Parse graph data and extract SVGs, but don't render them inline
       const { content: processedContent, graphs } = parseGraphData(content);
+      
+      // Store graphs data for appendix generation
+      if (graphs.length > 0 && containerRef.current) {
+        (containerRef.current as any).graphsData = graphs;
+      }
       
       // Process text content
       let htmlContent = processedContent
@@ -242,30 +249,12 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
         .replace(/\n/g, '<br/>');
 
       // Wrap in paragraphs if not already wrapped
-      if (!htmlContent.startsWith('<p>')) {
+      if (!htmlContent.startsWith('<p>') && !htmlContent.includes('<div class="graph-citation"')) {
         htmlContent = '<p>' + htmlContent + '</p>';
       }
 
       containerRef.current.innerHTML = htmlContent;
       containerRef.current.classList.add('math-content');
-      
-      // Insert SVG graphs
-      graphs.forEach(({ id, svg }) => {
-        const placeholder = containerRef.current?.querySelector(`[data-graph-id="${id}"]`);
-        if (placeholder) {
-          const graphContainer = document.createElement('div');
-          graphContainer.className = 'graph-container my-6 p-4 bg-slate-50 border border-slate-200 rounded-lg';
-          graphContainer.innerHTML = `
-            <div class="flex items-center mb-3">
-              <span class="text-sm font-medium text-slate-700">📊 Generated Graph</span>
-            </div>
-            <div class="flex justify-center">
-              ${svg}
-            </div>
-          `;
-          placeholder.replaceWith(graphContainer);
-        }
-      });
       
       // Force MathJax to render all mathematical content
       if (window.MathJax && window.MathJax.typesetPromise) {
@@ -281,6 +270,14 @@ export function MathRenderer({ content, className = "" }: MathRendererProps) {
       style={{ fontSize: '16px', lineHeight: '1.6' }}
     />
   );
+}
+
+// Helper function to extract graphs from rendered content
+export function getGraphsFromContent(element: HTMLElement | null): { id: string; svg: string; title: string }[] {
+  if (!element || !(element as any).graphsData) {
+    return [];
+  }
+  return (element as any).graphsData;
 }
 
 // Declare MathJax types for TypeScript

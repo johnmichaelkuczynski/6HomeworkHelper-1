@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TextareaWithVoice } from "@/components/ui/textarea-with-voice";
 import { MathTextarea } from "@/components/ui/math-textarea";
 import { FileUpload } from "@/components/ui/file-upload";
-import { MathRenderer } from "@/components/ui/math-renderer";
+import { MathRenderer, getGraphsFromContent } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer } from "lucide-react";
@@ -1101,6 +1101,130 @@ ${fullResponse.slice(-1000)}...`;
       description: "Use Ctrl+P or Cmd+P to save as PDF with perfect math notation",
     });
   };
+
+  const handleDownloadAppendix = () => {
+    if (!currentResult) return;
+
+    // Get graphs data from the rendered content
+    const mathContentElement = document.querySelector('.math-content');
+    const graphs = getGraphsFromContent(mathContentElement as HTMLElement);
+    
+    if (!graphs || graphs.length === 0) {
+      toast({
+        title: "No graphs found",
+        description: "This solution doesn't contain any graphs to include in an appendix",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const title = currentAssignmentName || 'Assignment';
+    
+    // Create appendix document
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups to download appendix",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const appendixHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Appendix A - Graphs and Charts</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.6;
+            margin: 1in;
+            color: black;
+            background: white;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid black;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 18pt;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .graph-section {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+        }
+        .graph-title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .graph-container {
+            text-align: center;
+            margin: 20px 0;
+            border: 1px solid #333;
+            padding: 20px;
+            background: white;
+        }
+        .graph-container svg {
+            max-width: 100%;
+            height: auto;
+        }
+        @page {
+            margin: 1in;
+            size: letter;
+        }
+        @media print {
+            body { 
+                margin: 0; 
+                font-size: 12pt;
+            }
+            .graph-container {
+                border: 1px solid #000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Appendix A</h1>
+        <h2>Graphs and Charts</h2>
+        <p>${title}</p>
+        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+    </div>
+    
+    ${graphs.map((graph, index) => `
+    <div class="graph-section">
+        <div class="graph-title">Graph ${index + 1}: ${graph.title}</div>
+        <div class="graph-container">
+            ${graph.svg}
+        </div>
+    </div>
+    `).join('')}
+</body>
+</html>`;
+
+    printWindow.document.write(appendixHtml);
+    printWindow.document.close();
+    
+    // Auto-print after a short delay
+    setTimeout(() => {
+      printWindow.print();
+    }, 1000);
+
+    toast({
+      title: "Appendix ready",
+      description: `Generated appendix with ${graphs.length} graph${graphs.length > 1 ? 's' : ''}`,
+    });
+  };
   
   const handleCopyToClipboard = () => {
     if (!currentResult) return;
@@ -1712,6 +1836,15 @@ ${fullResponse.slice(-1000)}...`;
                         >
                           <Printer className="w-4 h-4 mr-2" />
                           Print/PDF
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDownloadAppendix}
+                          className="border-purple-200 text-purple-700 hover:bg-purple-50"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Download Appendix
                         </Button>
                         <Button
                           variant="outline"
