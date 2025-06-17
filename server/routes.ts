@@ -1045,21 +1045,21 @@ Please refine the solution based on the feedback while:
 
 Provide the refined solution with all mathematical expressions in proper LaTeX format (use $ for inline math and $$ for display math). Do not include any meta-commentary about the refinement process - just provide the improved solution directly.`;
 
-      let refinedSolution;
+      let refinedResult: {response: string, graphData?: GraphRequest};
       
       try {
         switch (provider) {
           case 'anthropic':
-            refinedSolution = await processWithAnthropic(refinementPrompt);
+            refinedResult = await processWithAnthropic(refinementPrompt);
             break;
           case 'openai':
-            refinedSolution = await processWithOpenAI(refinementPrompt);
+            refinedResult = await processWithOpenAI(refinementPrompt);
             break;
           case 'azure':
-            refinedSolution = await processWithAzureOpenAI(refinementPrompt);
+            refinedResult = await processWithAzureOpenAI(refinementPrompt);
             break;
           case 'perplexity':
-            refinedSolution = await processWithPerplexity(refinementPrompt);
+            refinedResult = await processWithPerplexity(refinementPrompt);
             break;
           default:
             throw new Error('Invalid provider');
@@ -1073,7 +1073,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       res.json({
         success: true,
-        refinedSolution: cleanResponse(refinedSolution),
+        refinedSolution: cleanResponse(refinedResult.response),
         processingTime,
         provider
       });
@@ -1123,19 +1123,19 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       }
 
       // Process with selected LLM
-      let llmResponse = '';
+      let llmResult: {response: string, graphData?: GraphRequest};
       switch (llmProvider) {
         case 'anthropic':
-          llmResponse = await processWithAnthropic(extractedText);
+          llmResult = await processWithAnthropic(extractedText);
           break;
         case 'openai':
-          llmResponse = await processWithOpenAI(extractedText);
+          llmResult = await processWithOpenAI(extractedText);
           break;
         case 'azure':
-          llmResponse = await processWithAzureOpenAI(extractedText);
+          llmResult = await processWithAzureOpenAI(extractedText);
           break;
         case 'perplexity':
-          llmResponse = await processWithPerplexity(extractedText);
+          llmResult = await processWithPerplexity(extractedText);
           break;
         default:
           throw new Error(`Unsupported LLM provider: ${llmProvider}`);
@@ -1143,12 +1143,28 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       const processingTime = Date.now() - startTime;
 
+      // Generate graph if required
+      let graphImage: string | undefined;
+      let graphDataJson: string | undefined;
+      
+      if (llmResult.graphData) {
+        try {
+          graphImage = await generateGraph(llmResult.graphData);
+          graphDataJson = JSON.stringify(llmResult.graphData);
+        } catch (error) {
+          console.error('Graph generation error:', error);
+          // Continue without graph if generation fails
+        }
+      }
+
       // Don't auto-save assignment
 
       const response: ProcessAssignmentResponse = {
         id: Date.now(), // Generate a temporary ID for the response
         extractedText,
-        llmResponse,
+        llmResponse: llmResult.response,
+        graphData: graphDataJson,
+        graphImage,
         processingTime,
         success: true,
       };
@@ -1204,25 +1220,39 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       const startTime = Date.now();
 
       // Process with selected LLM
-      let llmResponse = '';
+      let llmResult: {response: string, graphData?: GraphRequest};
       switch (llmProvider) {
         case 'anthropic':
-          llmResponse = await processWithAnthropic(inputText);
+          llmResult = await processWithAnthropic(inputText);
           break;
         case 'openai':
-          llmResponse = await processWithOpenAI(inputText);
+          llmResult = await processWithOpenAI(inputText);
           break;
         case 'azure':
-          llmResponse = await processWithAzureOpenAI(inputText);
+          llmResult = await processWithAzureOpenAI(inputText);
           break;
         case 'perplexity':
-          llmResponse = await processWithPerplexity(inputText);
+          llmResult = await processWithPerplexity(inputText);
           break;
         default:
           throw new Error(`Unsupported LLM provider: ${llmProvider}`);
       }
 
       const processingTime = Date.now() - startTime;
+
+      // Generate graph if required
+      let graphImage: string | undefined;
+      let graphDataJson: string | undefined;
+      
+      if (llmResult.graphData) {
+        try {
+          graphImage = await generateGraph(llmResult.graphData);
+          graphDataJson = JSON.stringify(llmResult.graphData);
+        } catch (error) {
+          console.error('Graph generation error:', error);
+          // Continue without graph if generation fails
+        }
+      }
 
       // Store assignment
       const assignment = await storage.createAssignment({
@@ -1231,14 +1261,18 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         fileName: null,
         extractedText: null,
         llmProvider,
-        llmResponse,
+        llmResponse: llmResult.response,
+        graphData: graphDataJson,
+        graphImage,
         processingTime,
       });
 
       const response: ProcessAssignmentResponse = {
         id: assignment.id,
         extractedText: inputText,
-        llmResponse,
+        llmResponse: llmResult.response,
+        graphData: graphDataJson,
+        graphImage,
         processingTime,
         success: true,
       };
@@ -1533,22 +1567,22 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         chatPrompt = `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"\n\nQuestion: ${message}`;
       }
 
-      let response = '';
+      let result: {response: string, graphData?: GraphRequest};
       switch (provider) {
         case 'anthropic':
-          response = await processWithAnthropic(chatPrompt);
+          result = await processWithAnthropic(chatPrompt);
           break;
         case 'openai':
-          response = await processWithOpenAI(chatPrompt);
+          result = await processWithOpenAI(chatPrompt);
           break;
         case 'perplexity':
-          response = await processWithPerplexity(chatPrompt);
+          result = await processWithPerplexity(chatPrompt);
           break;
         default:
           return res.status(400).json({ error: "Invalid provider" });
       }
 
-      res.json({ response });
+      res.json({ response: result.response });
     } catch (error: any) {
       console.error('Chat error:', error);
       res.status(500).json({ error: error.message || 'Chat failed' });
@@ -1580,22 +1614,22 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
       let chatPrompt = message ? `${message}\n\nFile content:\n${extractedText}` : `Please analyze this file content:\n\n${extractedText}`;
 
-      let response = '';
+      let result: {response: string, graphData?: GraphRequest};
       switch (provider) {
         case 'anthropic':
-          response = await processWithAnthropic(chatPrompt);
+          result = await processWithAnthropic(chatPrompt);
           break;
         case 'openai':
-          response = await processWithOpenAI(chatPrompt);
+          result = await processWithOpenAI(chatPrompt);
           break;
         case 'perplexity':
-          response = await processWithPerplexity(chatPrompt);
+          result = await processWithPerplexity(chatPrompt);
           break;
         default:
           return res.status(400).json({ error: "Invalid provider" });
       }
 
-      res.json({ response, extractedText, fileName: file.originalname });
+      res.json({ response: result.response, extractedText, fileName: file.originalname });
     } catch (error: any) {
       console.error('Chat upload error:', error);
       res.status(500).json({ error: error.message || 'Chat upload failed' });
@@ -1623,22 +1657,22 @@ ${critique}
 
 Please provide an improved solution that addresses the feedback. Maintain proper mathematical notation and formatting.`;
 
-      let rewrittenSolution = '';
+      let result: {response: string, graphData?: GraphRequest};
       switch (provider) {
         case 'anthropic':
-          rewrittenSolution = await processWithAnthropic(rewritePrompt);
+          result = await processWithAnthropic(rewritePrompt);
           break;
         case 'openai':
-          rewrittenSolution = await processWithOpenAI(rewritePrompt);
+          result = await processWithOpenAI(rewritePrompt);
           break;
         case 'perplexity':
-          rewrittenSolution = await processWithPerplexity(rewritePrompt);
+          result = await processWithPerplexity(rewritePrompt);
           break;
         default:
           return res.status(400).json({ error: "Invalid provider" });
       }
 
-      res.json({ rewrittenSolution });
+      res.json({ rewrittenSolution: result.response });
     } catch (error: any) {
       console.error('Rewrite error:', error);
       res.status(500).json({ error: error.message || 'Rewrite failed' });

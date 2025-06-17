@@ -94,6 +94,8 @@ export class MemStorage implements IStorage {
       extractedText: insertAssignment.extractedText || null,
       llmProvider: insertAssignment.llmProvider,
       llmResponse: insertAssignment.llmResponse || null,
+      graphData: insertAssignment.graphData || null,
+      graphImage: insertAssignment.graphImage || null,
       processingTime: insertAssignment.processingTime || null,
       createdAt: new Date(),
     };
