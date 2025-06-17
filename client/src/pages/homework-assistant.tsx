@@ -1102,130 +1102,68 @@ ${fullResponse.slice(-1000)}...`;
     });
   };
 
-  const handleDownloadAppendix = () => {
+  // Combined PDF download with graphs first, then solution
+  const handleDownloadCombinedPDF = async () => {
     if (!currentResult) return;
 
-    // Get graphs data from the rendered content
-    const mathContentElement = document.querySelector('.math-content');
-    const graphs = getGraphsFromContent(mathContentElement as HTMLElement);
-    
-    if (!graphs || graphs.length === 0) {
+    try {
+      const mathContentElement = document.querySelector('.math-content');
+      const graphs = getGraphsFromContent(mathContentElement as HTMLElement);
+      
+      const title = currentAssignmentName || 'Assignment Solution';
+      const solution = currentResult.llmResponse || '';
+      
+      // Prepare graph data for backend
+      let graphData: any[] = [];
+      if (graphs && graphs.length > 0) {
+        graphData = graphs.map((graph, index) => ({
+          type: 'line',
+          title: `Graph ${index + 1}`,
+          xLabel: 'X-axis',
+          yLabel: 'Y-axis',
+          data: graph.data || [],
+          description: graph.description || ''
+        }));
+      }
+
+      const response = await fetch('/api/generate-combined-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          graphData: graphData,
+          solution: solution,
+          title: title
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate combined PDF');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_complete.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
       toast({
-        title: "No graphs found",
-        description: "This solution doesn't contain any graphs to include in an appendix",
+        title: "Complete solution downloaded",
+        description: `PDF includes ${graphData.length} graphs and full solution`,
+      });
+    } catch (error: any) {
+      console.error('Combined PDF download error:', error);
+      toast({
+        title: "Download failed",
+        description: error.message || "Failed to generate combined PDF",
         variant: "destructive",
       });
-      return;
     }
-
-    const title = currentAssignmentName || 'Assignment';
-    
-    // Create appendix document
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      toast({
-        title: "Popup blocked",
-        description: "Please allow popups to download appendix",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const appendixHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Appendix A - Graphs and Charts</title>
-    <meta charset="UTF-8">
-    <style>
-        body {
-            font-family: 'Times New Roman', serif;
-            font-size: 12pt;
-            line-height: 1.6;
-            margin: 1in;
-            color: black;
-            background: white;
-        }
-        .header {
-            text-align: center;
-            border-bottom: 2px solid black;
-            padding-bottom: 15px;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            font-size: 18pt;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .graph-section {
-            margin-bottom: 40px;
-            page-break-inside: avoid;
-        }
-        .graph-title {
-            font-size: 14pt;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-align: center;
-        }
-        .graph-container {
-            text-align: center;
-            margin: 20px 0;
-            border: 1px solid #333;
-            padding: 20px;
-            background: white;
-        }
-        .graph-container svg {
-            max-width: 100%;
-            height: auto;
-        }
-        @page {
-            margin: 1in;
-            size: letter;
-        }
-        @media print {
-            body { 
-                margin: 0; 
-                font-size: 12pt;
-            }
-            .graph-container {
-                border: 1px solid #000 !important;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Appendix A</h1>
-        <h2>Graphs and Charts</h2>
-        <p>${title}</p>
-        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-    </div>
-    
-    ${graphs.map((graph, index) => `
-    <div class="graph-section">
-        <div class="graph-title">Graph ${index + 1}: ${graph.title}</div>
-        <div class="graph-container">
-            ${graph.svg}
-        </div>
-    </div>
-    `).join('')}
-</body>
-</html>`;
-
-    printWindow.document.write(appendixHtml);
-    printWindow.document.close();
-    
-    // Auto-print after a short delay
-    setTimeout(() => {
-      printWindow.print();
-    }, 1000);
-
-    toast({
-      title: "Appendix ready",
-      description: `Generated appendix with ${graphs.length} graph${graphs.length > 1 ? 's' : ''}`,
-    });
   };
-  
+
   const handleCopyToClipboard = () => {
     if (!currentResult) return;
     

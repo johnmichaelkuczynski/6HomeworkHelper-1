@@ -511,7 +511,12 @@ async function createCombinedPDF(graphDataArray: GraphRequest[], solution: strin
     await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     
     // Wait for MathJax to render
-    await page.waitForFunction(() => window.MathJax && window.MathJax.startup.document.state() >= 10, { timeout: 10000 });
+    try {
+      await page.waitForFunction(() => window.MathJax && window.MathJax.typesetPromise, { timeout: 10000 });
+      await page.evaluate(() => window.MathJax.typesetPromise());
+    } catch (error) {
+      console.log('MathJax rendering timeout, proceeding without MathJax');
+    }
     
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -1824,6 +1829,48 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     } catch (error: any) {
       console.error('Graph PDF generation error:', error);
       res.status(500).json({ error: error.message || 'Failed to generate graph PDF' });
+    }
+  });
+
+  // Combined PDF generation endpoint for multiple graphs + solution
+  app.post("/api/generate-combined-pdf", async (req, res) => {
+    try {
+      const { graphData, solution, title } = req.body;
+      
+      if (!solution || typeof solution !== 'string') {
+        return res.status(400).json({ error: "Solution is required" });
+      }
+
+      let graphDataArray: GraphRequest[] = [];
+      
+      // Parse graph data if provided
+      if (graphData) {
+        try {
+          if (typeof graphData === 'string') {
+            graphDataArray = JSON.parse(graphData);
+          } else if (Array.isArray(graphData)) {
+            graphDataArray = graphData;
+          }
+        } catch (error) {
+          console.error('Failed to parse graph data:', error);
+        }
+      }
+
+      // Ensure graphDataArray is an array
+      if (!Array.isArray(graphDataArray)) {
+        graphDataArray = [];
+      }
+
+      const pdfBuffer = await createCombinedPDF(graphDataArray, solution, title || 'Assignment Solution');
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${(title || 'assignment').replace(/[^a-zA-Z0-9]/g, '_')}_complete.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error('Combined PDF generation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate combined PDF' });
     }
   });
 
