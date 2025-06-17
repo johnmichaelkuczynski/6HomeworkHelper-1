@@ -1646,6 +1646,39 @@ ${fullResponse.slice(-1000)}...`;
                         </Button>
                       </div>
                     </div>
+                    
+                    {/* Generated Graph Display */}
+                    {currentResult.graphImage && (
+                      <div className="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                        <h4 className="text-md font-medium text-slate-900 mb-3 flex items-center">
+                          📊 Generated Graph
+                        </h4>
+                        <div className="flex justify-center bg-white p-4 rounded border">
+                          <img 
+                            src={`data:image/png;base64,${currentResult.graphImage}`}
+                            alt="Generated graph for homework solution"
+                            className="max-w-full h-auto max-h-96 border border-slate-200 rounded shadow-sm"
+                          />
+                        </div>
+                        {currentResult.graphData && (() => {
+                          try {
+                            const graphData = JSON.parse(currentResult.graphData);
+                            return (
+                              <div className="mt-3 text-sm text-slate-600">
+                                <p><strong>Graph Type:</strong> {graphData.type}</p>
+                                <p><strong>Title:</strong> {graphData.title}</p>
+                                <p><strong>X-axis:</strong> {graphData.xLabel}</p>
+                                <p><strong>Y-axis:</strong> {graphData.yLabel}</p>
+                                {graphData.description && <p><strong>Description:</strong> {graphData.description}</p>}
+                              </div>
+                            );
+                          } catch (e) {
+                            return null;
+                          }
+                        })()}
+                      </div>
+                    )}
+                    
                     <div className="relative">
                       <MathRenderer 
                         content={currentResult.llmResponse}
