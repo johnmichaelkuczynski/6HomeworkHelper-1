@@ -1830,14 +1830,19 @@ ${fullResponse.slice(-1000)}...`;
 
         {/* AI Chat Section */}
         <div className="mt-8">
-          <Card className="flex flex-col">
-            <div className="p-6 border-b border-slate-200">
-              <h2 className="text-lg font-semibold text-slate-900">Chat with AI</h2>
-              <p className="text-sm text-slate-600 mt-1">Ask questions about the solution, discuss the assignment, or chat freely</p>
+          <Card className="flex flex-col shadow-lg border-slate-200">
+            <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+              <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                <svg className="w-6 h-6 mr-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.955 8.955 0 01-4.126-.964L3 20l1.036-5.874A8.955 8.955 0 013 12a8 8 0 018-8c4.418 0 8 3.582 8 8z" />
+                </svg>
+                Chat with AI
+              </h2>
+              <p className="text-sm text-slate-700 mt-2 font-medium">Have detailed conversations about your homework, ask for explanations, or discuss mathematical concepts</p>
             </div>
 
-            <div className="flex-1 p-6 min-h-[400px] flex flex-col">
-              <div className="flex-1 mb-4 p-4 bg-gray-50 rounded-lg overflow-y-auto max-h-80">
+            <div className="flex-1 p-8 min-h-[500px] flex flex-col bg-gradient-to-b from-white to-slate-50">
+              <div className="flex-1 mb-6 p-6 bg-white rounded-xl border border-slate-200 shadow-sm overflow-y-auto max-h-96">
                 {chatMessages.length === 0 ? (
                   <div className="text-center py-8 text-slate-500">
                     <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -1904,22 +1909,22 @@ ${fullResponse.slice(-1000)}...`;
               
               <div className="space-y-2">
                 {chatFileUpload && (
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded border">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span className="text-sm text-blue-800">{chatFileUpload.name}</span>
+                  <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    <span className="text-sm text-blue-800 font-medium">{chatFileUpload.name}</span>
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={() => setChatFileUpload(null)}
-                      className="ml-auto h-6 w-6 p-0"
+                      className="ml-auto h-8 w-8 p-0 hover:bg-blue-100"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-4 h-4" />
                     </Button>
                   </div>
                 )}
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-600">Chat supports LaTeX math notation and file uploads</span>
+                    <span className="text-sm text-slate-600 font-medium">💬 Write your message • Supports LaTeX math & file uploads</span>
                     <Button
                       onClick={() => {
                         setChatInput("");
@@ -1928,38 +1933,71 @@ ${fullResponse.slice(-1000)}...`;
                       }}
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-slate-500 hover:text-red-600"
+                      className="text-sm text-slate-500 hover:text-red-600 hover:bg-red-50"
                     >
-                      <X className="w-3 h-3 mr-1" />
+                      <X className="w-4 h-4 mr-1" />
                       Clear Chat
                     </Button>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <InputWithVoice
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      placeholder="Ask the AI anything or upload a file with math content..."
-                      className="flex-1"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleChatMessage();
-                        }
-                      }}
-                      disabled={isChatting}
-                    />
-                    <FileUpload
-                      onFileSelect={handleChatFileUpload}
-                      isProcessing={isChatting}
-                      accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
-                    />
-                    <Button 
-                      size="sm" 
-                      onClick={handleChatMessage}
-                      disabled={isChatting || (!chatInput.trim() && !chatFileUpload)}
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
+                  <div className="space-y-4 bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+                    <div className="relative">
+                      <TextareaWithVoice
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="💬 Ask detailed questions, discuss the solution, request clarifications, or provide additional context...
+
+Write your message here. This chat supports:
+• LaTeX math notation (e.g., $x^2 + y^2 = z^2$, $$\int_{0}^{\infty} e^{-x} dx$$)
+• Multi-line discussions and explanations
+• File uploads for additional context and problems
+• Rich mathematical conversations
+
+Use Ctrl+Enter to send your message, or Shift+Enter for new lines."
+                        className="min-h-[160px] resize-y text-base leading-relaxed p-6 border-2 border-slate-200 rounded-lg focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault();
+                            handleChatMessage();
+                          }
+                        }}
+                        disabled={isChatting}
+                      />
+                      {chatInput.length > 0 && (
+                        <div className="absolute bottom-3 right-3 text-xs text-slate-400 bg-white px-2 py-1 rounded">
+                          {chatInput.length} chars
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center space-x-4">
+                        <FileUpload
+                          onFileSelect={handleChatFileUpload}
+                          isProcessing={isChatting}
+                          accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+                        />
+                        <span className="text-sm text-slate-600 font-medium">
+                          📎 Upload files • ⌨️ Ctrl+Enter to send • ↵ Shift+Enter for new line
+                        </span>
+                      </div>
+                      <Button 
+                        onClick={handleChatMessage}
+                        disabled={isChatting || (!chatInput.trim() && !chatFileUpload)}
+                        className="px-8 py-3 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                        size="lg"
+                      >
+                        {isChatting ? (
+                          <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="w-5 h-5 mr-2" />
+                            Send Message
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
