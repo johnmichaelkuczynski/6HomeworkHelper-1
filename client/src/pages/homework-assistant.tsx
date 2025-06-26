@@ -274,6 +274,12 @@ export default function HomeworkAssistant() {
         formData.append('file', currentFile);
         formData.append('provider', selectedProvider);
         if (currentChatInput) formData.append('message', currentChatInput);
+        if (chatMessages.length > 0) {
+          formData.append('conversationHistory', JSON.stringify(chatMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }))));
+        }
         
         response = await fetch('/api/chat-upload', {
           method: 'POST',

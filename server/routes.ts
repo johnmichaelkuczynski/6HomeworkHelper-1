@@ -354,8 +354,8 @@ async function generateGraph(graphData: GraphRequest): Promise<string> {
 
 async function processWithAnthropicChat(message: string, conversationHistory: Array<{role: string, content: string}>, context?: any): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
-    // Build conversation messages
-    const messages = [];
+    // Build conversation messages with proper typing
+    const messages: Array<{role: 'user' | 'assistant', content: string}> = [];
     
     // Add context if available
     if (context) {
@@ -385,7 +385,7 @@ async function processWithAnthropicChat(message: string, conversationHistory: Ar
       messages: messages
     });
 
-    const responseText = response.content[0]?.text || 'No response generated';
+    const responseText = response.content[0]?.type === 'text' ? response.content[0].text : 'No response generated';
     return { response: responseText };
   } catch (error) {
     console.error('Anthropic chat error:', error);
@@ -485,8 +485,8 @@ Generate realistic data points based on the scientific/mathematical principles i
 
 async function processWithOpenAIChat(message: string, conversationHistory: Array<{role: string, content: string}>, context?: any): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
-    // Build conversation messages
-    const messages = [];
+    // Build conversation messages with proper typing
+    const messages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = [];
     
     // Add context if available
     if (context) {
@@ -705,6 +705,61 @@ Generate realistic data points based on the scientific/mathematical principles i
   } catch (error) {
     console.error('Azure OpenAI API error:', error);
     throw new Error('Failed to process with Azure OpenAI');
+  }
+}
+
+async function processWithPerplexityChat(message: string, conversationHistory: Array<{role: string, content: string}>, context?: any): Promise<{response: string, graphData?: GraphRequest[]}> {
+  try {
+    // Build conversation messages
+    const messages = [];
+    
+    // Add context if available
+    if (context) {
+      messages.push({
+        role: "user",
+        content: `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"`
+      });
+    }
+    
+    // Add conversation history
+    conversationHistory.forEach(msg => {
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      });
+    });
+    
+    // Add current message
+    messages.push({
+      role: "user",
+      content: message
+    });
+
+    const response = await fetch('https://api.perplexity.ai/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.PERPLEXITY_API_KEY || process.env.VITE_PERPLEXITY_API_KEY || "default_key"}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-sonar-small-128k-online',
+        messages: messages,
+        max_tokens: 4000,
+        temperature: 0.1,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Perplexity API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const responseText = data.choices[0]?.message?.content || 'No response generated';
+    return { response: responseText };
+  } catch (error) {
+    console.error('Perplexity chat error:', error);
+    throw new Error('Failed to process chat with Perplexity');
   }
 }
 
@@ -1800,16 +1855,30 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         return res.status(400).json({ error: "Message is required" });
       }
 
-      let result: {response: string, graphData?: GraphRequest};
+      // Build conversation context
+      let fullPrompt = message;
+      
+      if (context) {
+        fullPrompt = `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"\n\n`;
+      }
+      
+      if (conversationHistory.length > 0) {
+        const historyText = conversationHistory
+          .map((msg: any) => `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}`)
+          .join('\n\n');
+        fullPrompt = `Previous conversation:\n${historyText}\n\nCurrent question: ${message}`;
+      }
+
+      let result: {response: string, graphData?: any};
       switch (provider) {
         case 'anthropic':
-          result = await processWithAnthropicChat(message, conversationHistory, context);
+          result = await processWithAnthropic(fullPrompt);
           break;
         case 'openai':
-          result = await processWithOpenAIChat(message, conversationHistory, context);
+          result = await processWithOpenAI(fullPrompt);
           break;
         case 'perplexity':
-          result = await processWithPerplexityChat(message, conversationHistory, context);
+          result = await processWithPerplexity(fullPrompt);
           break;
         default:
           return res.status(400).json({ error: "Invalid provider" });
@@ -1826,7 +1895,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
   app.post("/api/chat-upload", upload.single('file'), async (req, res) => {
     try {
       const file = req.file;
-      const { provider, message } = req.body;
+      const { provider, message, conversationHistory = [] } = req.body;
 
       if (!file) {
         return res.status(400).json({ error: "No file uploaded" });
@@ -1846,8 +1915,16 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       }
 
       let chatPrompt = message ? `${message}\n\nFile content:\n${extractedText}` : `Please analyze this file content:\n\n${extractedText}`;
+      
+      // Add conversation history context
+      if (conversationHistory && conversationHistory.length > 0) {
+        const historyText = conversationHistory
+          .map((msg: any) => `${msg.role === 'user' ? 'Human' : 'Assistant'}: ${msg.content}`)
+          .join('\n\n');
+        chatPrompt = `Previous conversation:\n${historyText}\n\n${chatPrompt}`;
+      }
 
-      let result: {response: string, graphData?: GraphRequest};
+      let result: {response: string, graphData?: any};
       switch (provider) {
         case 'anthropic':
           result = await processWithAnthropic(chatPrompt);
