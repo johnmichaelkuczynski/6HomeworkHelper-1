@@ -352,6 +352,47 @@ async function generateGraph(graphData: GraphRequest): Promise<string> {
   return imageBuffer.toString('base64');
 }
 
+async function processWithAnthropicChat(message: string, conversationHistory: Array<{role: string, content: string}>, context?: any): Promise<{response: string, graphData?: GraphRequest[]}> {
+  try {
+    // Build conversation messages
+    const messages = [];
+    
+    // Add context if available
+    if (context) {
+      messages.push({
+        role: "user",
+        content: `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"`
+      });
+    }
+    
+    // Add conversation history
+    conversationHistory.forEach(msg => {
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      });
+    });
+    
+    // Add current message
+    messages.push({
+      role: "user",
+      content: message
+    });
+
+    const response = await anthropic.messages.create({
+      model: "claude-3-sonnet-20240229",
+      max_tokens: 4000,
+      messages: messages
+    });
+
+    const responseText = response.content[0]?.text || 'No response generated';
+    return { response: responseText };
+  } catch (error) {
+    console.error('Anthropic chat error:', error);
+    throw new Error('Failed to process chat with Anthropic');
+  }
+}
+
 async function processWithAnthropic(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
     // Check if the assignment requires a graph
@@ -439,6 +480,47 @@ Generate realistic data points based on the scientific/mathematical principles i
   } catch (error) {
     console.error('Anthropic API error:', error);
     throw new Error('Failed to process with Anthropic');
+  }
+}
+
+async function processWithOpenAIChat(message: string, conversationHistory: Array<{role: string, content: string}>, context?: any): Promise<{response: string, graphData?: GraphRequest[]}> {
+  try {
+    // Build conversation messages
+    const messages = [];
+    
+    // Add context if available
+    if (context) {
+      messages.push({
+        role: "user",
+        content: `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"`
+      });
+    }
+    
+    // Add conversation history
+    conversationHistory.forEach(msg => {
+      messages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      });
+    });
+    
+    // Add current message
+    messages.push({
+      role: "user",
+      content: message
+    });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: messages,
+      max_tokens: 4000,
+    });
+
+    const responseText = response.choices[0]?.message?.content || 'No response generated';
+    return { response: responseText };
+  } catch (error) {
+    console.error('OpenAI chat error:', error);  
+    throw new Error('Failed to process chat with OpenAI');
   }
 }
 
@@ -1712,27 +1794,22 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
   // Chat endpoint
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message, provider, context } = req.body;
+      const { message, provider, context, conversationHistory = [] } = req.body;
       
       if (!message || typeof message !== 'string') {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      let chatPrompt = message;
-      if (context) {
-        chatPrompt = `Context: I'm working on this problem: "${context.problem}" and got this solution: "${context.solution}"\n\nQuestion: ${message}`;
-      }
-
       let result: {response: string, graphData?: GraphRequest};
       switch (provider) {
         case 'anthropic':
-          result = await processWithAnthropic(chatPrompt);
+          result = await processWithAnthropicChat(message, conversationHistory, context);
           break;
         case 'openai':
-          result = await processWithOpenAI(chatPrompt);
+          result = await processWithOpenAIChat(message, conversationHistory, context);
           break;
         case 'perplexity':
-          result = await processWithPerplexity(chatPrompt);
+          result = await processWithPerplexityChat(message, conversationHistory, context);
           break;
         default:
           return res.status(400).json({ error: "Invalid provider" });

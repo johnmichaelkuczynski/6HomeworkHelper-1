@@ -288,6 +288,10 @@ export default function HomeworkAssistant() {
           body: JSON.stringify({ 
             message: currentChatInput, 
             provider: selectedProvider,
+            conversationHistory: chatMessages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            })),
             context: currentResult ? {
               problem: currentResult.extractedText || inputText,
               solution: currentResult.llmResponse
@@ -1952,10 +1956,10 @@ Write your message here. This chat supports:
 • File uploads for additional context and problems
 • Rich mathematical conversations
 
-Use Ctrl+Enter to send your message, or Shift+Enter for new lines."
+Use Enter to send your message, or Shift+Enter for new lines."
                         className="min-h-[160px] resize-y text-base leading-relaxed p-6 border-2 border-slate-200 rounded-lg focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all duration-200"
                         onKeyDown={(e) => {
-                          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                          if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             handleChatMessage();
                           }
@@ -1976,7 +1980,7 @@ Use Ctrl+Enter to send your message, or Shift+Enter for new lines."
                           accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
                         />
                         <span className="text-sm text-slate-600 font-medium">
-                          📎 Upload files • ⌨️ Ctrl+Enter to send • ↵ Shift+Enter for new line
+                          📎 Upload files • ⏎ Enter to send • ↵ Shift+Enter for new line
                         </span>
                       </div>
                       <Button 
