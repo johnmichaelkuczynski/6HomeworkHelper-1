@@ -45,6 +45,7 @@ export default function HomeworkAssistant() {
   const [showRefineDialog, setShowRefineDialog] = useState(false);
   const [refinementFeedback, setRefinementFeedback] = useState("");
   const [isRefining, setIsRefining] = useState(false);
+  const [isMathViewEnabled, setIsMathViewEnabled] = useState(true);
 
 
   // Function to clear everything and start new assignment
@@ -1713,6 +1714,17 @@ ${fullResponse.slice(-1000)}...`;
                       </h3>
                       <div className="flex items-center space-x-2">
                         <Button
+                          variant={isMathViewEnabled ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setIsMathViewEnabled(!isMathViewEnabled)}
+                          className={isMathViewEnabled 
+                            ? "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-150" 
+                            : "border-purple-200 text-purple-700 hover:bg-purple-50"
+                          }
+                        >
+                          {isMathViewEnabled ? "📐 Math View" : "📝 Edit View"}
+                        </Button>
+                        <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setShowRefineDialog(true)}
@@ -1812,10 +1824,18 @@ ${fullResponse.slice(-1000)}...`;
                     )}
                     
                     <div className="relative">
-                      <MathRenderer 
-                        content={currentResult.llmResponse}
-                        className="space-y-4 math-content pr-12"
-                      />
+                      {isMathViewEnabled ? (
+                        <MathRenderer 
+                          content={currentResult.llmResponse}
+                          className="space-y-4 math-content pr-12"
+                        />
+                      ) : (
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-800 leading-relaxed">
+                            {currentResult.llmResponse}
+                          </pre>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -1872,7 +1892,13 @@ ${fullResponse.slice(-1000)}...`;
                             ? 'bg-blue-500 text-white' 
                             : 'bg-white border border-slate-200'
                         }`}>
-                          <MathRenderer content={message.content} />
+                          {isMathViewEnabled ? (
+                            <MathRenderer content={message.content} />
+                          ) : (
+                            <pre className="whitespace-pre-wrap text-sm leading-relaxed">
+                              {message.content}
+                            </pre>
+                          )}
                           {message.role === 'assistant' && (
                             <div className="flex gap-2 mt-2">
                               <Button
