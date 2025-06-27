@@ -1707,23 +1707,29 @@ ${fullResponse.slice(-1000)}...`;
                   
                   {/* Solution */}
                   <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-slate-900 flex items-center">
-                        <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
-                        Solution
-                      </h3>
-                      <div className="flex items-center space-x-2">
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-slate-900 flex items-center">
+                          <CheckCircle className="w-5 h-5 mr-2 text-emerald-500" />
+                          Solution
+                        </h3>
+                      </div>
+                      
+                      {/* MATH TOGGLE BUTTON - VERY PROMINENT */}
+                      <div className="w-full flex justify-center mb-6">
                         <Button
-                          variant={isMathViewEnabled ? "default" : "outline"}
-                          size="sm"
                           onClick={() => setIsMathViewEnabled(!isMathViewEnabled)}
-                          className={isMathViewEnabled 
-                            ? "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-150" 
-                            : "border-purple-200 text-purple-700 hover:bg-purple-50"
-                          }
+                          className={`px-8 py-4 text-xl font-bold rounded-lg shadow-lg transition-all ${
+                            isMathViewEnabled 
+                              ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700" 
+                              : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600"
+                          }`}
                         >
-                          {isMathViewEnabled ? "📐 Math View" : "📝 Edit View"}
+                          {isMathViewEnabled ? "📐 MATH VIEW (Click for Edit)" : "📝 EDIT VIEW (Click for Math)"}
                         </Button>
+                      </div>
+                      
+                      <div className="flex items-center justify-end space-x-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -1825,13 +1831,21 @@ ${fullResponse.slice(-1000)}...`;
                     
                     <div className="relative">
                       {isMathViewEnabled ? (
-                        <MathRenderer 
-                          content={currentResult.llmResponse}
-                          className="space-y-4 math-content pr-12"
-                        />
+                        <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl">
+                          <div className="mb-3 text-sm font-semibold text-blue-700 uppercase tracking-wide">
+                            📐 Math View - Rendered Mathematical Notation
+                          </div>
+                          <MathRenderer 
+                            content={currentResult.llmResponse}
+                            className="space-y-4 math-content"
+                          />
+                        </div>
                       ) : (
-                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-800 leading-relaxed">
+                        <div className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl">
+                          <div className="mb-3 text-sm font-semibold text-orange-700 uppercase tracking-wide">
+                            📝 Edit View - Raw LaTeX Code
+                          </div>
+                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-800 leading-relaxed bg-white p-4 rounded-lg border border-orange-200 overflow-x-auto">
                             {currentResult.llmResponse}
                           </pre>
                         </div>
