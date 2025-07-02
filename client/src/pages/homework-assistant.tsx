@@ -1116,9 +1116,46 @@ ${fullResponse.slice(-1000)}...`;
                 font-size: 120% !important;
             }
         }
+        /* Loading indicator styles */
+        .math-loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            z-index: 10000;
+            text-align: center;
+        }
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .math-loading.hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <!-- Loading indicator -->
+    <div id="math-loader" class="math-loading">
+        <div class="loading-spinner"></div>
+        <div>Rendering mathematical notation...</div>
+        <div style="font-size: 12px; margin-top: 10px;">This may take a few seconds</div>
+    </div>
+    
     <div class="header">
         <h1>Assignment Solution</h1>
         <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
@@ -1144,7 +1181,7 @@ ${fullResponse.slice(-1000)}...`;
 
     toast({
       title: "PDF preparation started",
-      description: "MathJax is rendering... Print dialog will appear automatically in 3 seconds",
+      description: "MathJax is rendering mathematical notation... Print dialog will appear in 5 seconds",
     });
   };
   
