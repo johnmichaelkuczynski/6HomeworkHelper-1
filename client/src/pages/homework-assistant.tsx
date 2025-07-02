@@ -1017,9 +1017,27 @@ ${fullResponse.slice(-1000)}...`;
             startup: {
                 ready: () => {
                     MathJax.startup.defaultReady();
-                    setTimeout(() => {
-                        window.print();
-                    }, 2000);
+                    // Wait for MathJax to finish rendering all math
+                    MathJax.startup.promise.then(() => {
+                        return MathJax.typesetPromise();
+                    }).then(() => {
+                        // Additional wait to ensure everything is rendered
+                        setTimeout(() => {
+                            console.log('MathJax rendering complete, initiating print');
+                            // Hide loading indicator if it exists
+                            const loader = document.getElementById('math-loader');
+                            if (loader) loader.style.display = 'none';
+                            window.print();
+                        }, 5000);
+                    }).catch((err) => {
+                        console.error('MathJax rendering error:', err);
+                        // Print anyway after delay
+                        setTimeout(() => {
+                            const loader = document.getElementById('math-loader');
+                            if (loader) loader.style.display = 'none';
+                            window.print();
+                        }, 5000);
+                    });
                 }
             }
         };
@@ -1071,6 +1089,16 @@ ${fullResponse.slice(-1000)}...`;
         .MJXc-display {
             margin: 1em 0 !important;
         }
+        /* Ensure all MathJax elements are visible and properly styled */
+        mjx-container {
+            display: inline-block !important;
+            margin: 0.1em 0 !important;
+        }
+        mjx-container[display="true"] {
+            display: block !important;
+            text-align: center !important;
+            margin: 1em 0 !important;
+        }
         p {
             margin-bottom: 12pt;
             text-align: justify;
@@ -1115,8 +1143,8 @@ ${fullResponse.slice(-1000)}...`;
     printWindow.document.close();
 
     toast({
-      title: "Print window opened",
-      description: "Use Ctrl+P or Cmd+P to save as PDF with perfect math notation",
+      title: "PDF preparation started",
+      description: "MathJax is rendering... Print dialog will appear automatically in 3 seconds",
     });
   };
   
