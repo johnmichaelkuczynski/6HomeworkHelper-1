@@ -143,6 +143,8 @@ The application follows a full-stack architecture with clear separation between 
 - June 19, 2025. Enhanced chat interface with larger input area, improved styling, and better user experience for lengthy conversations
 - June 27, 2025. **COMPLETED**: Math View Toggle - Added prominent toggle button in solution window allowing users to switch between Math View (rendered notation) and Edit View (raw text) with distinct visual styling
 - July 2, 2025. **COMPLETED**: PDF Math Rendering Fix - Extended MathJax rendering time to 5 seconds, added proper promise handling, visual loading indicator, and improved CSS styling for perfect mathematical notation in PDF exports
+- July 2, 2025. **COMPLETED**: DeepSeek Integration - Added DeepSeek as an LLM provider option and made it the default, providing users with access to competitive AI capabilities
+- July 2, 2025. **COMPLETED**: Print-Save-as-PDF Restoration - Restored the print preview functionality that opens a new window showing the PDF preview before saving, allowing users to see and verify content before download
 
 ## User Preferences
 

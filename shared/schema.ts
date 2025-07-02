@@ -29,7 +29,7 @@ export const processAssignmentSchema = z.object({
   inputText: z.string().optional(),
   inputType: z.enum(['text', 'image', 'pdf', 'doc']),
   fileName: z.string().optional(),
-  llmProvider: z.enum(['anthropic', 'openai', 'azure', 'perplexity']),
+  llmProvider: z.enum(['anthropic', 'openai', 'azure', 'perplexity', 'deepseek']),
   fileData: z.string().optional(), // base64 encoded file data
 });
 

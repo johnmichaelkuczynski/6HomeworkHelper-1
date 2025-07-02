@@ -20,7 +20,7 @@ export default function HomeworkAssistant() {
   const [inputText, setInputText] = useState("");
   const [currentAssignmentName, setCurrentAssignmentName] = useState("");
   const [specialInstructions, setSpecialInstructions] = useState("");
-  const [selectedProvider, setSelectedProvider] = useState("anthropic");
+  const [selectedProvider, setSelectedProvider] = useState("deepseek");
   const [currentResult, setCurrentResult] = useState<any>(null);
   const [wordCount, setWordCount] = useState(0);
   const [aiDetectionResult, setAiDetectionResult] = useState<any>(null);
@@ -979,66 +979,142 @@ ${fullResponse.slice(-1000)}...`;
       }
     }
 
-    // Use server-side PDF generation for perfect math rendering
-    try {
-      // Get the already-rendered math from the current page
-      const mathContentElement = document.querySelector('.math-content');
-      if (!mathContentElement) {
-        toast({
-          title: "Content not ready",
-          description: "Please wait for the solution to render completely",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Clone the rendered content and extract the HTML
-      const clonedContent = mathContentElement.cloneNode(true) as HTMLElement;
-      const renderedHTML = clonedContent.innerHTML;
-
+    // Get the already-rendered math from the current page
+    const mathContentElement = document.querySelector('.math-content');
+    if (!mathContentElement) {
       toast({
-        title: "Generating PDF",
-        description: "Creating PDF with properly rendered mathematical notation...",
-      });
-
-      // Send to server for PDF generation
-      const response = await fetch('/api/generate-math-pdf', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: currentResult.llmResponse,
-          title: title,
-          extractedText: currentResult.extractedText,
-          renderedHtml: renderedHTML
-        })
-      });
-
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-        
-        toast({
-          title: "PDF downloaded",
-          description: "Math notation rendered perfectly in PDF",
-        });
-      } else {
-        throw new Error('Server PDF generation failed');
-      }
-    } catch (error) {
-      console.error('Server PDF generation error:', error);
-      toast({
-        title: "PDF generation failed",
-        description: "Unable to generate PDF with math notation",
+        title: "Content not ready",
+        description: "Please wait for the solution to render completely",
         variant: "destructive",
       });
+      return;
     }
+
+    // Clone the rendered content and extract the HTML
+    const clonedContent = mathContentElement.cloneNode(true) as HTMLElement;
+    const renderedHTML = clonedContent.innerHTML;
+
+    // Create a new window for printing with pre-rendered math
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Popup blocked",
+        description: "Please allow popups and try again",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Assignment Solution</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: 'Computer Modern', 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.8;
+            margin: 1in;
+            color: black;
+            background: white;
+            max-width: none;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid black;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            font-size: 20pt;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+        }
+        .section h2 {
+            font-size: 16pt;
+            margin-bottom: 15px;
+            color: black;
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+        .content {
+            font-size: 12pt;
+            line-height: 1.8;
+        }
+        /* Preserve all MathJax styling */
+        mjx-container, .mjx-chtml, .MathJax {
+            display: inline-block !important;
+            font-size: 120% !important;
+            line-height: 1.8 !important;
+            margin: 0.1em !important;
+        }
+        mjx-container[display="true"] {
+            display: block !important;
+            text-align: center !important;
+            margin: 1em 0 !important;
+        }
+        /* Ensure math symbols display correctly */
+        .mjx-math {
+            color: black !important;
+        }
+        p {
+            margin-bottom: 12pt;
+            text-align: justify;
+        }
+        @page {
+            margin: 1in;
+            size: letter;
+        }
+        @media print {
+            body { 
+                margin: 0; 
+                font-size: 12pt;
+            }
+            mjx-container, .mjx-chtml, .MathJax {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color: black !important;
+            }
+        }
+    </style>
+</head>
+<body onload="setTimeout(function(){window.print();}, 1000);">
+    <div class="header">
+        <h1>Assignment Solution</h1>
+        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+    </div>
+    
+    ${currentResult.extractedText ? `
+    <div class="section">
+        <h2>Problem:</h2>
+        <div class="content">${currentResult.extractedText}</div>
+    </div>
+    ` : ''}
+    
+    <div class="section">
+        <h2>Solution:</h2>
+        ${currentResult.graphImages && currentResult.graphImages.length > 0 ? 
+          currentResult.graphImages.map(img => 
+            `<div style="text-align: center; margin: 20px 0;"><img src="data:image/png;base64,${img}" alt="Generated Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; page-break-inside: avoid;" /></div>`
+          ).join('') : ''}
+        <div class="content">${renderedHTML}</div>
+    </div>
+</body>
+</html>`;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+
+    toast({
+      title: "PDF Preview Ready",
+      description: "Print dialog opened. Use 'Save as PDF' in the print dialog for best results.",
+    });
   };
   
   const handleCopyToClipboard = () => {
@@ -1144,6 +1220,7 @@ ${fullResponse.slice(-1000)}...`;
 
   const getProviderDisplayName = (provider: string) => {
     switch (provider) {
+      case "deepseek": return "DeepSeek";
       case "anthropic": return "Claude (Anthropic)";
       case "openai": return "GPT (OpenAI)";
       case "azure": return "Azure OpenAI";
@@ -1221,6 +1298,7 @@ ${fullResponse.slice(-1000)}...`;
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="deepseek">DeepSeek (Default)</SelectItem>
                   <SelectItem value="anthropic">Claude (Anthropic)</SelectItem>
                   <SelectItem value="openai">GPT (OpenAI)</SelectItem>
                   <SelectItem value="azure">Azure OpenAI</SelectItem>
