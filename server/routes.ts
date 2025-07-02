@@ -43,6 +43,104 @@ const azureOpenAI = process.env.AZURE_OPENAI_KEY && process.env.AZURE_OPENAI_END
   },
 }) : null;
 
+// DeepSeek client
+const deepseek = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY || "default_key",
+  baseURL: "https://api.deepseek.com/v1"
+});
+
+// DeepSeek processing function
+async function processWithDeepSeek(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
+  try {
+    // Check if the assignment requires a graph
+    const needsGraph = detectGraphRequirements(text);
+    
+    let prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+
+Solve this homework assignment with these MANDATORY requirements:
+1. ALL mathematical expressions MUST use proper LaTeX notation
+2. Use $ for inline math: $x^2$, $\\frac{a}{b}$, $\\sin(x)$, $\\pi$, $\\alpha$
+3. Use $$ for display equations: $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+4. Include every mathematical step with perfect LaTeX formatting
+5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
+6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
+7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
+8. Never use plain text for any mathematical symbol, number, or expression`;
+
+    if (needsGraph) {
+      prompt += `
+
+ADDITIONAL GRAPH REQUIREMENT:
+This assignment may require one or more graphs/plots. After solving the problem, you MUST provide graph data for EACH required graph in this EXACT JSON format at the very end of your response:
+
+For each graph needed:
+GRAPH_DATA_START
+{
+  "type": "line|bar|scatter",
+  "title": "Graph Title",
+  "xLabel": "X-axis Label", 
+  "yLabel": "Y-axis Label",
+  "data": [
+    {"x": value1, "y": value1},
+    {"x": value2, "y": value2}
+  ],
+  "description": "Brief description of what the graph shows"
+}
+GRAPH_DATA_END
+
+If multiple graphs are needed, provide multiple GRAPH_DATA_START...GRAPH_DATA_END blocks.
+Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
+    }
+
+    prompt += `\n\nAssignment to solve:\n\n${text}`;
+
+    const response = await deepseek.chat.completions.create({
+      model: "deepseek-chat",
+      messages: [{ 
+        role: "user", 
+        content: prompt
+      }],
+      max_tokens: 4000,
+      temperature: 0.1,
+    });
+
+    const responseText = response.choices[0]?.message?.content || 'No response generated';
+    
+    // Extract multiple graph data if present
+    const graphData: GraphRequest[] = [];
+    if (needsGraph && responseText.includes('GRAPH_DATA_START')) {
+      try {
+        const graphRegex = /GRAPH_DATA_START([\s\S]*?)GRAPH_DATA_END/g;
+        let match;
+        while ((match = graphRegex.exec(responseText)) !== null) {
+          try {
+            const graphJson = match[1].trim();
+            const parsedGraph = JSON.parse(graphJson);
+            graphData.push(parsedGraph);
+          } catch (error) {
+            console.error('Failed to parse individual graph data:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to parse graph data:', error);
+      }
+    }
+
+    // Clean the response to remove graph data markers
+    const cleanedResponse = responseText
+      .replace(/GRAPH_DATA_START[\s\S]*?GRAPH_DATA_END/g, '')
+      .trim();
+
+    return { 
+      response: cleanedResponse, 
+      graphData: graphData.length > 0 ? graphData : undefined 
+    };
+  } catch (error) {
+    console.error('DeepSeek API error:', error);
+    throw new Error('Failed to process with DeepSeek');
+  }
+}
+
 async function performMathpixOCR(buffer: Buffer): Promise<string> {
   if (!process.env.MATHPIX_APP_ID || !process.env.MATHPIX_APP_KEY) {
     throw new Error('Mathpix credentials not configured');
@@ -1435,7 +1533,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
       }
 
       const { llmProvider } = req.body;
-      if (!llmProvider || !['anthropic', 'openai', 'perplexity', 'azure'].includes(llmProvider)) {
+      if (!llmProvider || !['anthropic', 'openai', 'perplexity', 'azure', 'deepseek'].includes(llmProvider)) {
         return res.status(400).json({ error: "Invalid LLM provider" });
       }
 
@@ -1477,6 +1575,9 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
           break;
         case 'perplexity':
           llmResult = await processWithPerplexity(extractedText);
+          break;
+        case 'deepseek':
+          llmResult = await processWithDeepSeek(extractedText);
           break;
         default:
           throw new Error(`Unsupported LLM provider: ${llmProvider}`);
@@ -1580,6 +1681,9 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
           break;
         case 'perplexity':
           llmResult = await processWithPerplexity(inputText);
+          break;
+        case 'deepseek':
+          llmResult = await processWithDeepSeek(inputText);
           break;
         default:
           throw new Error(`Unsupported LLM provider: ${llmProvider}`);
@@ -2015,6 +2119,9 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
           break;
         case 'perplexity':
           result = await processWithPerplexity(fullPrompt);
+          break;
+        case 'deepseek':
+          result = await processWithDeepSeek(fullPrompt);
           break;
         default:
           return res.status(400).json({ error: "Invalid provider" });
