@@ -979,210 +979,66 @@ ${fullResponse.slice(-1000)}...`;
       }
     }
 
-    // Create a new window for printing with MathJax rendering
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
+    // Use server-side PDF generation for perfect math rendering
+    try {
+      // Get the already-rendered math from the current page
+      const mathContentElement = document.querySelector('.math-content');
+      if (!mathContentElement) {
+        toast({
+          title: "Content not ready",
+          description: "Please wait for the solution to render completely",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Clone the rendered content and extract the HTML
+      const clonedContent = mathContentElement.cloneNode(true) as HTMLElement;
+      const renderedHTML = clonedContent.innerHTML;
+
       toast({
-        title: "Popup blocked",
-        description: "Please allow popups and try again",
+        title: "Generating PDF",
+        description: "Creating PDF with properly rendered mathematical notation...",
+      });
+
+      // Send to server for PDF generation
+      const response = await fetch('/api/generate-math-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: currentResult.llmResponse,
+          title: title,
+          extractedText: currentResult.extractedText,
+          renderedHtml: renderedHTML
+        })
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "PDF downloaded",
+          description: "Math notation rendered perfectly in PDF",
+        });
+      } else {
+        throw new Error('Server PDF generation failed');
+      }
+    } catch (error) {
+      console.error('Server PDF generation error:', error);
+      toast({
+        title: "PDF generation failed",
+        description: "Unable to generate PDF with math notation",
         variant: "destructive",
       });
-      return;
     }
-
-    const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Assignment Solution</title>
-    <meta charset="UTF-8">
-    <script>
-        window.MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\\(', '\\)']],
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
-                processEscapes: true,
-                processEnvironments: true,
-                packages: {'[+]': ['ams', 'newcommand', 'mathtools', 'physics']}
-            },
-            chtml: {
-                scale: 1.2,
-                minScale: 0.8,
-                matchFontHeight: false,
-                fontURL: 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2'
-            },
-            loader: {
-                load: ['[tex]/ams', '[tex]/newcommand', '[tex]/mathtools', '[tex]/physics']
-            },
-            startup: {
-                ready: () => {
-                    MathJax.startup.defaultReady();
-                    // Wait for MathJax to finish rendering all math
-                    MathJax.startup.promise.then(() => {
-                        return MathJax.typesetPromise();
-                    }).then(() => {
-                        // Additional wait to ensure everything is rendered
-                        setTimeout(() => {
-                            console.log('MathJax rendering complete, initiating print');
-                            // Hide loading indicator if it exists
-                            const loader = document.getElementById('math-loader');
-                            if (loader) loader.style.display = 'none';
-                            window.print();
-                        }, 5000);
-                    }).catch((err) => {
-                        console.error('MathJax rendering error:', err);
-                        // Print anyway after delay
-                        setTimeout(() => {
-                            const loader = document.getElementById('math-loader');
-                            if (loader) loader.style.display = 'none';
-                            window.print();
-                        }, 5000);
-                    });
-                }
-            }
-        };
-    </script>
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <style>
-        body {
-            font-family: 'Computer Modern', 'Times New Roman', serif;
-            font-size: 12pt;
-            line-height: 1.8;
-            margin: 1in;
-            color: black;
-            background: white;
-            max-width: none;
-        }
-        .header {
-            text-align: center;
-            border-bottom: 2px solid black;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
-        }
-        .header h1 {
-            font-size: 20pt;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-        .section {
-            margin-bottom: 30px;
-            page-break-inside: avoid;
-        }
-        .section h2 {
-            font-size: 16pt;
-            margin-bottom: 15px;
-            color: black;
-            font-weight: bold;
-            page-break-after: avoid;
-        }
-        .content {
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-size: 12pt;
-            line-height: 1.8;
-        }
-        .mjx-chtml {
-            font-size: 120% !important;
-            line-height: 1.8 !important;
-        }
-        .MJXc-display {
-            margin: 1em 0 !important;
-        }
-        /* Ensure all MathJax elements are visible and properly styled */
-        mjx-container {
-            display: inline-block !important;
-            margin: 0.1em 0 !important;
-        }
-        mjx-container[display="true"] {
-            display: block !important;
-            text-align: center !important;
-            margin: 1em 0 !important;
-        }
-        p {
-            margin-bottom: 12pt;
-            text-align: justify;
-        }
-        @page {
-            margin: 1in;
-            size: letter;
-        }
-        @media print {
-            body { 
-                margin: 0; 
-                font-size: 12pt;
-            }
-            .mjx-chtml {
-                font-size: 120% !important;
-            }
-        }
-        /* Loading indicator styles */
-        .math-loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            color: white;
-            padding: 30px;
-            border-radius: 8px;
-            font-family: Arial, sans-serif;
-            z-index: 10000;
-            text-align: center;
-        }
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .math-loading.hidden {
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <!-- Loading indicator -->
-    <div id="math-loader" class="math-loading">
-        <div class="loading-spinner"></div>
-        <div>Rendering mathematical notation...</div>
-        <div style="font-size: 12px; margin-top: 10px;">This may take a few seconds</div>
-    </div>
-    
-    <div class="header">
-        <h1>Assignment Solution</h1>
-        <p>Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-    </div>
-    
-    ${currentResult.extractedText ? `
-    <div class="section">
-        <h2>Problem:</h2>
-        <div class="content">${currentResult.extractedText}</div>
-    </div>
-    ` : ''}
-    
-    <div class="section">
-        <h2>Solution:</h2>
-        ${currentResult.graphImage ? `<div style="text-align: center; margin: 20px 0;"><img src="data:image/png;base64,${currentResult.graphImage}" alt="Generated Graph" style="max-width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px; page-break-inside: avoid;" /></div>` : ''}
-        <div class="content">${currentResult.llmResponse}</div>
-    </div>
-</body>
-</html>`;
-
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-
-    toast({
-      title: "PDF preparation started",
-      description: "MathJax is rendering mathematical notation... Print dialog will appear in 5 seconds",
-    });
   };
   
   const handleCopyToClipboard = () => {

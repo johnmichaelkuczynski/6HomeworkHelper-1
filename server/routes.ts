@@ -1095,6 +1095,142 @@ async function convertHtmlToPdf(htmlContent: string, title: string = 'Assignment
 }
 
 // PDF Generation function using LaTeX/Tectonic
+// Enhanced Math PDF generation with pre-rendered HTML support
+async function generateMathPDF(content: string, title: string = 'Assignment Solution', extractedText?: string): Promise<Buffer> {
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: '/nix/store/zi4f80l169xlmivz8vja8wlphq74qqk0-chromium-125.0.6422.141/bin/chromium',
+      args: [
+        '--no-sandbox', 
+        '--disable-setuid-sandbox', 
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-web-security',
+        '--font-render-hinting=none'
+      ]
+    });
+    
+    const page = await browser.newPage();
+    
+    // Enhanced HTML structure for perfect math rendering
+    const fullHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>
+        body {
+            font-family: 'Computer Modern', 'Times New Roman', serif;
+            font-size: 12pt;
+            line-height: 1.8;
+            color: #000;
+            margin: 40px;
+            background: white;
+            max-width: none;
+        }
+        h1, h2, h3 {
+            color: #000;
+            margin-bottom: 20px;
+            font-weight: bold;
+            page-break-after: avoid;
+        }
+        h1 { font-size: 18pt; text-align: center; }
+        h2 { font-size: 16pt; }
+        h3 { font-size: 14pt; }
+        .problem-section {
+            background: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+        .solution-content {
+            font-size: 12pt;
+            line-height: 1.8;
+        }
+        /* Preserve all math rendering from client */
+        mjx-container, .mjx-chtml, .MathJax {
+            display: inline-block !important;
+            font-size: 120% !important;
+            line-height: 1.8 !important;
+            margin: 0.1em !important;
+            color: #000 !important;
+        }
+        mjx-container[display="true"] {
+            display: block !important;
+            text-align: center !important;
+            margin: 1em 0 !important;
+        }
+        p {
+            margin-bottom: 12pt;
+            text-align: justify;
+        }
+        @page {
+            margin: 1in;
+            size: letter;
+        }
+        @media print {
+            body { 
+                margin: 0; 
+                font-size: 12pt;
+            }
+            mjx-container, .mjx-chtml, .MathJax {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                color: #000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>
+    
+    ${extractedText ? `
+    <div class="problem-section">
+        <h2>Problem Statement</h2>
+        <p>${extractedText.replace(/\n/g, '<br>')}</p>
+    </div>
+    ` : ''}
+    
+    <div class="solution-section">
+        <h2>Solution</h2>
+        <div class="solution-content">${content}</div>
+    </div>
+</body>
+</html>`;
+
+    await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
+    
+    // Additional wait to ensure complete rendering of pre-rendered math
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Generate PDF with high quality settings
+    const pdfBuffer = await page.pdf({
+      format: 'letter',
+      margin: {
+        top: '0.75in',
+        bottom: '0.75in',
+        left: '0.75in',
+        right: '0.75in'
+      },
+      printBackground: true,
+      preferCSSPageSize: true
+    });
+
+    return Buffer.from(pdfBuffer);
+  } catch (error) {
+    console.error('Math PDF generation error:', error);
+    throw new Error('Failed to generate math PDF');
+  } finally {
+    if (browser) {
+      await browser.close();
+    }
+  }
+}
+
 async function generatePDF(content: string, title: string = 'Assignment Solution', extractedText?: string, graphImage?: string): Promise<Buffer> {
   const tempId = randomBytes(16).toString('hex');
   const tempDir = path.join('/tmp', `latex_${tempId}`);
@@ -1888,6 +2024,31 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     } catch (error: any) {
       console.error('Chat error:', error);
       res.status(500).json({ error: error.message || 'Chat failed' });
+    }
+  });
+
+  // Enhanced Math PDF generation endpoint
+  app.post("/api/generate-math-pdf", async (req, res) => {
+    try {
+      const { content, title, extractedText, renderedHtml } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      // Use pre-rendered HTML if available, otherwise process math content
+      const mathContent = renderedHtml || content;
+      
+      const pdfBuffer = await generateMathPDF(mathContent, title, extractedText);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${(title || 'math-solution').replace(/[^a-zA-Z0-9]/g, '_')}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error: any) {
+      console.error('Math PDF generation error:', error);
+      res.status(500).json({ error: error.message || 'Failed to generate math PDF' });
     }
   });
 
