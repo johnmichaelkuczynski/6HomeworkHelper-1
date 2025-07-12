@@ -1,13 +1,26 @@
-import { assignments, type Assignment, type InsertAssignment } from "@shared/schema";
+import { assignments, users, tokenUsage, dailyUsage, type Assignment, type InsertAssignment, type User, type InsertUser, type TokenUsage, type InsertTokenUsage, type DailyUsage, type InsertDailyUsage } from "@shared/schema";
 import { db } from "./db";
-import { eq, isNull } from "drizzle-orm";
+import { eq, isNull, and, sum } from "drizzle-orm";
 
 export interface IStorage {
+  // Assignment methods
   createAssignment(assignment: InsertAssignment): Promise<Assignment>;
   getAssignment(id: number): Promise<Assignment | undefined>;
   getAllAssignments(): Promise<Assignment[]>;
   deleteAssignment(id: number): Promise<void>;
   cleanupEmptyAssignments(): Promise<void>;
+  
+  // User management methods
+  createUser(user: InsertUser): Promise<User>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserById(id: number): Promise<User | undefined>;
+  updateUserTokenBalance(userId: number, balance: number): Promise<void>;
+  
+  // Token usage methods
+  createTokenUsage(usage: InsertTokenUsage): Promise<TokenUsage>;
+  getDailyUsage(sessionId: string, date: string): Promise<DailyUsage | undefined>;
+  createOrUpdateDailyUsage(sessionId: string, date: string, tokens: number): Promise<void>;
+  getUserTokenBalance(userId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -35,6 +48,69 @@ export class DatabaseStorage implements IStorage {
   async cleanupEmptyAssignments(): Promise<void> {
     // Empty assignments already cleaned via SQL
     return;
+  }
+
+  // User management methods
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserById(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async updateUserTokenBalance(userId: number, balance: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ tokenBalance: balance })
+      .where(eq(users.id, userId));
+  }
+
+  // Token usage methods
+  async createTokenUsage(insertUsage: InsertTokenUsage): Promise<TokenUsage> {
+    const [usage] = await db
+      .insert(tokenUsage)
+      .values(insertUsage)
+      .returning();
+    return usage;
+  }
+
+  async getDailyUsage(sessionId: string, date: string): Promise<DailyUsage | undefined> {
+    const [usage] = await db
+      .select()
+      .from(dailyUsage)
+      .where(and(eq(dailyUsage.sessionId, sessionId), eq(dailyUsage.date, date)));
+    return usage || undefined;
+  }
+
+  async createOrUpdateDailyUsage(sessionId: string, date: string, tokens: number): Promise<void> {
+    const existing = await this.getDailyUsage(sessionId, date);
+    
+    if (existing) {
+      await db
+        .update(dailyUsage)
+        .set({ totalTokens: existing.totalTokens + tokens })
+        .where(eq(dailyUsage.id, existing.id));
+    } else {
+      await db
+        .insert(dailyUsage)
+        .values({ sessionId, date, totalTokens: tokens });
+    }
+  }
+
+  async getUserTokenBalance(userId: number): Promise<number> {
+    const user = await this.getUserById(userId);
+    return user?.tokenBalance || 0;
   }
 }
 

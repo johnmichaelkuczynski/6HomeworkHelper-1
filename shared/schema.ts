@@ -64,6 +64,7 @@ export const processAssignmentSchema = z.object({
   fileName: z.string().optional(),
   llmProvider: z.enum(['anthropic', 'openai', 'azure', 'perplexity', 'deepseek']),
   fileData: z.string().optional(), // base64 encoded file data
+  sessionId: z.string().optional(), // for anonymous users
 });
 
 export type ProcessAssignmentRequest = z.infer<typeof processAssignmentSchema>;

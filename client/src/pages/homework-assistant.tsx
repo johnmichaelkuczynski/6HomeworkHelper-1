@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { TokenStatus } from "@/components/ui/token-status";
+import { useAuth } from "@/hooks/use-auth";
+import { useSession } from "@/hooks/use-session";
 
 import { useQuery, useMutation } from "@tanstack/react-query";
 
@@ -46,6 +49,10 @@ export default function HomeworkAssistant() {
   const [refinementFeedback, setRefinementFeedback] = useState("");
   const [isRefining, setIsRefining] = useState(false);
   const [isMathViewEnabled, setIsMathViewEnabled] = useState(true);
+
+  // Authentication and session management
+  const { user, isAuthenticated } = useAuth();
+  const sessionId = useSession();
 
 
   // Function to clear everything and start new assignment
@@ -216,7 +223,8 @@ export default function HomeworkAssistant() {
           originalProblem: currentResult.extractedText || inputText,
           currentSolution: currentResult.llmResponse,
           feedback: refinementFeedback,
-          provider: selectedProvider
+          provider: selectedProvider,
+          sessionId: sessionId
         }),
       });
       
@@ -274,6 +282,7 @@ export default function HomeworkAssistant() {
         const formData = new FormData();
         formData.append('file', currentFile);
         formData.append('provider', selectedProvider);
+        formData.append('sessionId', sessionId);
         if (currentChatInput) formData.append('message', currentChatInput);
         if (chatMessages.length > 0) {
           formData.append('conversationHistory', JSON.stringify(chatMessages.map(msg => ({
@@ -295,6 +304,7 @@ export default function HomeworkAssistant() {
           body: JSON.stringify({ 
             message: currentChatInput, 
             provider: selectedProvider,
+            sessionId: sessionId,
             conversationHistory: chatMessages.map(msg => ({
               role: msg.role,
               content: msg.content
@@ -426,7 +436,8 @@ export default function HomeworkAssistant() {
           originalSolution: currentResult.llmResponse,
           critique: critiqueText,
           provider: selectedProvider,
-          problem: currentResult.extractedText || inputText
+          problem: currentResult.extractedText || inputText,
+          sessionId: sessionId
         }),
       });
       
@@ -730,7 +741,8 @@ ${fullResponse.slice(-1000)}...`;
           body: JSON.stringify({ 
             inputText: chunkPrompt, 
             inputType: 'text',
-            llmProvider: provider 
+            llmProvider: provider,
+            sessionId: sessionId
           }),
         });
 
@@ -775,6 +787,7 @@ ${fullResponse.slice(-1000)}...`;
       const formData = new FormData();
       formData.append('file', file);
       formData.append('llmProvider', provider);
+      formData.append('sessionId', sessionId);
       return fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -793,11 +806,22 @@ ${fullResponse.slice(-1000)}...`;
       });
     },
     onError: (error: any) => {
-      toast({
-        title: "Processing failed",
-        description: error.message || "Failed to process assignment",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || "Failed to process assignment";
+      
+      // Check if it's a token-related error
+      if (errorMessage.includes("insufficient tokens") || errorMessage.includes("token")) {
+        toast({
+          title: "Insufficient tokens",
+          description: "Please purchase more tokens to continue or register for an account",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Processing failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -809,7 +833,8 @@ ${fullResponse.slice(-1000)}...`;
         body: JSON.stringify({ 
           inputText: text, 
           inputType: 'text',
-          llmProvider: provider 
+          llmProvider: provider,
+          sessionId: sessionId
         }),
       }).then(res => res.json());
     },
@@ -826,11 +851,22 @@ ${fullResponse.slice(-1000)}...`;
       });
     },
     onError: (error: any) => {
-      toast({
-        title: "Processing failed",
-        description: error.message || "Failed to process assignment",
-        variant: "destructive",
-      });
+      const errorMessage = error.message || "Failed to process assignment";
+      
+      // Check if it's a token-related error
+      if (errorMessage.includes("insufficient tokens") || errorMessage.includes("token")) {
+        toast({
+          title: "Insufficient tokens",
+          description: "Please purchase more tokens to continue or register for an account",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Processing failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -1250,6 +1286,10 @@ ${fullResponse.slice(-1000)}...`;
               <p className="text-sm text-slate-600 mt-1">AI-powered assignment solver</p>
             </div>
             <div className="flex items-center space-x-3">
+              {/* Token Status */}
+              <div className="w-80">
+                <TokenStatus sessionId={sessionId} />
+              </div>
               <Button
                 onClick={() => {
                   // Nuclear reset - clear everything

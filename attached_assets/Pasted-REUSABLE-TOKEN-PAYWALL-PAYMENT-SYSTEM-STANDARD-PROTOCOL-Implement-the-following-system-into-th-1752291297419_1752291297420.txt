@@ -1,0 +1,91 @@
+REUSABLE TOKEN + PAYWALL + PAYMENT SYSTEM (STANDARD PROTOCOL)
+Implement the following system into this app. This protocol has been finalized and tested in other apps and must be applied exactly the same way here:
+
+🔒 FREE USER ACCESS (LIMITED USAGE)
+Allow unregistered users to use the app with the following limits:
+
+Input token limit: ≤500 tokens
+
+Output token limit: ≤300 tokens
+
+Daily total cap: 1000 tokens (input + output combined)
+
+If a user submits a longer input or exceeds the cap:
+
+Show partial result only (e.g., grade only, or first 1–2 lines of output)
+
+Display this message:
+
+🔒 Full results available with upgrade. [Register & Unlock Full Access]
+
+If the user exceeds the daily token cap:
+
+Stop output immediately
+
+Display:
+
+🔒 You've reached the free usage limit for today. [Register & Unlock Full Access]
+
+🔑 REGISTERED USERS + CREDIT SYSTEM
+Allow users to register with email + password (no email verification needed)
+
+After logging in, show a Buy Credits option
+
+Integrate with Stripe Checkout and use the following credit tiers:
+
+$1 → 2,000 tokens
+
+$10 → 30,000 tokens
+
+$100 → 600,000 tokens
+
+$1,000 → 10,000,000 tokens
+
+After payment:
+
+Update user's token balance immediately
+
+Store balance in database keyed to user’s email
+
+When user runs out of credits:
+
+Block further use
+
+Show:
+
+🔒 You’ve used all your credits. [Buy More Credits]
+
+🧠 SYSTEM REQUIREMENTS
+All token usage must be logged with:
+
+Timestamp
+
+User/session ID
+
+Token count
+
+Remaining balance
+
+Auth must persist across page reloads
+
+Refresh must not log user out
+
+Logged-in users should never be redirected to register/login again
+
+✅ TEST CASES (REQUIRED BEFORE “DONE”)
+Submit large input as unregistered user → partial result + upgrade prompt
+
+Hit 1000-token daily cap → blocked + upgrade prompt
+
+Register + buy credits → token balance updated
+
+Submit input → tokens deducted correctly
+
+Refresh page → user stays logged in
+
+Only mark task complete after all 5 test cases pass visibly.
+
+⏩ NOW APPLY TO: HOMEWORK PRO
+Apply this exact protocol now to my Homework Pro app (the best homework app in existence). Reuse all functionality from the previous app—same token logic, same paywall flow, same pricing, same Stripe integration. Nothing should differ except the app content.
+
+Make sure the test cases work in Homework Pro just like they did before. Then show all output.

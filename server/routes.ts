@@ -1,8 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
+import session from "express-session";
+import ConnectPgSimple from "connect-pg-simple";
 import { storage } from "./storage";
-import { processAssignmentSchema, emailSolutionSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse, type EmailSolutionRequest, type AssignmentListItem } from "@shared/schema";
+import { processAssignmentSchema, emailSolutionSchema, registerSchema, loginSchema, purchaseCreditsSchema, tokenCheckSchema, type ProcessAssignmentRequest, type ProcessAssignmentResponse, type EmailSolutionRequest, type AssignmentListItem } from "@shared/schema";
 import { ZodError } from "zod";
 import Tesseract from "tesseract.js";
 import pdf2json from "pdf2json";
@@ -13,6 +15,10 @@ import path from 'path';
 import puppeteer from 'puppeteer';
 import { ChartJSNodeCanvas } from 'chartjs-node-canvas';
 import { PDFDocument } from 'pdf-lib';
+import { authService } from './auth';
+import { countTokens, estimateOutputTokens, truncateResponse, TOKEN_LIMITS, generateSessionId, getTodayDate } from './tokenUtils';
+import Stripe from 'stripe';
+import './types';
 
 // LLM imports
 // @ts-ignore
@@ -47,6 +53,11 @@ const azureOpenAI = process.env.AZURE_OPENAI_KEY && process.env.AZURE_OPENAI_END
 const deepseek = new OpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY || process.env.VITE_DEEPSEEK_API_KEY || "default_key",
   baseURL: "https://api.deepseek.com/v1"
+});
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key', {
+  apiVersion: '2024-06-20'
 });
 
 // DeepSeek processing function
@@ -1433,6 +1444,241 @@ ${escapedContent}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   
+  // Initialize session middleware
+  const PgSession = ConnectPgSimple(session);
+  
+  app.use(session({
+    store: new PgSession({
+      conString: process.env.DATABASE_URL,
+      tableName: 'session',
+      createTableIfMissing: true
+    }),
+    secret: process.env.SESSION_SECRET || 'homework-pro-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    }
+  }));
+
+  // Auth routes
+  app.post('/api/register', async (req, res) => {
+    try {
+      const userData = registerSchema.parse(req.body);
+      const user = await authService.register(userData);
+      
+      // Store user in session
+      req.session.userId = user.id;
+      
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          tokenBalance: user.tokenBalance
+        }
+      });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Registration failed' 
+      });
+    }
+  });
+
+  app.post('/api/login', async (req, res) => {
+    try {
+      const loginData = loginSchema.parse(req.body);
+      const user = await authService.login(loginData);
+      
+      // Store user in session
+      req.session.userId = user.id;
+      
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          tokenBalance: user.tokenBalance
+        }
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Login failed' 
+      });
+    }
+  });
+
+  app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.json({ success: true });
+    });
+  });
+
+  app.get('/api/me', async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Not authenticated' });
+      }
+      
+      const user = await authService.getUserById(req.session.userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      res.json({
+        id: user.id,
+        email: user.email,
+        tokenBalance: user.tokenBalance
+      });
+    } catch (error) {
+      console.error('Get user error:', error);
+      res.status(500).json({ error: 'Failed to get user' });
+    }
+  });
+
+  // Token check endpoint
+  app.post('/api/check-tokens', async (req, res) => {
+    try {
+      const { inputText, sessionId } = tokenCheckSchema.parse(req.body);
+      
+      const inputTokens = countTokens(inputText);
+      const estimatedOutputTokens = estimateOutputTokens(inputText);
+      const totalTokens = inputTokens + estimatedOutputTokens;
+      
+      // Check if user is authenticated
+      if (req.session.userId) {
+        const user = await authService.getUserById(req.session.userId);
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const canProcess = user.tokenBalance >= totalTokens;
+        
+        res.json({
+          canProcess,
+          inputTokens,
+          estimatedOutputTokens,
+          remainingBalance: user.tokenBalance,
+          message: canProcess ? undefined : '🔒 You\'ve used all your credits. [Buy More Credits]'
+        });
+      } else {
+        // Free user logic
+        const today = getTodayDate();
+        const dailyUsage = await storage.getDailyUsage(sessionId || generateSessionId(), today);
+        const currentDailyUsage = dailyUsage?.totalTokens || 0;
+        
+        let canProcess = true;
+        let message: string | undefined;
+        
+        // Check input token limit
+        if (inputTokens > TOKEN_LIMITS.FREE_INPUT_LIMIT) {
+          canProcess = false;
+          message = '🔒 Full results available with upgrade. [Register & Unlock Full Access]';
+        }
+        // Check output token limit
+        else if (estimatedOutputTokens > TOKEN_LIMITS.FREE_OUTPUT_LIMIT) {
+          canProcess = false;
+          message = '🔒 Full results available with upgrade. [Register & Unlock Full Access]';
+        }
+        // Check daily limit
+        else if (currentDailyUsage + totalTokens > TOKEN_LIMITS.FREE_DAILY_LIMIT) {
+          canProcess = false;
+          message = '🔒 You\'ve reached the free usage limit for today. [Register & Unlock Full Access]';
+        }
+        
+        res.json({
+          canProcess,
+          inputTokens,
+          estimatedOutputTokens,
+          dailyUsage: currentDailyUsage,
+          dailyLimit: TOKEN_LIMITS.FREE_DAILY_LIMIT,
+          message
+        });
+      }
+    } catch (error) {
+      console.error('Token check error:', error);
+      res.status(500).json({ error: 'Failed to check tokens' });
+    }
+  });
+
+  // Stripe payment endpoints
+  app.post('/api/create-checkout-session', async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: 'Authentication required' });
+      }
+      
+      const { amount } = purchaseCreditsSchema.parse(req.body);
+      const tokens = TOKEN_LIMITS.CREDIT_TIERS[amount];
+      
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: `${tokens.toLocaleString()} Homework Pro Tokens`,
+                description: 'Credits for AI-powered homework assistance',
+              },
+              unit_amount: parseInt(amount) * 100, // Convert to cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/?payment=success`,
+        cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/?payment=cancelled`,
+        client_reference_id: req.session.userId.toString(),
+        metadata: {
+          userId: req.session.userId.toString(),
+          tokens: tokens.toString()
+        }
+      });
+      
+      res.json({ sessionId: session.id });
+    } catch (error) {
+      console.error('Stripe session creation error:', error);
+      res.status(500).json({ error: 'Failed to create payment session' });
+    }
+  });
+
+  app.post('/api/webhook/stripe', async (req, res) => {
+    try {
+      const sig = req.headers['stripe-signature'];
+      const event = stripe.webhooks.constructEvent(
+        req.body,
+        sig as string,
+        process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
+      );
+      
+      if (event.type === 'checkout.session.completed') {
+        const session = event.data.object as any;
+        const userId = parseInt(session.metadata.userId);
+        const tokens = parseInt(session.metadata.tokens);
+        
+        // Update user's token balance
+        const user = await authService.getUserById(userId);
+        if (user) {
+          await storage.updateUserTokenBalance(userId, user.tokenBalance + tokens);
+        }
+      }
+      
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Stripe webhook error:', error);
+      res.status(400).json({ error: 'Webhook failed' });
+    }
+  });
+
   // Azure Speech configuration endpoint
   app.get('/api/azure-speech-config', (req, res) => {
     const endpoint = process.env.AZURE_SPEECH_ENDPOINT;
@@ -1656,85 +1902,242 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     }
   });
 
-  // Text processing endpoint
+  // Text processing endpoint with token management
   app.post("/api/process-text", async (req, res) => {
     try {
-      const { inputText, llmProvider } = processAssignmentSchema.parse(req.body);
+      const { inputText, llmProvider, sessionId } = processAssignmentSchema.parse(req.body);
 
       if (!inputText) {
         return res.status(400).json({ error: "Input text is required" });
       }
 
       const startTime = Date.now();
-
-      // Process with selected LLM
-      let llmResult: {response: string, graphData?: GraphRequest[]};
-      switch (llmProvider) {
-        case 'anthropic':
-          llmResult = await processWithAnthropic(inputText);
-          break;
-        case 'openai':
-          llmResult = await processWithOpenAI(inputText);
-          break;
-        case 'azure':
-          llmResult = await processWithAzureOpenAI(inputText);
-          break;
-        case 'perplexity':
-          llmResult = await processWithPerplexity(inputText);
-          break;
-        case 'deepseek':
-          llmResult = await processWithDeepSeek(inputText);
-          break;
-        default:
-          throw new Error(`Unsupported LLM provider: ${llmProvider}`);
-      }
-
-      const processingTime = Date.now() - startTime;
-
-      // Generate graphs if required
-      let graphImages: string[] | undefined;
-      let graphDataJsons: string[] | undefined;
       
-      if (llmResult.graphData && llmResult.graphData.length > 0) {
-        try {
-          graphImages = [];
-          graphDataJsons = [];
-          
-          for (const graphData of llmResult.graphData) {
-            const graphImage = await generateGraph(graphData);
-            graphImages.push(graphImage);
-            graphDataJsons.push(JSON.stringify(graphData));
-          }
-        } catch (error) {
-          console.error('Graph generation error:', error);
-          // Continue without graphs if generation fails
+      // Count tokens
+      const inputTokens = countTokens(inputText);
+      const estimatedOutputTokens = estimateOutputTokens(inputText);
+      const totalTokens = inputTokens + estimatedOutputTokens;
+      
+      let actualSessionId = sessionId;
+      let userId = req.session.userId;
+      
+      // Check token limits and process accordingly
+      if (userId) {
+        // Registered user - check token balance
+        const user = await authService.getUserById(userId);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
         }
+        
+        if (user.tokenBalance < totalTokens) {
+          return res.status(402).json({ 
+            error: "🔒 You've used all your credits. [Buy More Credits]",
+            needsUpgrade: true 
+          });
+        }
+        
+        // Process with full response
+        let llmResult: {response: string, graphData?: GraphRequest[]};
+        switch (llmProvider) {
+          case 'anthropic':
+            llmResult = await processWithAnthropic(inputText);
+            break;
+          case 'openai':
+            llmResult = await processWithOpenAI(inputText);
+            break;
+          case 'azure':
+            llmResult = await processWithAzureOpenAI(inputText);
+            break;
+          case 'perplexity':
+            llmResult = await processWithPerplexity(inputText);
+            break;
+          case 'deepseek':
+            llmResult = await processWithDeepSeek(inputText);
+            break;
+          default:
+            throw new Error(`Unsupported LLM provider: ${llmProvider}`);
+        }
+
+        const actualOutputTokens = countTokens(llmResult.response);
+        const actualTotalTokens = inputTokens + actualOutputTokens;
+        
+        // Deduct tokens
+        await storage.updateUserTokenBalance(userId, user.tokenBalance - actualTotalTokens);
+        
+        // Log token usage
+        await storage.createTokenUsage({
+          userId,
+          sessionId: null,
+          inputTokens,
+          outputTokens: actualOutputTokens,
+          remainingBalance: user.tokenBalance - actualTotalTokens
+        });
+        
+        const processingTime = Date.now() - startTime;
+
+        // Generate graphs if required
+        let graphImages: string[] | undefined;
+        let graphDataJsons: string[] | undefined;
+        
+        if (llmResult.graphData && llmResult.graphData.length > 0) {
+          try {
+            graphImages = [];
+            graphDataJsons = [];
+            
+            for (const graphData of llmResult.graphData) {
+              const graphImage = await generateGraph(graphData);
+              graphImages.push(graphImage);
+              graphDataJsons.push(JSON.stringify(graphData));
+            }
+          } catch (error) {
+            console.error('Graph generation error:', error);
+          }
+        }
+
+        // Store assignment
+        const assignment = await storage.createAssignment({
+          userId,
+          sessionId: null,
+          inputText,
+          inputType: 'text',
+          fileName: null,
+          extractedText: null,
+          llmProvider,
+          llmResponse: llmResult.response,
+          graphData: graphDataJsons,
+          graphImages: graphImages,
+          processingTime,
+          inputTokens,
+          outputTokens: actualOutputTokens,
+        });
+
+        const response: ProcessAssignmentResponse = {
+          id: assignment.id,
+          extractedText: inputText,
+          llmResponse: llmResult.response,
+          graphData: graphDataJsons,
+          graphImages: graphImages,
+          processingTime,
+          success: true,
+        };
+
+        res.json(response);
+      } else {
+        // Free user - check limits
+        if (!actualSessionId) {
+          actualSessionId = generateSessionId();
+        }
+        
+        const today = getTodayDate();
+        const dailyUsage = await storage.getDailyUsage(actualSessionId, today);
+        const currentDailyUsage = dailyUsage?.totalTokens || 0;
+        
+        // Check limits
+        if (inputTokens > TOKEN_LIMITS.FREE_INPUT_LIMIT) {
+          return res.status(402).json({ 
+            error: "🔒 Full results available with upgrade. [Register & Unlock Full Access]",
+            needsUpgrade: true,
+            partialResult: "Your question is too long for free usage. Please register for full access."
+          });
+        }
+        
+        if (currentDailyUsage + totalTokens > TOKEN_LIMITS.FREE_DAILY_LIMIT) {
+          return res.status(402).json({ 
+            error: "🔒 You've reached the free usage limit for today. [Register & Unlock Full Access]",
+            needsUpgrade: true
+          });
+        }
+
+        // Process with LLM
+        let llmResult: {response: string, graphData?: GraphRequest[]};
+        switch (llmProvider) {
+          case 'anthropic':
+            llmResult = await processWithAnthropic(inputText);
+            break;
+          case 'openai':
+            llmResult = await processWithOpenAI(inputText);
+            break;
+          case 'azure':
+            llmResult = await processWithAzureOpenAI(inputText);
+            break;
+          case 'perplexity':
+            llmResult = await processWithPerplexity(inputText);
+            break;
+          case 'deepseek':
+            llmResult = await processWithDeepSeek(inputText);
+            break;
+          default:
+            throw new Error(`Unsupported LLM provider: ${llmProvider}`);
+        }
+
+        const actualOutputTokens = countTokens(llmResult.response);
+        
+        // Check if output exceeds free limit
+        if (actualOutputTokens > TOKEN_LIMITS.FREE_OUTPUT_LIMIT) {
+          // Truncate response
+          llmResult.response = truncateResponse(llmResult.response, TOKEN_LIMITS.FREE_OUTPUT_LIMIT);
+          llmResult.response += "\n\n🔒 Full results available with upgrade. [Register & Unlock Full Access]";
+        }
+        
+        const finalOutputTokens = countTokens(llmResult.response);
+        const finalTotalTokens = inputTokens + finalOutputTokens;
+        
+        // Update daily usage
+        await storage.createOrUpdateDailyUsage(actualSessionId, today, finalTotalTokens);
+        
+        const processingTime = Date.now() - startTime;
+
+        // Generate graphs if required (limited for free users)
+        let graphImages: string[] | undefined;
+        let graphDataJsons: string[] | undefined;
+        
+        if (llmResult.graphData && llmResult.graphData.length > 0) {
+          try {
+            graphImages = [];
+            graphDataJsons = [];
+            
+            // Limit to 1 graph for free users
+            const limitedGraphData = llmResult.graphData.slice(0, 1);
+            
+            for (const graphData of limitedGraphData) {
+              const graphImage = await generateGraph(graphData);
+              graphImages.push(graphImage);
+              graphDataJsons.push(JSON.stringify(graphData));
+            }
+          } catch (error) {
+            console.error('Graph generation error:', error);
+          }
+        }
+
+        // Store assignment
+        const assignment = await storage.createAssignment({
+          userId: null,
+          sessionId: actualSessionId,
+          inputText,
+          inputType: 'text',
+          fileName: null,
+          extractedText: null,
+          llmProvider,
+          llmResponse: llmResult.response,
+          graphData: graphDataJsons,
+          graphImages: graphImages,
+          processingTime,
+          inputTokens,
+          outputTokens: finalOutputTokens,
+        });
+
+        const response: ProcessAssignmentResponse = {
+          id: assignment.id,
+          extractedText: inputText,
+          llmResponse: llmResult.response,
+          graphData: graphDataJsons,
+          graphImages: graphImages,
+          processingTime,
+          success: true,
+        };
+
+        res.json(response);
       }
-
-      // Store assignment
-      const assignment = await storage.createAssignment({
-        inputText,
-        inputType: 'text',
-        fileName: null,
-        extractedText: null,
-        llmProvider,
-        llmResponse: llmResult.response,
-        graphData: graphDataJsons,
-        graphImages: graphImages,
-        processingTime,
-      });
-
-      const response: ProcessAssignmentResponse = {
-        id: assignment.id,
-        extractedText: inputText,
-        llmResponse: llmResult.response,
-        graphData: graphDataJsons,
-        graphImages: graphImages,
-        processingTime,
-        success: true,
-      };
-
-      res.json(response);
     } catch (error) {
       if (error instanceof ZodError) {
         return res.status(400).json({ error: "Invalid request data", details: error.errors });
