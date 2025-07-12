@@ -1877,7 +1877,7 @@ ${fullResponse.slice(-1000)}...`;
                           </div>
                           <MathRenderer 
                             content={currentResult.llmResponse}
-                            className="space-y-4 math-content"
+                            className="space-y-4 math-content leading-relaxed"
                           />
                         </div>
                       ) : (
