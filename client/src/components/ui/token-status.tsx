@@ -29,9 +29,8 @@ export function TokenStatus({ sessionId }: TokenStatusProps) {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("/api/logout", {
-        method: "POST",
-      });
+      const response = await apiRequest("POST", "/api/logout");
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });

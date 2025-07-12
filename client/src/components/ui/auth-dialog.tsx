@@ -27,10 +27,8 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
-      return apiRequest("/api/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/login", data);
+      return response.json();
     },
     onSuccess: (user) => {
       toast({
@@ -53,10 +51,8 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
 
   const registerMutation = useMutation({
     mutationFn: async (data: { username: string; password: string }) => {
-      return apiRequest("/api/register", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/register", data);
+      return response.json();
     },
     onSuccess: (user) => {
       toast({

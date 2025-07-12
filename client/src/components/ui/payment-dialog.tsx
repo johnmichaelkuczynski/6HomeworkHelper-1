@@ -55,10 +55,8 @@ export function PaymentDialog({ open, onClose, user }: PaymentDialogProps) {
 
   const createCheckoutMutation = useMutation({
     mutationFn: async (amount: string) => {
-      return apiRequest("/api/create-checkout-session", {
-        method: "POST",
-        body: JSON.stringify({ amount }),
-      });
+      const response = await apiRequest("POST", "/api/create-checkout-session", { amount });
+      return response.json();
     },
     onSuccess: (data) => {
       // Redirect to Stripe Checkout
