@@ -94,7 +94,7 @@ export function TokenStatus({ sessionId }: TokenStatusProps) {
                 <Zap className="h-4 w-4 text-orange-500" />
                 <span className="text-sm font-medium">Free Usage</span>
                 <Badge variant="outline" className="text-xs">
-                  1000 tokens/day
+                  1000 tokens total
                 </Badge>
               </div>
               <div className="flex gap-2">
@@ -119,7 +119,7 @@ export function TokenStatus({ sessionId }: TokenStatusProps) {
             </div>
             <div className="mt-3">
               <div className="text-xs text-muted-foreground mb-1">
-                Daily limit: 500 input + 300 output tokens
+                One-time allowance: 1000 tokens total
               </div>
               <div className="text-xs text-muted-foreground">
                 Register for unlimited access

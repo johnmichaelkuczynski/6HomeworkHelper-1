@@ -148,6 +148,9 @@ The application follows a full-stack architecture with clear separation between 
 - July 12, 2025. **COMPLETED**: Token-Based Payment System - Implemented comprehensive token-based payment system with Stripe integration, user authentication (username/password only), and session tracking for both registered and anonymous users
 - July 12, 2025. **COMPLETED**: Simplified Authentication - Removed email requirements and verification; users only need username and password for registration to avoid technical issues
 - July 12, 2025. **COMPLETED**: UI Improvements - Replaced inappropriate "NUKE" button with dignified "Clear All" button positioned properly to avoid covering other interface elements
+- July 12, 2025. **COMPLETED**: Password Visibility Toggle - Added eye icon toggles to all password fields in authentication dialog for better user experience
+- July 12, 2025. **COMPLETED**: Token Information Accuracy - Corrected free token display from "1000 tokens/day" to "1000 tokens total" reflecting actual one-time allowance
+- July 12, 2025. **COMPLETED**: Header Layout Fix - Restructured header with two-row layout to prevent button overlapping and ensure proper spacing
 
 ## User Preferences
 
