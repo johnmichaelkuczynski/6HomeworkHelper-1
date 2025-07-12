@@ -5,7 +5,7 @@ import type { User, RegisterRequest, LoginRequest } from '@shared/schema';
 export class AuthService {
   async register(data: RegisterRequest): Promise<User> {
     // Check if user already exists
-    const existingUser = await storage.getUserByEmail(data.email);
+    const existingUser = await storage.getUserByUsername(data.username);
     if (existingUser) {
       throw new Error('User already exists');
     }
@@ -15,7 +15,7 @@ export class AuthService {
 
     // Create user
     const user = await storage.createUser({
-      email: data.email,
+      username: data.username,
       password: hashedPassword,
       tokenBalance: 0
     });
@@ -25,7 +25,7 @@ export class AuthService {
 
   async login(data: LoginRequest): Promise<User> {
     // Find user
-    const user = await storage.getUserByEmail(data.email);
+    const user = await storage.getUserByUsername(data.username);
     if (!user) {
       throw new Error('Invalid credentials');
     }

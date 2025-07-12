@@ -5,7 +5,7 @@ import { z } from "zod";
 // Users table for authentication and token tracking
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  email: varchar("email", { length: 255 }).unique().notNull(),
+  username: varchar("username", { length: 255 }).unique().notNull(),
   password: text("password").notNull(),
   tokenBalance: integer("token_balance").default(0),
   createdAt: timestamp("created_at").defaultNow(),
@@ -105,18 +105,18 @@ export type AssignmentListItem = z.infer<typeof assignmentListSchema>;
 
 // User authentication schemas
 export const registerSchema = z.object({
-  email: z.string().email(),
+  username: z.string().min(3),
   password: z.string().min(6),
 });
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  username: z.string(),
   password: z.string(),
 });
 
 export const userResponseSchema = z.object({
   id: z.number(),
-  email: z.string(),
+  username: z.string(),
   tokenBalance: z.number(),
 });
 

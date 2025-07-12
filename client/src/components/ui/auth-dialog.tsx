@@ -16,7 +16,7 @@ interface AuthDialogProps {
 }
 
 export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [activeTab, setActiveTab] = useState("login");
@@ -24,7 +24,7 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
   const queryClient = useQueryClient();
 
   const loginMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string }) => {
+    mutationFn: async (data: { username: string; password: string }) => {
       return apiRequest("/api/login", {
         method: "POST",
         body: JSON.stringify(data),
@@ -50,7 +50,7 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string }) => {
+    mutationFn: async (data: { username: string; password: string }) => {
       return apiRequest("/api/register", {
         method: "POST",
         body: JSON.stringify(data),
@@ -76,14 +76,14 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
   });
 
   const resetForm = () => {
-    setEmail("");
+    setUsername("");
     setPassword("");
     setConfirmPassword("");
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "Missing fields",
         description: "Please fill in all fields",
@@ -91,12 +91,12 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
       });
       return;
     }
-    loginMutation.mutate({ email, password });
+    loginMutation.mutate({ username, password });
   };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword) {
       toast({
         title: "Missing fields",
         description: "Please fill in all fields",
@@ -120,7 +120,7 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
       });
       return;
     }
-    registerMutation.mutate({ email, password });
+    registerMutation.mutate({ username, password });
   };
 
   const isLoading = loginMutation.isPending || registerMutation.isPending;
@@ -147,15 +147,15 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
             </div>
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="login-email">Email</Label>
+                <Label htmlFor="login-username">Username</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="login-username"
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
                   />
@@ -195,15 +195,15 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
             </div>
             <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="register-email">Email</Label>
+                <Label htmlFor="register-username">Username</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="register-email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    id="register-username"
+                    type="text"
+                    placeholder="Username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="pl-10"
                     disabled={isLoading}
                   />
