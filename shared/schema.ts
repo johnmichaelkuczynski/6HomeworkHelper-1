@@ -2,7 +2,7 @@ import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "dri
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Users table for authentication and token tracking
+// Users table for authentication and token tracking (with proper user isolation)
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 255 }).unique().notNull(),
@@ -31,9 +31,10 @@ export const dailyUsage = pgTable("daily_usage", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Assignments table with proper user isolation (CASCADE DELETE for security)
 export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
   sessionId: text("session_id"), // for anonymous users
   inputText: text("input_text"),
   inputType: text("input_type").notNull(), // 'text', 'image', 'pdf', 'doc'

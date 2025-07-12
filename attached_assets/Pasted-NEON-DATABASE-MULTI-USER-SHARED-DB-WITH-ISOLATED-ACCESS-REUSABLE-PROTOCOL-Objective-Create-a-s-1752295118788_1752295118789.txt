@@ -1,0 +1,72 @@
+NEON DATABASE: MULTI-USER SHARED DB WITH ISOLATED ACCESS (REUSABLE PROTOCOL)
+Objective:
+Create a single Neon database to store per-user data securely.
+Each user’s data must be isolated. No user can ever access another user’s content.
+
+🔧 DATABASE SETUP
+Create one Neon PostgreSQL database (only one — shared across all users)
+
+Inside it, define a users table and one or more per-user data tables, e.g.:
+
+sql
+Copy
+Edit
+-- User credentials + account
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  token_balance INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Example: Uploaded documents
+CREATE TABLE documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  filename TEXT NOT NULL,
+  content TEXT NOT NULL,
+  word_count INTEGER,
+  uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+🔐 DATA ACCESS REQUIREMENTS
+Every query must filter by user_id (taken from auth session)
+
+No user may query any row that does not match their user_id
+
+Enforce this on both backend and UI level
+
+Example safe query:
+
+ts
+Copy
+Edit
+await db.select().from(documents).where(eq(documents.user_id, currentUserId));
+🛡️ SECURITY RULES (MUST FOLLOW)
+One shared DB instance only
+
+No multi-tenant schema separation — use user_id scoping
+
+Never allow queries like SELECT * FROM documents without filtering
+
+Prevent access to other users’ rows even via URL manipulation or JS console
+
+🔐 SESSION + AUTH
+On login, retrieve user ID and store in session
+
+Every backend route must extract and validate user ID before making DB calls
+
+Always scope token balance, documents, uploads, etc. by user_id
+
+✅ TEST CASES (REQUIRED BEFORE “DONE”)
+Create 2 users → each sees only their own data
+
+Upload a document with user A → user B cannot view it
+
+User A deletes a file → only their data is affected
+
+Inspect DB manually → all rows correctly scoped to unique user_id
+
+URL manipulation or dev tools → cannot leak or expose any other user’s content
+
+This protocol must be reused across all apps that involve user uploads, token tracking, or private content. Do not modify the structure or skip isolation checks.

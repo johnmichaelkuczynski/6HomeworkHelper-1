@@ -3,11 +3,11 @@ import { db } from "./db";
 import { eq, isNull, and, sum } from "drizzle-orm";
 
 export interface IStorage {
-  // Assignment methods
+  // Assignment methods with user isolation
   createAssignment(assignment: InsertAssignment): Promise<Assignment>;
-  getAssignment(id: number): Promise<Assignment | undefined>;
-  getAllAssignments(): Promise<Assignment[]>;
-  deleteAssignment(id: number): Promise<void>;
+  getAssignment(id: number, userId?: number): Promise<Assignment | undefined>;
+  getAllAssignments(userId?: number): Promise<Assignment[]>;
+  deleteAssignment(id: number, userId?: number): Promise<void>;
   cleanupEmptyAssignments(): Promise<void>;
   
   // User management methods
@@ -32,17 +32,41 @@ export class DatabaseStorage implements IStorage {
     return assignment;
   }
 
-  async getAssignment(id: number): Promise<Assignment | undefined> {
-    const [assignment] = await db.select().from(assignments).where(eq(assignments.id, id));
+  async getAssignment(id: number, userId?: number): Promise<Assignment | undefined> {
+    const conditions = [eq(assignments.id, id)];
+    
+    // SECURITY: Always enforce user isolation for authenticated users
+    if (userId) {
+      conditions.push(eq(assignments.userId, userId));
+    }
+    
+    const [assignment] = await db.select().from(assignments).where(and(...conditions));
     return assignment || undefined;
   }
 
-  async getAllAssignments(): Promise<Assignment[]> {
-    return await db.select().from(assignments).orderBy(assignments.createdAt);
+  async getAllAssignments(userId?: number): Promise<Assignment[]> {
+    const conditions = [];
+    
+    // SECURITY: Always enforce user isolation for authenticated users
+    if (userId) {
+      conditions.push(eq(assignments.userId, userId));
+    } else {
+      // For anonymous users, only show assignments without a userId
+      conditions.push(isNull(assignments.userId));
+    }
+    
+    return await db.select().from(assignments).where(and(...conditions)).orderBy(assignments.createdAt);
   }
 
-  async deleteAssignment(id: number): Promise<void> {
-    await db.delete(assignments).where(eq(assignments.id, id));
+  async deleteAssignment(id: number, userId?: number): Promise<void> {
+    const conditions = [eq(assignments.id, id)];
+    
+    // SECURITY: Always enforce user isolation for authenticated users
+    if (userId) {
+      conditions.push(eq(assignments.userId, userId));
+    }
+    
+    await db.delete(assignments).where(and(...conditions));
   }
 
   async cleanupEmptyAssignments(): Promise<void> {

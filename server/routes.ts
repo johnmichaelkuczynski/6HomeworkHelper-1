@@ -2150,10 +2150,14 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     }
   });
 
-  // Get all assignments
+  // Get all assignments with user isolation
   app.get("/api/assignments", async (req, res) => {
     try {
-      const assignments = await storage.getAllAssignments();
+      // SECURITY: Get user ID from session for isolation
+      const userId = req.session.userId;
+      
+      // Get assignments scoped to user (or anonymous if no user)
+      const assignments = await storage.getAllAssignments(userId);
       const assignmentList: AssignmentListItem[] = assignments.map(assignment => ({
         id: assignment.id,
         extractedText: assignment.extractedText,
@@ -2169,11 +2173,14 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     }
   });
 
-  // Get assignment by ID
+  // Get assignment by ID with user isolation
   app.get("/api/assignments/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const assignment = await storage.getAssignment(id);
+      // SECURITY: Get user ID from session for isolation
+      const userId = req.session.userId;
+      
+      const assignment = await storage.getAssignment(id, userId);
       
       if (!assignment) {
         return res.status(404).json({ error: "Assignment not found" });
@@ -2185,11 +2192,14 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
     }
   });
 
-  // Delete assignment by ID
+  // Delete assignment by ID with user isolation
   app.delete("/api/assignments/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      await storage.deleteAssignment(id);
+      // SECURITY: Get user ID from session for isolation
+      const userId = req.session.userId;
+      
+      await storage.deleteAssignment(id, userId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete assignment" });
