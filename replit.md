@@ -145,6 +145,9 @@ The application follows a full-stack architecture with clear separation between 
 - July 2, 2025. **COMPLETED**: PDF Math Rendering Fix - Extended MathJax rendering time to 5 seconds, added proper promise handling, visual loading indicator, and improved CSS styling for perfect mathematical notation in PDF exports
 - July 2, 2025. **COMPLETED**: DeepSeek Integration - Added DeepSeek as an LLM provider option and made it the default, providing users with access to competitive AI capabilities
 - July 2, 2025. **COMPLETED**: Print-Save-as-PDF Restoration - Restored the print preview functionality that opens a new window showing the PDF preview before saving, allowing users to see and verify content before download
+- July 12, 2025. **COMPLETED**: Token-Based Payment System - Implemented comprehensive token-based payment system with Stripe integration, user authentication (username/password only), and session tracking for both registered and anonymous users
+- July 12, 2025. **COMPLETED**: Simplified Authentication - Removed email requirements and verification; users only need username and password for registration to avoid technical issues
+- July 12, 2025. **COMPLETED**: UI Improvements - Replaced inappropriate "NUKE" button with dignified "Clear All" button positioned properly to avoid covering other interface elements
 
 ## User Preferences
 

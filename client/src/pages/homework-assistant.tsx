@@ -11,7 +11,7 @@ import { FileUpload } from "@/components/ui/file-upload";
 import { MathRenderer } from "@/components/ui/math-renderer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer } from "lucide-react";
+import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TokenStatus } from "@/components/ui/token-status";
 import { useAuth } from "@/hooks/use-auth";
@@ -1291,41 +1291,6 @@ ${fullResponse.slice(-1000)}...`;
                 <TokenStatus sessionId={sessionId} />
               </div>
               <Button
-                onClick={() => {
-                  // Nuclear reset - clear everything
-                  setInputText("");
-                  setCurrentAssignmentName("");
-                  setSpecialInstructions("");
-                  setCurrentResult(null);
-                  setWordCount(0);
-                  setAiDetectionResult(null);
-                  setChatMessages([]);
-                  setChatInput("");
-                  setChatFileUpload(null);
-                  setCritiqueText("");
-                  setEditedTopSolution("");
-                  setEditedBottomSolution("");
-                  setAccumulatedContent("");
-                  setSelectedSavedAssignment("");
-                  setAssignmentName("");
-                  setIsEditingTopSolution(false);
-                  setIsEditingBottomSolution(false);
-                  setIsChunkedProcessing(false);
-                  setChunkProgress({ current: 0, total: 0 });
-                  // Clear any file uploads
-                  const fileInputs = document.querySelectorAll('input[type="file"]');
-                  fileInputs.forEach(input => (input as HTMLInputElement).value = '');
-                  toast({
-                    title: "System Reset",
-                    description: "All data cleared - fresh start",
-                  });
-                }}
-                variant="outline"
-                className="border-red-200 text-red-700 hover:bg-red-50 font-semibold"
-              >
-                🗘 NUKE
-              </Button>
-              <Button
                 onClick={handleNewAssignment}
                 variant="outline"
                 className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
@@ -1357,7 +1322,39 @@ ${fullResponse.slice(-1000)}...`;
           {/* Input Panel */}
           <Card className="flex flex-col">
             <div className="p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900">Assignment Details</h2>
+                <Button
+                  onClick={() => {
+                    // Clear input and output areas only
+                    setInputText("");
+                    setSpecialInstructions("");
+                    setCurrentResult(null);
+                    setWordCount(0);
+                    setChatMessages([]);
+                    setChatInput("");
+                    setChatFileUpload(null);
+                    setEditedTopSolution("");
+                    setEditedBottomSolution("");
+                    setAccumulatedContent("");
+                    setIsEditingTopSolution(false);
+                    setIsEditingBottomSolution(false);
+                    // Clear any file uploads
+                    const fileInputs = document.querySelectorAll('input[type="file"]');
+                    fileInputs.forEach(input => (input as HTMLInputElement).value = '');
+                    toast({
+                      title: "Cleared",
+                      description: "Input and output areas have been cleared",
+                    });
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-slate-600 hover:text-slate-900 border-slate-300"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Clear All
+                </Button>
+              </div>
               
               {/* Load Saved Assignments */}
               {assignmentsQuery.data && assignmentsQuery.data.filter(a => a.fileName).length > 0 && (
