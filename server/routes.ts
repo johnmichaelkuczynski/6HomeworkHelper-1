@@ -1592,6 +1592,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/register', async (req, res) => {
     try {
       const userData = registerSchema.parse(req.body);
+      
+      // SPECIAL CASE: jmkuczynski gets unlimited access
+      if (userData.username === 'jmkuczynski') {
+        let user = await storage.getUserByUsername('jmkuczynski');
+        if (!user) {
+          user = await storage.createUser({
+            username: 'jmkuczynski',
+            password: 'dummy', // Password doesn't matter for this user
+            tokenBalance: 999999 // Unlimited tokens
+          });
+        }
+        
+        // Store user in session
+        req.session.userId = user.id;
+        
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            tokenBalance: 999999
+          }
+        });
+        return;
+      }
+      
       const user = await authService.register(userData);
       
       // Store user in session
@@ -1601,8 +1627,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         user: {
           id: user.id,
-          email: user.email,
-          tokenBalance: user.tokenBalance
+          username: user.username,
+          tokenBalance: user.tokenBalance || 0
         }
       });
     } catch (error) {
@@ -1616,6 +1642,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/login', async (req, res) => {
     try {
       const loginData = loginSchema.parse(req.body);
+      
+      // SPECIAL CASE: jmkuczynski gets unlimited access with any password
+      if (loginData.username === 'jmkuczynski') {
+        // Create or update user with unlimited tokens
+        let user = await storage.getUserByUsername('jmkuczynski');
+        if (!user) {
+          user = await storage.createUser({
+            username: 'jmkuczynski',
+            password: 'dummy', // Password doesn't matter for this user
+            tokenBalance: 999999 // Unlimited tokens
+          });
+        } else {
+          // Ensure unlimited tokens
+          await storage.updateUserTokens(user.id, 999999);
+          user.tokenBalance = 999999;
+        }
+        
+        // Store user in session
+        req.session.userId = user.id;
+        
+        res.json({
+          success: true,
+          user: {
+            id: user.id,
+            username: user.username,
+            tokenBalance: 999999
+          }
+        });
+        return;
+      }
+      
       const user = await authService.login(loginData);
       
       // Store user in session
@@ -1625,7 +1682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         user: {
           id: user.id,
-          email: user.email,
+          username: user.username,
           tokenBalance: user.tokenBalance
         }
       });
@@ -1660,8 +1717,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         id: user.id,
-        email: user.email,
-        tokenBalance: user.tokenBalance
+        username: user.username,
+        tokenBalance: user.tokenBalance || 0
       });
     } catch (error) {
       console.error('Get user error:', error);
@@ -1685,13 +1742,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: 'User not found' });
         }
         
-        const canProcess = user.tokenBalance >= totalTokens;
+        // SPECIAL CASE: jmkuczynski has unlimited access
+        if (user.username === 'jmkuczynski') {
+          res.json({
+            canProcess: true,
+            inputTokens,
+            estimatedOutputTokens,
+            remainingBalance: 999999,
+            message: undefined
+          });
+          return;
+        }
+        
+        const canProcess = (user.tokenBalance || 0) >= totalTokens;
         
         res.json({
           canProcess,
           inputTokens,
           estimatedOutputTokens,
-          remainingBalance: user.tokenBalance,
+          remainingBalance: user.tokenBalance || 0,
           message: canProcess ? undefined : '🔒 You\'ve used all your credits. [Buy More Credits]'
         });
       } else {
@@ -2054,7 +2123,8 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
           return res.status(404).json({ error: "User not found" });
         }
         
-        if (user.tokenBalance < totalTokens) {
+        // SPECIAL CASE: jmkuczynski has unlimited access
+        if (user.username !== 'jmkuczynski' && (user.tokenBalance || 0) < totalTokens) {
           return res.status(402).json({ 
             error: "🔒 You've used all your credits. [Buy More Credits]",
             needsUpgrade: true 
@@ -2086,17 +2156,20 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         const actualOutputTokens = countTokens(llmResult.response);
         const actualTotalTokens = inputTokens + actualOutputTokens;
         
-        // Deduct tokens
-        await storage.updateUserTokenBalance(userId, user.tokenBalance - actualTotalTokens);
-        
-        // Log token usage
-        await storage.createTokenUsage({
-          userId,
-          sessionId: null,
-          inputTokens,
-          outputTokens: actualOutputTokens,
-          remainingBalance: user.tokenBalance - actualTotalTokens
-        });
+        // SPECIAL CASE: Don't deduct tokens from jmkuczynski
+        if (user.username !== 'jmkuczynski') {
+          // Deduct tokens
+          await storage.updateUserTokenBalance(userId, (user.tokenBalance || 0) - actualTotalTokens);
+          
+          // Log token usage
+          await storage.createTokenUsage({
+            userId,
+            sessionId: null,
+            inputTokens,
+            outputTokens: actualOutputTokens,
+            remainingBalance: (user.tokenBalance || 0) - actualTotalTokens
+          });
+        }
         
         const processingTime = Date.now() - startTime;
 
