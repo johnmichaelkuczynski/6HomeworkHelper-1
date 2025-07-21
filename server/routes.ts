@@ -57,16 +57,88 @@ const deepseek = new OpenAI({
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key', {
-  apiVersion: '2024-06-20'
+  apiVersion: '2025-06-30.basil'
 });
 
 // DeepSeek processing function
+function detectContentType(text: string): 'math' | 'document' | 'general' {
+  // Mathematical indicators
+  const mathIndicators = [
+    /solve|calculate|find|equation|formula|derivative|integral|limit|theorem|proof/i,
+    /\b\d+\s*[+\-*\/=]\s*\d+/,
+    /[xyz]\s*[=<>]/,
+    /sin|cos|tan|log|ln|sqrt|derivative|integral/i
+  ];
+  
+  // Document/text analysis indicators
+  const docIndicators = [
+    /summarize|summary|analyze|analysis|discuss|explain|describe|interpret/i,
+    /chapter|section|paragraph|text|document|essay|paper|article/i,
+    /philosophy|literature|history|sociology|psychology|theory/i,
+    /author|writer|argues|concludes|states|claims/i
+  ];
+  
+  const mathScore = mathIndicators.filter(regex => regex.test(text)).length;
+  const docScore = docIndicators.filter(regex => regex.test(text)).length;
+  
+  if (docScore > mathScore && docScore > 0) return 'document';
+  if (mathScore > 0) return 'math';
+  return 'general';
+}
+
 async function processWithDeepSeek(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
-    // Check if the assignment requires a graph
+    const contentType = detectContentType(text);
     const needsGraph = detectGraphRequirements(text);
     
-    let prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+    let prompt = '';
+    
+    if (contentType === 'document') {
+      prompt = `You are an expert academic assistant specializing in document analysis and summarization.
+
+CRITICAL FORMATTING REQUIREMENTS:
+- NEVER write paragraphs longer than 4-5 sentences
+- Use proper paragraph breaks with double line breaks
+- Structure with clear headings and subheadings
+- Use bullet points and numbered lists where appropriate
+- Break up dense text into readable chunks
+- Each paragraph should focus on ONE main idea
+
+Your task is to provide a comprehensive, well-structured analysis of the given text. Follow these guidelines:
+
+1. **Structure your response clearly** with proper headings and sections
+2. **Break content into short, readable paragraphs** (maximum 4-5 sentences each)  
+3. **Use headings, subheadings, bullet points, and lists** to organize information
+4. **Provide substantive analysis** - don't just reformat the text
+5. **Identify key concepts, arguments, and themes**
+6. **Use proper academic writing style** with clear transitions
+7. **Include specific examples and quotes** from the text when relevant
+8. **Focus on meaning and significance** rather than just listing information
+
+FORMAT REQUIREMENTS:
+- Use # for main headings
+- Use ## for subheadings  
+- Use - for bullet points
+- Use numbered lists for sequential information
+- Separate paragraphs with double line breaks
+- Keep paragraphs SHORT and focused
+
+If this is a request for summary, provide:
+- Main thesis or central argument
+- Key supporting points
+- Important concepts and terminology
+- Logical flow of the argument
+- Conclusions or implications
+
+If this is a request for analysis, provide:
+- Critical examination of arguments
+- Strengths and weaknesses
+- Connections to broader themes
+- Your scholarly assessment
+
+Text to analyze:`;
+    } else {
+      prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
 
 Solve this homework assignment with these MANDATORY requirements:
 1. ALL mathematical expressions MUST use proper LaTeX notation
@@ -76,7 +148,10 @@ Solve this homework assignment with these MANDATORY requirements:
 5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
 6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
 7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
-8. Never use plain text for any mathematical symbol, number, or expression`;
+8. Never use plain text for any mathematical symbol, number, or expression
+
+Assignment to solve:`;
+    }
 
     if (needsGraph) {
       prompt += `
@@ -103,7 +178,7 @@ If multiple graphs are needed, provide multiple GRAPH_DATA_START...GRAPH_DATA_EN
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
-    prompt += `\n\nAssignment to solve:\n\n${text}`;
+    prompt += `\n\n${text}`;
 
     const response = await deepseek.chat.completions.create({
       model: "deepseek-chat",
@@ -504,10 +579,57 @@ async function processWithAnthropicChat(message: string, conversationHistory: Ar
 
 async function processWithAnthropic(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
-    // Check if the assignment requires a graph
+    const contentType = detectContentType(text);
     const needsGraph = detectGraphRequirements(text);
     
-    let prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
+    let prompt = '';
+    
+    if (contentType === 'document') {
+      prompt = `You are an expert academic assistant specializing in document analysis and summarization.
+
+CRITICAL FORMATTING REQUIREMENTS:
+- NEVER write paragraphs longer than 4-5 sentences
+- Use proper paragraph breaks with double line breaks
+- Structure with clear headings and subheadings
+- Use bullet points and numbered lists where appropriate
+- Break up dense text into readable chunks
+- Each paragraph should focus on ONE main idea
+
+Your task is to provide a comprehensive, well-structured analysis of the given text. Follow these guidelines:
+
+1. **Structure your response clearly** with proper headings and sections
+2. **Break content into short, readable paragraphs** (maximum 4-5 sentences each)  
+3. **Use headings, subheadings, bullet points, and lists** to organize information
+4. **Provide substantive analysis** - don't just reformat the text
+5. **Identify key concepts, arguments, and themes**
+6. **Use proper academic writing style** with clear transitions
+7. **Include specific examples and quotes** from the text when relevant
+8. **Focus on meaning and significance** rather than just listing information
+
+FORMAT REQUIREMENTS:
+- Use # for main headings
+- Use ## for subheadings  
+- Use - for bullet points
+- Use numbered lists for sequential information
+- Separate paragraphs with double line breaks
+- Keep paragraphs SHORT and focused
+
+If this is a request for summary, provide:
+- Main thesis or central argument
+- Key supporting points
+- Important concepts and terminology
+- Logical flow of the argument
+- Conclusions or implications
+
+If this is a request for analysis, provide:
+- Critical examination of arguments
+- Strengths and weaknesses
+- Connections to broader themes
+- Your scholarly assessment
+
+Text to analyze:`;
+    } else {
+      prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
 
 Solve this homework assignment with these MANDATORY requirements:
 1. ALL mathematical expressions MUST use proper LaTeX notation
@@ -517,7 +639,10 @@ Solve this homework assignment with these MANDATORY requirements:
 5. Use correct LaTeX for: fractions $\\frac{a}{b}$, exponents $x^n$, roots $\\sqrt{x}$, integrals $\\int_a^b f(x)dx$, summations $\\sum_{i=1}^n$, limits $\\lim_{x \\to 0}$, derivatives $\\frac{d}{dx}$, partial derivatives $\\frac{\\partial}{\\partial x}$
 6. Greek letters: $\\alpha$, $\\beta$, $\\gamma$, $\\delta$, $\\pi$, $\\theta$, $\\lambda$, $\\mu$, $\\sigma$
 7. Functions: $\\sin(x)$, $\\cos(x)$, $\\tan(x)$, $\\log(x)$, $\\ln(x)$, $e^x$
-8. Never use plain text for any mathematical symbol, number, or expression`;
+8. Never use plain text for any mathematical symbol, number, or expression
+
+Assignment to solve:`;
+    }
 
     if (needsGraph) {
       prompt += `
@@ -544,7 +669,7 @@ If multiple graphs are needed, provide multiple GRAPH_DATA_START...GRAPH_DATA_EN
 Generate realistic data points based on the scientific/mathematical principles in the assignment.`;
     }
 
-    prompt += `\n\nAssignment to solve:\n\n${text}`;
+    prompt += `\n\n${text}`;
 
     const message = await anthropic.messages.create({
       max_tokens: 4000,
