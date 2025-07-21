@@ -1641,10 +1641,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/login', async (req, res) => {
     try {
-      const loginData = loginSchema.parse(req.body);
+      // Special handling for jmkuczynski - allow login without password
+      let loginData;
+      if (req.body.username === 'jmkuczynski') {
+        loginData = { username: req.body.username, password: undefined };
+      } else {
+        loginData = loginSchema.parse(req.body);
+      }
       
-      // SPECIAL CASE: jmkuczynski gets unlimited access with any password
+      // SPECIAL CASE: jmkuczynski gets unlimited access with NO PASSWORD required
       if (loginData.username === 'jmkuczynski') {
+        // No password validation needed for jmkuczynski
         // Create or update user with unlimited tokens
         let user = await storage.getUserByUsername('jmkuczynski');
         if (!user) {
@@ -1673,6 +1680,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         });
         return;
+      }
+      
+      // Validate password is provided for non-jmkuczynski users
+      if (!loginData.password) {
+        return res.status(400).json({ error: 'Password required' });
       }
       
       const user = await authService.login(loginData);

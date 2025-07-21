@@ -112,7 +112,7 @@ export const registerSchema = z.object({
 
 export const loginSchema = z.object({
   username: z.string(),
-  password: z.string(),
+  password: z.string().optional(),
 });
 
 export const userResponseSchema = z.object({

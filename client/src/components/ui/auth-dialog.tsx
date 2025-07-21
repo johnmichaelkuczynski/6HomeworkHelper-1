@@ -81,6 +81,14 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Special case for jmkuczynski - no password required
+    if (username === 'jmkuczynski') {
+      loginMutation.mutate({ username, password: undefined });
+      return;
+    }
+    
+    // Regular validation for other users
     if (!username || !password) {
       toast({
         title: "Missing fields",
@@ -159,28 +167,38 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="login-password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="login-password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10 pr-10"
-                    disabled={isLoading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
+              {/* Only show password field if NOT jmkuczynski */}
+              {username !== 'jmkuczynski' && (
+                <div className="space-y-2">
+                  <Label htmlFor="login-password">Password</Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pl-10 pr-10"
+                      disabled={isLoading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-3 h-4 w-4 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {/* Special message for jmkuczynski */}
+              {username === 'jmkuczynski' && (
+                <div className="text-sm text-green-600 font-medium text-center py-2">
+                  No password required - unlimited access enabled
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <>
