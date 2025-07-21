@@ -193,7 +193,7 @@ export function TokenStatus({ sessionId }: TokenStatusProps) {
           </div>
           <div className="mt-3">
             <div className="text-xs text-muted-foreground mb-1">
-              {user.email}
+              {user.username || user.email}
             </div>
             {isLowBalance && (
               <div className="text-xs text-orange-600">

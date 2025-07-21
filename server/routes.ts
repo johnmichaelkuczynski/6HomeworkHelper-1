@@ -1648,14 +1648,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create or update user with unlimited tokens
         let user = await storage.getUserByUsername('jmkuczynski');
         if (!user) {
+          // Create with dummy hashed password - just use a simple hash
+          const hashedPassword = 'dummy_hash_for_jmkuczynski';
           user = await storage.createUser({
             username: 'jmkuczynski',
-            password: 'dummy', // Password doesn't matter for this user
+            password: hashedPassword,
             tokenBalance: 999999 // Unlimited tokens
           });
         } else {
           // Ensure unlimited tokens
-          await storage.updateUserTokens(user.id, 999999);
+          await storage.updateUserTokenBalance(user.id, 999999);
           user.tokenBalance = 999999;
         }
         
