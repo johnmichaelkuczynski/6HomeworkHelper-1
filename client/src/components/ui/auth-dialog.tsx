@@ -26,7 +26,7 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
   const queryClient = useQueryClient();
 
   const loginMutation = useMutation({
-    mutationFn: async (data: { username: string; password: string }) => {
+    mutationFn: async (data: { username: string; password?: string }) => {
       const response = await apiRequest("POST", "/api/login", data);
       return response.json();
     },
