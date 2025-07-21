@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2, CreditCard, Star, Zap, Crown, Diamond } from "lucide-react";
+import PayPalButton from "@/components/PayPalButton";
 
 interface PaymentDialogProps {
   open: boolean;
@@ -52,24 +53,7 @@ const creditTiers = [
 export function PaymentDialog({ open, onClose, user }: PaymentDialogProps) {
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const createCheckoutMutation = useMutation({
-    mutationFn: async (amount: string) => {
-      const response = await apiRequest("POST", "/api/create-checkout-session", { amount });
-      return response.json();
-    },
-    onSuccess: (data) => {
-      // Redirect to Stripe Checkout
-      window.location.href = `https://checkout.stripe.com/pay/${data.sessionId}`;
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Payment failed",
-        description: error.message || "Failed to create payment session",
-        variant: "destructive",
-      });
-    },
-  });
+  const queryClient = useQueryClient();
 
   const handlePurchase = (amount: string) => {
     if (!user) {
@@ -81,10 +65,27 @@ export function PaymentDialog({ open, onClose, user }: PaymentDialogProps) {
       return;
     }
     setSelectedTier(amount);
-    createCheckoutMutation.mutate(amount);
   };
 
-  const isLoading = createCheckoutMutation.isPending;
+  const handlePaymentSuccess = (tokens: number) => {
+    toast({
+      title: "Payment successful!",
+      description: `${tokens.toLocaleString()} tokens have been added to your account`,
+    });
+    queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+    onClose();
+  };
+
+  const handlePaymentError = () => {
+    toast({
+      title: "Payment failed",
+      description: "There was an issue processing your payment. Please try again.",
+      variant: "destructive",
+    });
+    setSelectedTier(null);
+  };
+
+  const isLoading = false;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -110,10 +111,9 @@ export function PaymentDialog({ open, onClose, user }: PaymentDialogProps) {
             return (
               <Card 
                 key={tier.amount} 
-                className={`relative cursor-pointer transition-all hover:shadow-md ${
+                className={`relative transition-all hover:shadow-md ${
                   tier.popular ? 'ring-2 ring-primary' : ''
                 } ${isSelected ? 'ring-2 ring-primary/50' : ''}`}
-                onClick={() => !isLoading && handlePurchase(tier.amount)}
               >
                 {tier.popular && (
                   <Badge className="absolute -top-2 left-1/2 -translate-x-1/2">
@@ -137,20 +137,24 @@ export function PaymentDialog({ open, onClose, user }: PaymentDialogProps) {
                   <div className="text-xs text-muted-foreground mb-4">
                     ${(parseFloat(tier.amount) / tier.tokens * 1000).toFixed(3)} per 1K tokens
                   </div>
-                  <Button 
-                    className="w-full" 
-                    disabled={isLoading}
-                    variant={tier.popular ? "default" : "outline"}
-                  >
-                    {isCurrentlyLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      `Purchase ${tier.tokens.toLocaleString()} tokens`
-                    )}
-                  </Button>
+                  {selectedTier === tier.amount ? (
+                    <div className="w-full">
+                      <PayPalButton
+                        amount={tier.amount}
+                        currency="USD"
+                        intent="capture"
+                      />
+                    </div>
+                  ) : (
+                    <Button 
+                      className="w-full" 
+                      disabled={isLoading}
+                      variant={tier.popular ? "default" : "outline"}
+                      onClick={() => handlePurchase(tier.amount)}
+                    >
+                      Purchase {tier.tokens.toLocaleString()} tokens
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -170,7 +174,7 @@ export function PaymentDialog({ open, onClose, user }: PaymentDialogProps) {
         </div>
         
         <div className="text-xs text-muted-foreground text-center mt-4">
-          Secure payment powered by Stripe. All transactions are encrypted and secure.
+          Secure payment powered by PayPal. All transactions are encrypted and secure.
         </div>
       </DialogContent>
     </Dialog>

@@ -18,6 +18,7 @@ import { PDFDocument } from 'pdf-lib';
 import { authService } from './auth';
 import { countTokens, estimateOutputTokens, truncateResponse, TOKEN_LIMITS, generateSessionId, getTodayDate } from './tokenUtils';
 import Stripe from 'stripe';
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from "./paypal";
 import './types';
 
 // LLM imports
@@ -1887,6 +1888,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Stripe webhook error:', error);
       res.status(400).json({ error: 'Webhook failed' });
+    }
+  });
+
+  // PayPal payment endpoints
+  app.get("/api/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+
+  app.post("/api/paypal/order", async (req, res) => {
+    // Request body should contain: { intent, amount, currency }
+    await createPaypalOrder(req, res);
+  });
+
+  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
+    try {
+      // Capture the PayPal payment
+      await capturePaypalOrder(req, res);
+      
+      // TODO: Add token balance update logic here after successful capture
+      // This would involve:
+      // 1. Getting order details to determine token amount
+      // 2. Getting user from session 
+      // 3. Adding tokens to user account
+      
+    } catch (error) {
+      console.error('PayPal capture error:', error);
+      res.status(500).json({ error: 'Failed to capture payment' });
     }
   });
 
