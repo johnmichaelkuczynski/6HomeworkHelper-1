@@ -83,7 +83,7 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
     e.preventDefault();
     
     // Special case for jmkuczynski - no password required
-    if (username === 'jmkuczynski') {
+    if (username.toLowerCase().trim() === 'jmkuczynski') {
       loginMutation.mutate({ username, password: undefined });
       return;
     }
@@ -168,7 +168,7 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
                 </div>
               </div>
               {/* Only show password field if NOT jmkuczynski */}
-              {username !== 'jmkuczynski' && (
+              {username.toLowerCase().trim() !== 'jmkuczynski' && (
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
                   <div className="relative">
@@ -194,7 +194,7 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
               )}
               
               {/* Special message for jmkuczynski */}
-              {username === 'jmkuczynski' && (
+              {username.toLowerCase().trim() === 'jmkuczynski' && (
                 <div className="text-sm text-green-600 font-medium text-center py-2">
                   No password required - unlimited access enabled
                 </div>
