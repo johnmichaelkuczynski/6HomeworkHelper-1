@@ -1717,10 +1717,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
       
+      // SPECIAL CASE: jmkuczynski always shows unlimited tokens
+      const tokenBalance = user.username === 'jmkuczynski' ? 999999 : (user.tokenBalance || 0);
+      
       res.json({
         id: user.id,
         username: user.username,
-        tokenBalance: user.tokenBalance || 0
+        tokenBalance: tokenBalance
       });
     } catch (error) {
       console.error('Get user error:', error);
