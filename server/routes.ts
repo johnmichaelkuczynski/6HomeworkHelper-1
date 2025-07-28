@@ -1356,6 +1356,28 @@ async function generateMathPDF(content: string, title: string = 'Assignment Solu
 <head>
     <meta charset="UTF-8">
     <title>${title}</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\\\(', '\\\\)']],
+        displayMath: [['$$', '$$'], ['\\\\[', '\\\\]']],
+        processEscapes: true,
+        processEnvironments: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      },
+      startup: {
+        ready: () => {
+          console.log('MathJax is loaded, but not yet initialized');
+          MathJax.startup.defaultReady();
+          console.log('MathJax is initialized, and the initial typeset is queued');
+        }
+      }
+    };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         body {
             font-family: 'Computer Modern', 'Times New Roman', serif;
@@ -1439,8 +1461,26 @@ async function generateMathPDF(content: string, title: string = 'Assignment Solu
 
     await page.setContent(fullHtml, { waitUntil: 'networkidle0' });
     
-    // Additional wait to ensure complete rendering of pre-rendered math
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Wait for MathJax to load and render all math
+    await page.evaluate(() => {
+      return new Promise((resolve) => {
+        if (window.MathJax && window.MathJax.startup && window.MathJax.startup.promise) {
+          window.MathJax.startup.promise.then(() => {
+            if (window.MathJax.typesetPromise) {
+              window.MathJax.typesetPromise.then(resolve);
+            } else {
+              resolve();
+            }
+          });
+        } else {
+          // Fallback timeout if MathJax doesn't load
+          setTimeout(resolve, 3000);
+        }
+      });
+    });
+    
+    // Additional wait to ensure complete rendering
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
     // Generate PDF with high quality settings
     const pdfBuffer = await page.pdf({
