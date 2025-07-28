@@ -27,7 +27,11 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
 
   const loginMutation = useMutation({
     mutationFn: async (data: { username: string; password?: string }) => {
-      const response = await apiRequest("POST", "/api/login", data);
+      // Don't send password field if it's undefined (for jmkuczynski)
+      const requestData = data.password === undefined 
+        ? { username: data.username }
+        : { username: data.username, password: data.password };
+      const response = await apiRequest("POST", "/api/login", requestData);
       return response.json();
     },
     onSuccess: (user) => {
