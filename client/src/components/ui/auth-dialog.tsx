@@ -88,7 +88,8 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
     
     // Special case for jmkuczynski - no password required
     if (username.toLowerCase().trim() === 'jmkuczynski') {
-      loginMutation.mutate({ username, password: undefined });
+      console.log('Logging in jmkuczynski with no password');
+      loginMutation.mutate({ username: username.trim() });
       return;
     }
     
