@@ -1740,24 +1740,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/login', async (req, res) => {
     try {
-      // Special handling for jmkuczynski - allow login without password
+      // Special handling for jmkuczynski and randyjohnson - allow login without password
       let loginData;
-      if (req.body.username === 'jmkuczynski') {
+      if (req.body.username === 'jmkuczynski' || req.body.username === 'randyjohnson') {
         loginData = { username: req.body.username, password: undefined };
       } else {
         loginData = loginSchema.parse(req.body);
       }
       
-      // SPECIAL CASE: jmkuczynski gets unlimited access with NO PASSWORD required
-      if (loginData.username === 'jmkuczynski') {
-        // No password validation needed for jmkuczynski
+      // SPECIAL CASE: jmkuczynski and randyjohnson get unlimited access with NO PASSWORD required
+      if (loginData.username === 'jmkuczynski' || loginData.username === 'randyjohnson') {
+        // No password validation needed for special users
         // Create or update user with unlimited tokens
-        let user = await storage.getUserByUsername('jmkuczynski');
+        let user = await storage.getUserByUsername(loginData.username);
         if (!user) {
           // Create with dummy hashed password - just use a simple hash
-          const hashedPassword = 'dummy_hash_for_jmkuczynski';
+          const hashedPassword = `dummy_hash_for_${loginData.username}`;
           user = await storage.createUser({
-            username: 'jmkuczynski',
+            username: loginData.username,
             password: hashedPassword,
             tokenBalance: 99999999 // Unlimited tokens
           });
@@ -1781,7 +1781,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // Validate password is provided for non-jmkuczynski users
+      // Validate password is provided for users who aren't special accounts
       if (!loginData.password) {
         return res.status(400).json({ error: 'Password required' });
       }
@@ -1828,8 +1828,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'User not found' });
       }
       
-      // SPECIAL CASE: jmkuczynski always shows unlimited tokens
-      const tokenBalance = user.username === 'jmkuczynski' ? 999999 : (user.tokenBalance || 0);
+      // SPECIAL CASE: jmkuczynski and randyjohnson always show unlimited tokens
+      const tokenBalance = (user.username === 'jmkuczynski' || user.username === 'randyjohnson') ? 999999 : (user.tokenBalance || 0);
       
       res.json({
         id: user.id,
@@ -1858,8 +1858,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(404).json({ error: 'User not found' });
         }
         
-        // SPECIAL CASE: jmkuczynski has unlimited access
-        if (user.username === 'jmkuczynski') {
+        // SPECIAL CASE: jmkuczynski and randyjohnson have unlimited access
+        if (user.username === 'jmkuczynski' || user.username === 'randyjohnson') {
           res.json({
             canProcess: true,
             inputTokens,

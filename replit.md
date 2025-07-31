@@ -182,3 +182,4 @@ The application follows a full-stack architecture with clear separation between 
 
 Preferred communication style: Simple, everyday language.
 Username jmkuczynski: Unlimited access with 99,999,999 tokens (maximum credits).
+Username randyjohnson: Unlimited access with 99,999,999 tokens (maximum credits) - no password required.

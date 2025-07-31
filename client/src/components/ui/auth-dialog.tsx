@@ -172,8 +172,8 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
                   />
                 </div>
               </div>
-              {/* Only show password field if NOT jmkuczynski */}
-              {username.toLowerCase().trim() !== 'jmkuczynski' && (
+              {/* Only show password field if NOT a special user */}
+              {username.toLowerCase().trim() !== 'jmkuczynski' && username.toLowerCase().trim() !== 'randyjohnson' && (
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password</Label>
                   <div className="relative">
@@ -198,8 +198,8 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
                 </div>
               )}
               
-              {/* Special message for jmkuczynski */}
-              {username.toLowerCase().trim() === 'jmkuczynski' && (
+              {/* Special message for special users */}
+              {(username.toLowerCase().trim() === 'jmkuczynski' || username.toLowerCase().trim() === 'randyjohnson') && (
                 <div className="text-sm text-green-600 font-medium text-center py-2">
                   No password required - unlimited access enabled
                 </div>
