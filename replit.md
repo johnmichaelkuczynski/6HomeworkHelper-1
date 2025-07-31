@@ -181,3 +181,4 @@ The application follows a full-stack architecture with clear separation between 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Username jmkuczynski: Unlimited access with 99,999,999 tokens (maximum credits).

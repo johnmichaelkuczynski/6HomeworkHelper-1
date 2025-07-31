@@ -1641,7 +1641,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user = await storage.createUser({
             username: 'jmkuczynski',
             password: 'dummy', // Password doesn't matter for this user
-            tokenBalance: 999999 // Unlimited tokens
+            tokenBalance: 99999999 // Unlimited tokens
           });
         }
         
@@ -1653,7 +1653,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user: {
             id: user.id,
             username: user.username,
-            tokenBalance: 999999
+            tokenBalance: 99999999
           }
         });
         return;
@@ -1701,12 +1701,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user = await storage.createUser({
             username: 'jmkuczynski',
             password: hashedPassword,
-            tokenBalance: 999999 // Unlimited tokens
+            tokenBalance: 99999999 // Unlimited tokens
           });
         } else {
           // Ensure unlimited tokens
-          await storage.updateUserTokenBalance(user.id, 999999);
-          user.tokenBalance = 999999;
+          await storage.updateUserTokenBalance(user.id, 99999999);
+          user.tokenBalance = 99999999;
         }
         
         // Store user in session
@@ -1717,7 +1717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           user: {
             id: user.id,
             username: user.username,
-            tokenBalance: 999999
+            tokenBalance: 99999999
           }
         });
         return;
