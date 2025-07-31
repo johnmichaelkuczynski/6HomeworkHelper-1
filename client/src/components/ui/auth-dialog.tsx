@@ -86,9 +86,9 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Special case for jmkuczynski - no password required
-    if (username.toLowerCase().trim() === 'jmkuczynski') {
-      console.log('Logging in jmkuczynski with no password');
+    // Special case for jmkuczynski and randyjohnson - no password required
+    if (username.toLowerCase().trim() === 'jmkuczynski' || username.toLowerCase().trim() === 'randyjohnson') {
+      console.log(`Logging in ${username.trim()} with no password`);
       loginMutation.mutate({ username: username.trim() });
       return;
     }
