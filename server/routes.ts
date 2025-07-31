@@ -1833,7 +1833,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // SPECIAL CASE: jmkuczynski and randyjohnson always show unlimited tokens
-      const tokenBalance = (user.username === 'jmkuczynski' || user.username === 'randyjohnson') ? 999999 : (user.tokenBalance || 0);
+      const tokenBalance = (user.username === 'jmkuczynski' || user.username === 'randyjohnson') ? 99999999 : (user.tokenBalance || 0);
       
       res.json({
         id: user.id,
@@ -1868,7 +1868,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             canProcess: true,
             inputTokens,
             estimatedOutputTokens,
-            remainingBalance: 999999,
+            remainingBalance: 99999999,
             message: undefined
           });
           return;
@@ -2270,8 +2270,8 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
           return res.status(404).json({ error: "User not found" });
         }
         
-        // SPECIAL CASE: jmkuczynski has unlimited access
-        if (user.username !== 'jmkuczynski' && (user.tokenBalance || 0) < totalTokens) {
+        // SPECIAL CASE: jmkuczynski and randyjohnson have unlimited access
+        if (user.username !== 'jmkuczynski' && user.username !== 'randyjohnson' && (user.tokenBalance || 0) < totalTokens) {
           return res.status(402).json({ 
             error: "🔒 You've used all your credits. [Buy More Credits]",
             needsUpgrade: true 
@@ -2303,8 +2303,8 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         const actualOutputTokens = countTokens(llmResult.response);
         const actualTotalTokens = inputTokens + actualOutputTokens;
         
-        // SPECIAL CASE: Don't deduct tokens from jmkuczynski
-        if (user.username !== 'jmkuczynski') {
+        // SPECIAL CASE: Don't deduct tokens from jmkuczynski or randyjohnson
+        if (user.username !== 'jmkuczynski' && user.username !== 'randyjohnson') {
           // Deduct tokens
           await storage.updateUserTokenBalance(userId, (user.tokenBalance || 0) - actualTotalTokens);
           
