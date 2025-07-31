@@ -33,11 +33,19 @@ export function TokenStatus({ sessionId }: TokenStatusProps) {
       return response.json();
     },
     onSuccess: () => {
+      // Clear all cached data
+      queryClient.clear();
+      // Force refresh the user state
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/assignments"] });
       toast({
         title: "Logged out",
         description: "You have been logged out successfully",
       });
+      // Small delay then refresh page to ensure clean state
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     },
   });
 
