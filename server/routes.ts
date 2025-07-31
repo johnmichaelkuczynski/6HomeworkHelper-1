@@ -489,17 +489,21 @@ interface GraphRequest {
 }
 
 function detectGraphRequirements(text: string): boolean {
-  const graphKeywords = [
-    'graph', 'plot', 'chart', 'curve', 'diagram',
-    'sketch', 'draw', 'illustrate', 'show graphically',
+  // Only generate graphs when explicitly requested with specific visual commands
+  const explicitGraphKeywords = [
     'plot the', 'graph the', 'chart the', 'sketch the',
-    'function of', 'vs', 'versus', 'against',
-    'relationship between', 'correlation',
-    'as a function of', 'dependence'
+    'draw a graph', 'draw a plot', 'draw a chart',
+    'create a graph', 'create a plot', 'create a chart',
+    'show graphically', 'illustrate graphically',
+    'sketch a graph', 'sketch a plot',
+    'graph this', 'plot this',
+    'draw the graph', 'draw the plot',
+    'make a graph', 'make a plot',
+    'construct a graph', 'construct a plot'
   ];
   
   const lowerText = text.toLowerCase();
-  return graphKeywords.some(keyword => lowerText.includes(keyword));
+  return explicitGraphKeywords.some(keyword => lowerText.includes(keyword));
 }
 
 // PDF combining function
