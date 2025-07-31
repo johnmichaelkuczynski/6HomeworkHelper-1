@@ -78,6 +78,7 @@ export const processAssignmentResponseSchema = z.object({
   graphImages: z.array(z.string()).optional(),
   processingTime: z.number(),
   success: z.boolean(),
+  isPreview: z.boolean().optional(), // Flag for freemium preview mode
 });
 
 export type ProcessAssignmentResponse = z.infer<typeof processAssignmentResponseSchema>;

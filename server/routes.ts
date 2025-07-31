@@ -87,6 +87,64 @@ function detectContentType(text: string): 'math' | 'document' | 'general' {
   return 'general';
 }
 
+// Generate preview for freemium model
+function generatePreview(fullResponse: string): string {
+  // Remove any existing graph data JSON from the end
+  const lines = fullResponse.split('\n');
+  let contentLines = [...lines];
+  
+  // Remove graph data if present
+  const graphStartIndex = contentLines.findIndex(line => 
+    line.trim().startsWith('```json') || line.includes('GRAPH_DATA_START')
+  );
+  if (graphStartIndex !== -1) {
+    contentLines = contentLines.slice(0, graphStartIndex);
+  }
+  
+  const cleanResponse = contentLines.join('\n').trim();
+  
+  // Split into sentences for better preview control
+  const sentences = cleanResponse.split(/(?<=[.!?])\s+/);
+  
+  // For math problems: Show problem setup + first step
+  if (detectContentType(cleanResponse) === 'math') {
+    // Find first few sentences that explain the approach
+    let preview = '';
+    let sentenceCount = 0;
+    
+    for (const sentence of sentences) {
+      preview += sentence + ' ';
+      sentenceCount++;
+      
+      // Stop after 2-3 sentences or when we hit the actual solution steps
+      if (sentenceCount >= 2 || sentence.includes('Step 1') || sentence.includes('Solution:')) {
+        break;
+      }
+    }
+    
+    return preview.trim() + '\n\n**🔒 Complete solution with all steps available with credits**\n\n[Buy Credits with PayPal to see the full step-by-step solution]';
+  }
+  
+  // For documents: Show introduction + first main point
+  else if (detectContentType(cleanResponse) === 'document') {
+    const words = cleanResponse.split(/\s+/);
+    const previewWords = words.slice(0, 150); // ~150 words preview
+    
+    return previewWords.join(' ') + '...\n\n**🔒 Complete analysis available with credits**\n\n[Buy Credits with PayPal to see the full detailed analysis]';
+  }
+  
+  // For general questions: Show first paragraph
+  else {
+    const paragraphs = cleanResponse.split(/\n\s*\n/);
+    const firstParagraph = paragraphs[0] || '';
+    
+    const words = firstParagraph.split(/\s+/);
+    const previewWords = words.slice(0, 100); // ~100 words preview
+    
+    return previewWords.join(' ') + '...\n\n**🔒 Complete answer available with credits**\n\n[Buy Credits with PayPal to see the full detailed response]';
+  }
+}
+
 async function processWithDeepSeek(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
     const contentType = detectContentType(text);
@@ -2306,32 +2364,12 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
 
         res.json(response);
       } else {
-        // Free user - check limits
+        // Free user - FREEMIUM MODEL: Process full answer but show only preview
         if (!actualSessionId) {
           actualSessionId = generateSessionId();
         }
         
-        const today = getTodayDate();
-        const dailyUsage = await storage.getDailyUsage(actualSessionId, today);
-        const currentDailyUsage = dailyUsage?.totalTokens || 0;
-        
-        // Check limits
-        if (inputTokens > TOKEN_LIMITS.FREE_INPUT_LIMIT) {
-          return res.status(402).json({ 
-            error: "🔒 Full results available with upgrade. [Register & Unlock Full Access]",
-            needsUpgrade: true,
-            partialResult: "Your question is too long for free usage. Please register for full access."
-          });
-        }
-        
-        if (currentDailyUsage + totalTokens > TOKEN_LIMITS.FREE_DAILY_LIMIT) {
-          return res.status(402).json({ 
-            error: "🔒 You've reached the free usage limit for today. [Register & Unlock Full Access]",
-            needsUpgrade: true
-          });
-        }
-
-        // Process with LLM
+        // Process with LLM to get complete answer
         let llmResult: {response: string, graphData?: GraphRequest[]};
         switch (llmProvider) {
           case 'anthropic':
@@ -2353,46 +2391,18 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
             throw new Error(`Unsupported LLM provider: ${llmProvider}`);
         }
 
-        const actualOutputTokens = countTokens(llmResult.response);
-        
-        // Check if output exceeds free limit
-        if (actualOutputTokens > TOKEN_LIMITS.FREE_OUTPUT_LIMIT) {
-          // Truncate response
-          llmResult.response = truncateResponse(llmResult.response, TOKEN_LIMITS.FREE_OUTPUT_LIMIT);
-          llmResult.response += "\n\n🔒 Full results available with upgrade. [Register & Unlock Full Access]";
-        }
-        
-        const finalOutputTokens = countTokens(llmResult.response);
+        // Generate preview for free users
+        const previewResponse = generatePreview(llmResult.response);
+        const finalOutputTokens = countTokens(previewResponse);
         const finalTotalTokens = inputTokens + finalOutputTokens;
-        
-        // Update daily usage
-        await storage.createOrUpdateDailyUsage(actualSessionId, today, finalTotalTokens);
         
         const processingTime = Date.now() - startTime;
 
-        // Generate graphs if required (limited for free users)
-        let graphImages: string[] | undefined;
-        let graphDataJsons: string[] | undefined;
-        
-        if (llmResult.graphData && llmResult.graphData.length > 0) {
-          try {
-            graphImages = [];
-            graphDataJsons = [];
-            
-            // Limit to 1 graph for free users
-            const limitedGraphData = llmResult.graphData.slice(0, 1);
-            
-            for (const graphData of limitedGraphData) {
-              const graphImage = await generateGraph(graphData);
-              graphImages.push(graphImage);
-              graphDataJsons.push(JSON.stringify(graphData));
-            }
-          } catch (error) {
-            console.error('Graph generation error:', error);
-          }
-        }
+        // No graphs for free users - premium feature
+        const graphImages: string[] | undefined = undefined;
+        const graphDataJsons: string[] | undefined = undefined;
 
-        // Store assignment
+        // Store assignment with preview only
         const assignment = await storage.createAssignment({
           userId: null,
           sessionId: actualSessionId,
@@ -2401,7 +2411,7 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
           fileName: null,
           extractedText: null,
           llmProvider,
-          llmResponse: llmResult.response,
+          llmResponse: previewResponse, // Store preview, not full answer
           graphData: graphDataJsons,
           graphImages: graphImages,
           processingTime,
@@ -2412,11 +2422,12 @@ Provide the refined solution with all mathematical expressions in proper LaTeX f
         const response: ProcessAssignmentResponse = {
           id: assignment.id,
           extractedText: inputText,
-          llmResponse: llmResult.response,
+          llmResponse: previewResponse, // Return preview to frontend
           graphData: graphDataJsons,
           graphImages: graphImages,
           processingTime,
           success: true,
+          isPreview: true, // Flag to indicate this is a preview
         };
 
         res.json(response);

@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Loader2, Send, Copy, Trash2, CheckCircle, History, Lightbulb, Download, Edit3, Save, X, ArrowDown, FileText, Mail, Printer, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { TokenStatus } from "@/components/ui/token-status";
+import { PaymentDialog } from "@/components/ui/payment-dialog";
+import { AuthDialog } from "@/components/ui/auth-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useSession } from "@/hooks/use-session";
 
@@ -49,6 +51,8 @@ export default function HomeworkAssistant() {
   const [refinementFeedback, setRefinementFeedback] = useState("");
   const [isRefining, setIsRefining] = useState(false);
   const [isMathViewEnabled, setIsMathViewEnabled] = useState(true);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   // Authentication and session management
   const { user, isAuthenticated } = useAuth();
@@ -1870,25 +1874,106 @@ ${fullResponse.slice(-1000)}...`;
                     )}
                     
                     <div className="relative">
-                      {isMathViewEnabled ? (
-                        <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl">
-                          <div className="mb-3 text-sm font-semibold text-blue-700 uppercase tracking-wide">
-                            📐 Math View - Rendered Mathematical Notation
+                      {/* FREEMIUM PREVIEW MODE */}
+                      {currentResult.isPreview ? (
+                        <div className="space-y-6">
+                          {/* Preview Content */}
+                          <div className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-xl">
+                            <div className="mb-4 text-sm font-semibold text-yellow-800 uppercase tracking-wide flex items-center">
+                              👀 FREE PREVIEW - Get a taste of our AI solution
+                            </div>
+                            {isMathViewEnabled ? (
+                              <MathRenderer 
+                                content={currentResult.llmResponse}
+                                className="space-y-4 math-content leading-relaxed"
+                              />
+                            ) : (
+                              <pre className="whitespace-pre-wrap text-sm font-mono text-slate-800 leading-relaxed bg-white p-4 rounded-lg border border-yellow-200 overflow-x-auto">
+                                {currentResult.llmResponse}
+                              </pre>
+                            )}
                           </div>
-                          <MathRenderer 
-                            content={currentResult.llmResponse}
-                            className="space-y-4 math-content leading-relaxed"
-                          />
+                          
+                          {/* PAYPAL UPGRADE PROMPT */}
+                          <div className="p-8 bg-gradient-to-br from-green-50 to-emerald-50 border-3 border-green-300 rounded-2xl shadow-lg">
+                            <div className="text-center space-y-6">
+                              <div className="text-3xl font-bold text-green-800">
+                                🔓 Unlock Complete Solution
+                              </div>
+                              <div className="text-lg text-green-700 max-w-2xl mx-auto">
+                                Want to see the <strong>full step-by-step solution</strong> with detailed explanations, graphs, and complete mathematical work? 
+                              </div>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+                                <div className="bg-white p-4 rounded-lg border border-green-200">
+                                  <div className="text-2xl mb-2">📚</div>
+                                  <div className="font-semibold text-green-800">Complete Solutions</div>
+                                  <div className="text-sm text-green-600">Full step-by-step explanations</div>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg border border-green-200">
+                                  <div className="text-2xl mb-2">📊</div>
+                                  <div className="font-semibold text-green-800">Graphs & Charts</div>
+                                  <div className="text-sm text-green-600">Auto-generated visualizations</div>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg border border-green-200">
+                                  <div className="text-2xl mb-2">💾</div>
+                                  <div className="font-semibold text-green-800">PDF Export</div>
+                                  <div className="text-sm text-green-600">Save & print your solutions</div>
+                                </div>
+                              </div>
+                              
+                              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                                <Button
+                                  onClick={() => {
+                                    // Check if user is authenticated, if not, show auth dialog first
+                                    if (!user) {
+                                      setShowAuthDialog(true);
+                                    } else {
+                                      // User is authenticated, show payment dialog
+                                      setShowPaymentDialog(true);
+                                    }
+                                  }}
+                                  className="px-8 py-4 text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl hover:from-green-700 hover:to-emerald-700 transition-all duration-200"
+                                >
+                                  💳 Buy Credits with PayPal
+                                </Button>
+                                
+                                <div className="text-sm text-green-600 text-center">
+                                  <div className="font-semibold">Starting at just $5</div>
+                                  <div>Secure payment via PayPal</div>
+                                </div>
+                              </div>
+                              
+                              <div className="text-sm text-green-600 border-t border-green-200 pt-4">
+                                ✨ <strong>Already have credits?</strong> {!user ? 'Login to access your account' : 'You need more credits to unlock this solution'}
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ) : (
-                        <div className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl">
-                          <div className="mb-3 text-sm font-semibold text-orange-700 uppercase tracking-wide">
-                            📝 Edit View - Raw LaTeX Code
-                          </div>
-                          <pre className="whitespace-pre-wrap text-sm font-mono text-slate-800 leading-relaxed bg-white p-4 rounded-lg border border-orange-200 overflow-x-auto">
-                            {currentResult.llmResponse}
-                          </pre>
-                        </div>
+                        /* FULL SOLUTION MODE - For paid users */
+                        <>
+                          {isMathViewEnabled ? (
+                            <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl">
+                              <div className="mb-3 text-sm font-semibold text-blue-700 uppercase tracking-wide">
+                                📐 Math View - Rendered Mathematical Notation
+                              </div>
+                              <MathRenderer 
+                                content={currentResult.llmResponse}
+                                className="space-y-4 math-content leading-relaxed"
+                              />
+                            </div>
+                          ) : (
+                            <div className="p-6 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 rounded-xl">
+                              <div className="mb-3 text-sm font-semibold text-orange-700 uppercase tracking-wide">
+                                📝 Edit View - Raw LaTeX Code
+                              </div>
+                              <pre className="whitespace-pre-wrap text-sm font-mono text-slate-800 leading-relaxed bg-white p-4 rounded-lg border border-orange-200 overflow-x-auto">
+                                {currentResult.llmResponse}
+                              </pre>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -2212,6 +2297,24 @@ Use Enter to send your message, or Shift+Enter for new lines."
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Payment Dialog */}
+      <PaymentDialog
+        open={showPaymentDialog}
+        onClose={() => setShowPaymentDialog(false)}
+        user={user}
+      />
+
+      {/* Auth Dialog */}
+      <AuthDialog
+        open={showAuthDialog}
+        onClose={() => setShowAuthDialog(false)}
+        onSuccess={() => {
+          setShowAuthDialog(false);
+          // After successful auth, show payment dialog
+          setTimeout(() => setShowPaymentDialog(true), 500);
+        }}
+      />
 
     </div>
   );
