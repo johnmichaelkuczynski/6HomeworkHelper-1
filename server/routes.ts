@@ -148,7 +148,7 @@ function generatePreview(fullResponse: string): string {
   }
 }
 
-async function processWithDeepSeek(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
+async function processWithDeepSeekFixed(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
     const contentType = detectContentType(text);
     const needsGraph = detectGraphRequirements(text);
@@ -199,7 +199,7 @@ If this is a request for analysis, provide:
 - Your scholarly assessment
 
 Text to analyze:`;
-    } else {
+    } else if (contentType === 'math') {
       prompt = `CRITICAL: You MUST use perfect LaTeX mathematical notation for ALL mathematical content. This is non-negotiable.
 
 Solve this homework assignment with these MANDATORY requirements:
@@ -213,6 +213,19 @@ Solve this homework assignment with these MANDATORY requirements:
 8. Never use plain text for any mathematical symbol, number, or expression
 
 Assignment to solve:`;
+    } else {
+      // General questions - NO mathematical notation forced
+      prompt = `You are an expert academic assistant. Provide a clear, comprehensive answer to this question.
+
+Instructions:
+- Write in clear, engaging prose appropriate for the question
+- Use proper paragraph structure with good flow
+- Only use mathematical notation if the question specifically involves mathematical formulas
+- For essay questions, philosophy, literature, or general topics, write in plain English
+- Be thorough but concise
+- Provide specific examples and explanations as needed
+
+Question to answer:`;
     }
 
     if (needsGraph) {
@@ -2081,7 +2094,7 @@ Respond with the refined solution only:`;
       try {
         switch (provider) {
           case 'deepseek':
-            refinedResult = await processWithDeepSeek(refinementPrompt);
+            refinedResult = await processWithDeepSeekFixed(refinementPrompt);
             break;
           case 'anthropic':
             refinedResult = await processWithAnthropic(refinementPrompt);
@@ -2172,7 +2185,7 @@ Respond with the refined solution only:`;
           llmResult = await processWithPerplexity(extractedText);
           break;
         case 'deepseek':
-          llmResult = await processWithDeepSeek(extractedText);
+          llmResult = await processWithDeepSeekFixed(extractedText);
           break;
         default:
           throw new Error(`Unsupported LLM provider: ${llmProvider}`);
@@ -2302,7 +2315,7 @@ Respond with the refined solution only:`;
             llmResult = await processWithPerplexity(inputText);
             break;
           case 'deepseek':
-            llmResult = await processWithDeepSeek(inputText);
+            llmResult = await processWithDeepSeekFixed(inputText);
             break;
           default:
             throw new Error(`Unsupported LLM provider: ${llmProvider}`);
@@ -2397,7 +2410,7 @@ Respond with the refined solution only:`;
             llmResult = await processWithPerplexity(inputText);
             break;
           case 'deepseek':
-            llmResult = await processWithDeepSeek(inputText);
+            llmResult = await processWithDeepSeekFixed(inputText);
             break;
           default:
             throw new Error(`Unsupported LLM provider: ${llmProvider}`);
@@ -2840,7 +2853,7 @@ Respond with the refined solution only:`;
           result = await processWithPerplexity(fullPrompt);
           break;
         case 'deepseek':
-          result = await processWithDeepSeek(fullPrompt);
+          result = await processWithDeepSeekFixed(fullPrompt);
           break;
         default:
           return res.status(400).json({ error: "Invalid provider" });
