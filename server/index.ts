@@ -59,11 +59,7 @@ app.use((req, res, next) => {
   // serve on port 5000 in development, or PORT environment variable in production
   // this serves both the API and the client.
   const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
+  server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);
   });
 })();
