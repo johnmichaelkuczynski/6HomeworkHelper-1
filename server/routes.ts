@@ -148,6 +148,46 @@ function generatePreview(fullResponse: string): string {
   }
 }
 
+// Direct DeepSeek processing without content detection (for refinements)
+async function processDirectWithDeepSeek(prompt: string): Promise<{response: string, graphData?: GraphRequest[]}> {
+  try {
+    if (!process.env.DEEPSEEK_API_KEY) {
+      throw new Error('DeepSeek API key not configured');
+    }
+
+    const response = await fetch('https://api.deepseek.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_tokens: 4000,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`DeepSeek API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || 'No response generated';
+
+    return { response: content };
+  } catch (error) {
+    console.error('DeepSeek direct processing error:', error);
+    throw new Error('Failed to process with DeepSeek');
+  }
+}
+
 async function processWithDeepSeekFixed(text: string): Promise<{response: string, graphData?: GraphRequest[]}> {
   try {
     const contentType = detectContentType(text);
@@ -2068,7 +2108,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const startTime = Date.now();
       
-      const refinementPrompt = `You are an expert academic assistant. The user wants you to improve their existing solution based on feedback.
+      // Detect content type to determine appropriate formatting
+      const contentType = detectContentType(originalProblem);
+      
+      let refinementPrompt = `You are an expert academic assistant. The user wants you to improve their existing solution based on feedback.
 
 ORIGINAL PROBLEM:
 ${originalProblem}
@@ -2083,8 +2126,18 @@ IMPORTANT: You must respond with ONLY the improved solution. Do NOT provide anal
 
 Requirements:
 - Keep good parts that weren't criticized
-- Address all feedback points
-- Use proper LaTeX notation ($ for inline, $$ for display math)
+- Address all feedback points`;
+
+      if (contentType === 'math') {
+        refinementPrompt += `
+- Use proper LaTeX notation ($ for inline, $$ for display math)`;
+      } else {
+        refinementPrompt += `
+- Write in clear, natural language appropriate for the question
+- Only use mathematical notation if the problem specifically requires it`;
+      }
+
+      refinementPrompt += `
 - Maintain logical flow and structure
 
 Respond with the refined solution only:`;
@@ -2094,7 +2147,8 @@ Respond with the refined solution only:`;
       try {
         switch (provider) {
           case 'deepseek':
-            refinedResult = await processWithDeepSeekFixed(refinementPrompt);
+            // Don't run content detection again - use the already-prepared prompt directly
+            refinedResult = await processDirectWithDeepSeek(refinementPrompt);
             break;
           case 'anthropic':
             refinedResult = await processWithAnthropic(refinementPrompt);

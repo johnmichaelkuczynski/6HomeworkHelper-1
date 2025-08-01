@@ -2276,7 +2276,15 @@ Use Enter to send your message, or Shift+Enter for new lines."
             <MathTextarea
               value={refinementFeedback}
               onChange={(e) => setRefinementFeedback(e.target.value)}
-              placeholder="For example: 'Make it more detailed in section 2, simplify the explanation of X, add more examples for Y, change the tone to be more formal, etc.'"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                  e.preventDefault();
+                  if (refinementFeedback.trim() && !isRefining) {
+                    handleRefineSolution();
+                  }
+                }
+              }}
+              placeholder="For example: 'Make it more detailed in section 2, simplify the explanation of X, add more examples for Y, change the tone to be more formal, etc.' (Ctrl/Cmd + Enter to submit)"
               className="min-h-[120px]"
               showClearButton={true}
               showVoiceButton={true}
