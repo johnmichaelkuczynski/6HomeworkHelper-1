@@ -71,12 +71,15 @@ function detectContentType(text: string): 'math' | 'document' | 'general' {
     /sin|cos|tan|log|ln|sqrt|derivative|integral/i
   ];
   
-  // Document/text analysis indicators
+  // Document/text analysis indicators - must be more specific to avoid false positives
   const docIndicators = [
-    /summarize|summary|analyze|analysis|discuss|explain|describe|interpret/i,
-    /chapter|section|paragraph|text|document|essay|paper|article/i,
-    /philosophy|literature|history|sociology|psychology|theory/i,
-    /author|writer|argues|concludes|states|claims/i
+    /summarize this (text|document|article|chapter|paper|passage)/i,
+    /analyze this (text|document|article|chapter|paper|passage)/i,
+    /summary of (this|the) (text|document|article|chapter|paper|passage)/i,
+    /analysis of (this|the) (text|document|article|chapter|paper|passage)/i,
+    /(given|following|attached) (text|document|article|chapter|paper|passage)/i,
+    /what (does|is) this (text|document|article|chapter|paper|passage)/i,
+    /the author (argues|states|claims|concludes)/i
   ];
   
   const mathScore = mathIndicators.filter(regex => regex.test(text)).length;
@@ -2052,7 +2055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const startTime = Date.now();
       
-      const refinementPrompt = `You are an expert academic assistant. I need you to refine and improve an existing solution based on specific feedback.
+      const refinementPrompt = `You are an expert academic assistant. The user wants you to improve their existing solution based on feedback.
 
 ORIGINAL PROBLEM:
 ${originalProblem}
@@ -2060,21 +2063,26 @@ ${originalProblem}
 CURRENT SOLUTION:
 ${currentSolution}
 
-USER FEEDBACK FOR IMPROVEMENT:
+USER FEEDBACK:
 ${feedback}
 
-Please refine the solution based on the feedback while:
-1. Keeping the good parts that weren't criticized
-2. Addressing all the specific points mentioned in the feedback
-3. Maintaining mathematical accuracy and proper LaTeX notation
-4. Ensuring the solution flows logically and is well-structured
+IMPORTANT: You must respond with ONLY the improved solution. Do NOT provide analysis, commentary, or explanations about what you changed. Simply provide the refined solution text directly.
 
-Provide the refined solution with all mathematical expressions in proper LaTeX format (use $ for inline math and $$ for display math). Do not include any meta-commentary about the refinement process - just provide the improved solution directly.`;
+Requirements:
+- Keep good parts that weren't criticized
+- Address all feedback points
+- Use proper LaTeX notation ($ for inline, $$ for display math)
+- Maintain logical flow and structure
+
+Respond with the refined solution only:`;
 
       let refinedResult: {response: string, graphData?: GraphRequest[]};
       
       try {
         switch (provider) {
+          case 'deepseek':
+            refinedResult = await processWithDeepSeek(refinementPrompt);
+            break;
           case 'anthropic':
             refinedResult = await processWithAnthropic(refinementPrompt);
             break;
