@@ -39,7 +39,9 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
         title: "Login successful",
         description: `Welcome back! You have ${user.user.tokenBalance} tokens.`,
       });
+      // Force immediate refetch of user data
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/me"] });
       onSuccess?.(user.user);
       onClose();
       resetForm();
@@ -63,7 +65,9 @@ export function AuthDialog({ open, onClose, onSuccess }: AuthDialogProps) {
         title: "Registration successful",
         description: "Welcome! You can now purchase tokens to unlock full features.",
       });
+      // Force immediate refetch of user data
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      queryClient.refetchQueries({ queryKey: ["/api/me"] });
       onSuccess?.(user.user);
       onClose();
       resetForm();
