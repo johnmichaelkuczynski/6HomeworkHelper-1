@@ -21,8 +21,23 @@ export function TokenStatus({ sessionId }: TokenStatusProps) {
   const queryClient = useQueryClient();
 
   // Get current user
-  const { data: user, isLoading: userLoading } = useQuery<any>({
+  const { data: user, isLoading: userLoading, error } = useQuery<any>({
     queryKey: ["/api/me"],
+    queryFn: async () => {
+      const response = await fetch("/api/me", {
+        credentials: "include",
+      });
+      
+      if (response.status === 401) {
+        return null; // Not authenticated
+      }
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return response.json();
+    },
     retry: false,
   });
 
